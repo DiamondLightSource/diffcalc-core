@@ -11,8 +11,6 @@ reflections and crystal reference orientations.
    calc - UB matrix calculation.
    crystal - Crystal lattice data object.
    fitting - Routines for refining crystal lattice parameters and U matrix.
-   orientations - Crystal orientation data object.
-   reference - Reference vector data object.
-   reflection - Reference reflection data object.
+   reference - Reference reflection and crystal orientations data object.
 
 """

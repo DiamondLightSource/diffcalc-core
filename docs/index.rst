@@ -8,7 +8,7 @@ Welcome to diffcalc's documentation!
    readme
    installation
    usage
-   api
+   modules
    authors
    history
 
