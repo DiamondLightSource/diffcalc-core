@@ -8,11 +8,4 @@ API Reference
 
     diffcalc
     diffcalc.hkl
-    diffcalc.hkl.calc
-    diffcalc.hkl.constraints
-    diffcalc.hkl.geometry
     diffcalc.ub
-    diffcalc.ub.calc
-    diffcalc.ub.crystal
-    diffcalc.ub.fitting
-    diffcalc.ub.reference
