@@ -19,6 +19,8 @@
 #
 import os
 import sys
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../src'))
 sys.path.insert(0, os.path.abspath('../src/diffcalc'))
 sys.path.insert(0, os.path.abspath('../src/diffcalc/hkl'))
