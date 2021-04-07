@@ -20,6 +20,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('../src/diffcalc'))
 
 import diffcalc
 
@@ -31,9 +32,24 @@ import diffcalc
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'numpydoc']
+extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.autosummary',
+              'sphinx.ext.napoleon',
+              'sphinx.ext.viewcode',
+              'numpydoc']
 
+# autosummary --------------------------------------------------------------------------
+autosummary_generate = True
+
+# add __init__ docstrings to class documentation
+autoclass_content = "both"
 autodoc_member_order = 'bysource'
+
+# autodoc settings
+autodoc_default_options = {
+    'members':          True,
+    'undoc-members':    True,
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
