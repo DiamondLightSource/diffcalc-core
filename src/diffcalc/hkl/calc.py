@@ -74,7 +74,19 @@ class HklCalculation:
         return repr(self.constraints.asdict)
 
     def get_hkl(self, pos: Position, wavelength: float) -> Tuple[float, float, float]:
-        """Calculate miller indices corresponding to a diffractometer positions."""
+        """Calculate miller indices corresponding to a diffractometer positions.
+        
+        Parameters
+        ----------
+        pos: Position
+            Diffractometer position
+
+        Returns
+        -------
+        Tuple[float, float, float]
+            Miller indices corresponding to the specified diffractometer
+            position at the given wavelength.
+        """
         [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
@@ -96,7 +108,6 @@ class HklCalculation:
         Dict[str, float]
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
-
         """
         theta, qaz = self._theta_and_qaz_from_detector_angles(pos.delta, pos.nu)  # (19)
 
@@ -147,8 +158,8 @@ class HklCalculation:
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
-        The calculated positions are verified by checking that they map to the
-        requested miller indices.
+        The calculated positions and angles are verified by checking that they 
+        map to the requested miller indices.
 
         Parameters
         ----------
@@ -167,13 +178,6 @@ class HklCalculation:
                 List of all solutions matching the input miller indices that
                 consists of pairs of diffractometer position object and virtual
                 angles dictionary.
-        The calculated position is verified by checking that it maps back to the
-        input miller indices using
-        anglesToHkl() to the requested hkl value.
-
-        Those virtual angles fixed or generated while calculating the position
-        are verified by by checking that they map back using
-        get_virtual_angles to the virtual angles for the given position.
         """
         pos_virtual_angles_pairs = self._calc_hkl_to_position(h, k, l, wavelength)
         assert pos_virtual_angles_pairs
