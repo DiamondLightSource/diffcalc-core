@@ -41,12 +41,6 @@ def position_in_range(pos: Position) -> bool:
 def demo_hkl_positions():
     """Demonstrate calculations of miller indices and diffractometer positions."""
     cons.betain = 3.0
-    #all_pos = hklcalc.get_position(0, 0, 1, wavelength)
-    #for pos_001, virtual_angles in all_pos:
-    #    if position_in_range(pos_001):
-    #        print(f"\n\n[0 0 1] -> {pos_001.asdict}")
-    #        print(f"\n{pformat(virtual_angles)}")
-
     for h, k, l in ((0, 0, 1), (1, 0, 1), (1, 0, 2)):
         all_pos = hklcalc.get_position(h, k, l, wavelength)
         print(f"\n{'hkl':<8s}: [{h:1.0f} {k:1.0f} {l:1.0f}]")
@@ -82,12 +76,12 @@ def demo_scan_betain(h: float, k: float, l: float) -> None:
     print(f"\n\nScanning betain incident angle at [{h} {k} {l}] reflection.\n")
     print(f"{'betain':<8s}{'mu':>12s}{'delta':>12s}{'gamma':>12s}{'phi':>12s}")
     print("-" * 56)
-    for beta_in in np.arange(3.0, 4.1, 0.1):
-        cons.betain = beta_in
+    for betain in np.arange(3.0, 4.1, 0.1):
+        cons.betain = betain
         for pos, virtual_angles in hklcalc.get_position(h, k, l, wavelength):
             if position_in_range(pos):
                 print(
-                    f"{beta_in:<8.2f}"
+                    f"{virtual_angles['betain']:<8.2f}"
                     f"{pos.mu * TODEG:>12.3f}"
                     f"{pos.delta * TODEG:>12.3f}"
                     f"{pos.nu * TODEG:>12.3f}"
@@ -144,7 +138,7 @@ def demo_scan_qaz(h, k, l):
         cons.qaz = qaz
         pos, virtual_angles = next(iter(hklcalc.get_position(h, k, l, wavelength)))
         print(
-            f"{qaz:<8.2f}"
+            f"{virtual_angles['qaz']:<8.2f}"
             f"{pos.mu * TODEG:12.3f}"
             f"{pos.delta * TODEG:12.3f}"
             f"{pos.nu * TODEG:12.3f}"
@@ -186,9 +180,9 @@ if __name__ == "__main__":
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), start_pos, "plane")
     ubcalc.calc_ub()
 
-    print(f"UBCalculation object representation.\n")
+    print("UBCalculation object representation.\n")
     print(f"{ubcalc}")
-    print(f"\nUB matrix defined as a (3, 3) NumPy array.\n")
+    print("\nUB matrix defined as a (3, 3) NumPy array.\n")
     pprint(ubcalc.UB)
 
     # 2+2 sufrace diffractometer consistes of delta, nu, mu and phi angles.
@@ -224,21 +218,3 @@ if __name__ == "__main__":
     
     del cons.bin_eq_bout
     demo_scan_qaz(1, 1, 1)
-    
-    #print(f"{'qaz':<8s}{'mu':>12s}{'delta':>12s}{'gamma':>12s}{'phi':>12s}{'betain':>12s}{'betaout':>12s}")
-    #print("-" * 80)
-    #for qaz in np.arange(-1, 1.1, .1):
-    #    cons.qaz = qaz
-    #    for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
-    #        if position_in_range(pos):
-    #            print(
-    #                f"{qaz:8.2f}"
-    #                f"{pos.mu * TODEG:12.3f}"
-    #                f"{pos.delta * TODEG:12.3f}"
-    #                f"{pos.nu * TODEG:12.3f}"
-    #                f"{pos.phi * TODEG:12.3f}"
-    #                f"{virtual_angles['betain'] * TODEG:12.3f}"
-    #                f"{virtual_angles['betaout'] * TODEG:12.3f}"
-    #            )
-    #
-    #

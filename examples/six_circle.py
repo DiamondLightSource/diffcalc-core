@@ -212,9 +212,9 @@ if __name__ == "__main__":
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), None, "plane")
     ubcalc.calc_ub("refl1", "plane")
 
-    print(f"UBCalculation object representation.\n")
+    print("UBCalculation object representation.\n")
     print(f"{ubcalc}")
-    print(f"\nUB matrix defined as a (3, 3) NumPy array.\n")
+    print("\nUB matrix defined as a (3, 3) NumPy array.\n")
     pprint(ubcalc.UB)
 
     cons = Constraints({"qaz": 0, "alpha": 0, "eta": 0})
