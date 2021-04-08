@@ -2,6 +2,7 @@
 Usage
 =====
 
-To use diffcalc-core in a project::
+See examples_ in `DiamondLightSource/diffcalc-core`_ repository.
 
-    import diffcalc
+ .. _examples: https://github.com/DiamondLightSource/diffcalc-core/tree/main/examples
+ .. _`DiamondLightSource/diffcalc-core`: https://github.com/DiamondLightSource/diffcalc-core
