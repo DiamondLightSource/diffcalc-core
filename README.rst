@@ -6,8 +6,8 @@ diffcalc-core
 .. image:: https://img.shields.io/pypi/v/diffcalc-core.svg
         :target: https://pypi.python.org/pypi/diffcalc-core
 
-.. image:: https://img.shields.io/travis/DiamondLightSource/diffcalc-core.svg
-        :target: https://travis-ci.com/DiamondLightSource/diffcalc-core
+.. image:: https://dev.azure.com/iraklisikharulidze/diffcalc-core/_apis/build/status/DiamondLightSource.diffcalc-core?branchName=main
+        :target: https://dev.azure.com/iraklisikharulidze/diffcalc-core/_build/latest?definitionId=2&branchName=main
 
 .. image:: https://readthedocs.org/projects/diffcalc-core/badge/?version=latest
         :target: https://diffcalc-core.readthedocs.io/en/latest/?version=latest
