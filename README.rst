@@ -9,6 +9,9 @@ diffcalc-core
 .. image:: https://dev.azure.com/iraklisikharulidze/diffcalc-core/_apis/build/status/DiamondLightSource.diffcalc-core?branchName=main
         :target: https://dev.azure.com/iraklisikharulidze/diffcalc-core/_build/latest?definitionId=2&branchName=main
 
+.. image:: https://codecov.io/gh/DiamondLightSource/diffcalc-core/branch/main/graph/badge.svg?token=I9LINSTT0N
+        :target: https://codecov.io/gh/DiamondLightSource/diffcalc-core
+
 .. image:: https://readthedocs.org/projects/diffcalc-core/badge/?version=latest
         :target: https://diffcalc-core.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
