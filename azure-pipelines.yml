@@ -23,10 +23,10 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    pip install -r requirements.txt
+    pip install -r requirements_dev.txt
   displayName: 'Install dependencies'
 
 - script: |
     pip install pytest pytest-azurepipelines
-    pytest
+    PYTHONDEVMODE=1 pytest -ra --cov=diffcalc --cov-report=xml --cov-branch
   displayName: 'pytest'
