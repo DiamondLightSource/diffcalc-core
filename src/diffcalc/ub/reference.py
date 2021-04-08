@@ -1,12 +1,11 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
-from dataclasses import dataclass
 from typing import List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
 
 
-@dataclass
+@dataclasses.dataclass
 class Reflection:
     """Class containing reference reflection information.
 
@@ -292,7 +291,7 @@ class ReflectionList:
         return lines
 
 
-@dataclass
+@dataclasses.dataclass
 class Orientation:
     """Class containing reference orientation information.
 

@@ -9,7 +9,6 @@ References
        J. Appl. Cryst. (1999). 32, 614-623.
 """
 import dataclasses
-from dataclasses import dataclass
 from typing import Dict, Tuple
 
 import numpy as np
@@ -17,7 +16,7 @@ from diffcalc.util import I, x_rotation, y_rotation, z_rotation
 from numpy.linalg import inv
 
 
-@dataclass
+@dataclasses.dataclass
 class Position:
     """Class representing diffractometer orientation.
 
