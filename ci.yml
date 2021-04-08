@@ -32,6 +32,8 @@ steps:
   workingDirectory: $(Pipeline.Workspace)/src
 
 - bash: bash <(curl -s https://codecov.io/bash) -n "Python $(PYTHON_VERSION) $(Agent.OS)"
+  env:
+    CODECOV_TOKEN: $(CODECOV_TOKEN)
   displayName: Publish coverage stats
   continueOnError: true
   workingDirectory: $(Pipeline.Workspace)/src
