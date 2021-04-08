@@ -23,13 +23,13 @@ stages:
 
       # Run syntax validation on a shallow clone
     - bash: |
-        python .azure-pipelines/syntax-validation.py
+        python syntax-validation.py
       displayName: Syntax validation
 
       # Run flake8 validation on a shallow clone
     - bash: |
         pip install flake8
-        python .azure-pipelines/flake8-validation.py
+        python flake8-validation.py
       displayName: Flake8 validation
 
 - stage: build
