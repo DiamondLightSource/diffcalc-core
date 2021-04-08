@@ -75,7 +75,7 @@ class HklCalculation:
 
     def get_hkl(self, pos: Position, wavelength: float) -> Tuple[float, float, float]:
         """Calculate miller indices corresponding to a diffractometer positions.
-        
+
         Parameters
         ----------
         pos: Position
@@ -158,7 +158,7 @@ class HklCalculation:
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
-        The calculated positions and angles are verified by checking that they 
+        The calculated positions and angles are verified by checking that they
         map to the requested miller indices.
 
         Parameters
