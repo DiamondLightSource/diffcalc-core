@@ -23,13 +23,13 @@ stages:
 
       # Run syntax validation on a shallow clone
     - bash: |
-        python syntax-validation.py
+        python .azure-pipelines/syntax-validation.py
       displayName: Syntax validation
 
       # Run flake8 validation on a shallow clone
     - bash: |
         pip install flake8
-        python flake8-validation.py
+        python .azure-pipelines/flake8-validation.py
       displayName: Flake8 validation
 
 - stage: build
@@ -86,7 +86,7 @@ stages:
         python39:
           PYTHON_VERSION: 3.9
     steps:
-    - template: ci.yml
+    - template: .azure-pipelines/ci.yml
 
 - stage: deploy
   displayName: Publish release
