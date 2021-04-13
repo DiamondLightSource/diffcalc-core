@@ -2,10 +2,13 @@
 Credits
 =======
 
+Development Lead
+----------------
+
 * Irakli Sikharulidze
-* Rob Walton
 
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Rob Walton
+* Fajin Yuan

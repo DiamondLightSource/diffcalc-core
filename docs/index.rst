@@ -9,6 +9,7 @@ Welcome to diffcalc's documentation!
    installation
    usage
    api
+   contributing
    authors
    history
 
