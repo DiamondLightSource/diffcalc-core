@@ -49,10 +49,10 @@ repos:
     rev: v0.812
     hooks:
     -   id: mypy
-        exclude: ^docs/.*\.py$
+        exclude: ^docs/.*\.py$|^.azure-pipelines/.*\.py$
 -   repo: https://github.com/pycqa/pydocstyle
     rev: 5.1.1
     hooks:
     -   id: pydocstyle
-        exclude: ^tests/.*\.py$|^docs.*\.py$|^setup.py$
+        exclude: ^tests/.*\.py$|^docs.*\.py$|^.azure-pipelines/.*\.py$|^setup.py$
         args: ['--convention=numpy']
