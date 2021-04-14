@@ -2,8 +2,8 @@
 History
 =======
 
-0.2.0
------
+0.2.0 (2021-04-14)
+------------------
 
 * Add support for Python version >= 3.6.
 
