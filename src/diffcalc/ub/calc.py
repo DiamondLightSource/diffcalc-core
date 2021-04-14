@@ -796,7 +796,6 @@ class UBCalculation:
 
         Parameters
         ----------
-
         matrix: Union(np.ndarray,
                       List[List[float]],
                       Tuple[Tuple[float, float, float],
@@ -832,7 +831,6 @@ class UBCalculation:
 
         Parameters
         ----------
-
         matrix: Union(np.ndarray,
                       List[List[float]],
                       Tuple[Tuple[float, float, float],
