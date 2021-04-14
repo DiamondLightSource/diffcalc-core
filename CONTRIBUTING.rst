@@ -70,7 +70,7 @@ Ready to contribute? Here's how to set up `diffcalc-core` for local development.
 
    Now you can make your changes locally.
 
-5. Install precommit hooks which will help keep the code maintainable:
+5. Install precommit hooks which will help keep the code maintainable::
 
     $ pre-commit install
 
@@ -89,8 +89,8 @@ A reminder for the maintainers on how to deploy.
 Make sure all your changes are committed (including an entry in HISTORY.rst).
 Then run::
 
-$ bump2version patch # possible: major / minor / patch
-$ git push
-$ git push --tags
+    $ bump2version patch # possible: major / minor / patch
+    $ git push
+    $ git push --tags
 
 Azure will then deploy to PyPI if tests pass.
