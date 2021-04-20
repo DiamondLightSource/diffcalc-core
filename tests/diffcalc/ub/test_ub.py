@@ -480,7 +480,10 @@ CRYSTAL ORIENTATIONS
             note="wrong calculation for miscut axis",
         )
 
-    @pytest.mark.parametrize(("axis", "angle"), [((0, 1, 0), 10), ((1, 0, 0), 30)])
+    @pytest.mark.parametrize(
+        ("axis", "angle"),
+        [((0, 1, 0), 10), ((1, 0, 0), 30), ((0.70710678, 0.70710678, 0), 50)],
+    )
     def test_get_miscut(self, axis, angle):
         ubcalc = UBCalculation("testing_calc_miscut")
         ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)

@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.1
+-----
+
+* Fix reported miscut parameters to exclude azimuthal component.
+
 0.2.0 (2021-04-14)
 ------------------
 

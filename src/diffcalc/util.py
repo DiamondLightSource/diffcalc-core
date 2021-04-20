@@ -4,6 +4,7 @@ from typing import Any, Sequence, Tuple
 
 import numpy as np
 from numpy.linalg import norm
+from scipy.spatial.transform.rotation import Rotation
 
 I: np.ndarray = np.identity(3)
 
@@ -75,18 +76,8 @@ def xyz_rotation(axis: Tuple[float, float, float], angle: float) -> np.ndarray:
     np.ndarray
         Rotation matrix.
     """
-    u = np.array([list(axis), [0, 0, 0], [0, 0, 0]])
-    u = u / norm(u)
-    e11 = u[0, 0] ** 2 + (1 - u[0, 0] ** 2) * cos(angle)
-    e12 = u[0, 0] * u[0, 1] * (1 - cos(angle)) - u[0, 2] * sin(angle)
-    e13 = u[0, 0] * u[0, 2] * (1 - cos(angle)) + u[0, 1] * sin(angle)
-    e21 = u[0, 0] * u[0, 1] * (1 - cos(angle)) + u[0, 2] * sin(angle)
-    e22 = u[0, 1] ** 2 + (1 - u[0, 1] ** 2) * cos(angle)
-    e23 = u[0, 1] * u[0, 2] * (1 - cos(angle)) - u[0, 0] * sin(angle)
-    e31 = u[0, 0] * u[0, 2] * (1 - cos(angle)) - u[0, 1] * sin(angle)
-    e32 = u[0, 1] * u[0, 2] * (1 - cos(angle)) + u[0, 0] * sin(angle)
-    e33 = u[0, 2] ** 2 + (1 - u[0, 2] ** 2) * cos(angle)
-    return np.array([[e11, e12, e13], [e21, e22, e23], [e31, e32, e33]])
+    rot = Rotation.from_rotvec(angle * np.array(axis) / norm(np.array(axis)))
+    return rot.as_matrix()
 
 
 class DiffcalcException(Exception):

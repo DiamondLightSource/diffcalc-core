@@ -31,7 +31,6 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
-from scipy.spatial.transform import Rotation
 
 
 @dataclass
@@ -304,16 +303,14 @@ class UBCalculation:
         lines = []
         fmt = "% 9.5f % 9.5f % 9.5f"
         rotation_angle, rotation_axis = self.get_miscut()
+        angle = 0 if is_small(rotation_angle) else rotation_angle * TODEG
+        axis = tuple(0 if is_small(x) else x for x in rotation_axis.T.tolist()[0])
         if abs(norm(rotation_axis)) < SMALL:
             lines.append("   miscut angle:".ljust(self._WIDTH) + "  0")
         else:
             lines.append("   miscut:")
-            lines.append(
-                "      angle:".ljust(self._WIDTH) + "% 9.5f" % (rotation_angle * TODEG)
-            )
-            lines.append(
-                "       axis:".ljust(self._WIDTH) + fmt % tuple(rotation_axis.tolist())
-            )
+            lines.append("      angle:".ljust(self._WIDTH) + f"{angle:9.5f}")
+            lines.append("       axis:".ljust(self._WIDTH) + fmt % axis)
 
         return lines
 
@@ -1221,21 +1218,16 @@ class UBCalculation:
         Tuple[float, np.ndarray]
             Miscut angle and miscut axis as (3,1) NumPy array.
         """
-        rotvec = Rotation.from_matrix(self.U).as_rotvec()
-        rot_angle = norm(rotvec)
-        if is_small(rot_angle):
-            return 0, np.array([0, 0, 0])
-        rot_axis = rotvec / rot_angle
-        # surf_rot = self.UB @ self.surf_nphi
-        # rotation_axis = cross3(self.surf_nphi, surf_rot)
-        # if abs(norm(rotation_axis)) < SMALL:
-        #    rotation_axis = array([[0], [0], [0]])
-        #    rotation_angle = 0
-        # else:
-        #    rotation_axis = rotation_axis * (1 / norm(rotation_axis))
-        #    cos_rotation_angle = bound(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
-        #    rotation_angle = acos(cos_rotation_angle) * TODEG
-        return rot_angle, rot_axis
+        surf_rot = self.U @ self.surf_nphi
+        rotation_axis = cross3(self.surf_nphi, surf_rot)
+        if abs(norm(rotation_axis)) < SMALL:
+            rotation_axis = np.array([[0.0], [0.0], [0.0]])
+            rotation_angle = 0.0
+        else:
+            rotation_axis = rotation_axis / norm(rotation_axis)
+            cos_rotation_angle = bound(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
+            rotation_angle = acos(cos_rotation_angle)
+        return rotation_angle, rotation_axis
 
     def get_miscut_from_hkl(
         self, hkl: Tuple[float, float, float], pos: Position
