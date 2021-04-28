@@ -6,7 +6,6 @@ different constraints, e.g. scattering plane and reference vector orientations.
 """
 
 from itertools import product
-from math import pi
 from pprint import pprint
 
 import numpy as np
@@ -14,16 +13,15 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import TODEG, TORAD
 
 
 def position_in_range(pos: Position) -> bool:
     """Check diffractometer position is in acceptale range.
 
-    mu in (0, pi/2)
-    nu in (0, pi/2)
-    delta in (0, pi/2)
-    phi in (-pi/2, pi/2)
+    mu in (0, 90) deg
+    nu in (0, 90) deg
+    delta in (0, 90) deg
+    phi in (-90, 90) deg
 
     Parameters
     ----------
@@ -37,10 +35,10 @@ def position_in_range(pos: Position) -> bool:
     """
     return all(
         (
-            0 < pos.mu < pi / 2,
-            0 < pos.nu < pi / 2,
-            0 < pos.delta < pi / 2,
-            -pi / 2 < pos.phi < pi / 2,
+            0 < pos.mu < 90,
+            0 < pos.nu < 90,
+            0 < pos.delta < 90,
+            -90 < pos.phi < 90,
         )
     )
 
@@ -54,16 +52,16 @@ def demo_hkl_positions():
         for pos_001, virtual_angles in all_pos:
             if position_in_range(pos_001):
                 for angle, val in pos_001.asdict.items():
-                    print(f"{angle:<8s}:{val * TODEG:>8.2f}")
+                    print(f"{angle:<8s}:{val:>8.2f}")
                 print("-" * 18)
                 for angle, val in virtual_angles.items():
-                    print(f"{angle:<8s}:{val * TODEG:>8.2f}")
+                    print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(3.00 * TORAD, 7.90 * TORAD, 14.79 * TORAD, 0.0, 0.0, 8.30 * TORAD)
+    pos1 = Position(3.00, 7.90, 14.79, 0.0, 0.0, 8.30, True)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
-        print(f"{angle:<8s}:{val * TODEG:>8.2f}")
+        print(f"{angle:<8s}:{val:>8.2f}")
     print("-" * 18)
     print(f"\n{'hkl':<8s}: [{hkl1[0]:1.1f} {hkl1[1]:1.1f} {hkl1[2]:1.1f}]")
 
@@ -89,10 +87,10 @@ def demo_scan_betain(h: float, k: float, l: float) -> None:
             if position_in_range(pos):
                 print(
                     f"{virtual_angles['betain']:<8.2f}"
-                    f"{pos.mu * TODEG:>12.3f}"
-                    f"{pos.delta * TODEG:>12.3f}"
-                    f"{pos.nu * TODEG:>12.3f}"
-                    f"{pos.phi * TODEG:>12.3f}"
+                    f"{pos.mu:>12.3f}"
+                    f"{pos.delta:>12.3f}"
+                    f"{pos.nu:>12.3f}"
+                    f"{pos.phi:>12.3f}"
                 )
 
 
@@ -125,12 +123,12 @@ def demo_energy_scan(h: float, k: float, l: float) -> None:
             )
             print(
                 f"{en:<8.2f}"
-                f"{pos.mu * TODEG:12.3f}"
-                f"{pos.delta * TODEG:12.3f}"
-                f"{pos.nu * TODEG:12.3f}"
-                f"{pos.phi * TODEG:12.3f}"
-                f"{virtual_angles['betain'] * TODEG:12.3f}"
-                f"{virtual_angles['betaout'] * TODEG:12.3f}"
+                f"{pos.mu:12.3f}"
+                f"{pos.delta:12.3f}"
+                f"{pos.nu:12.3f}"
+                f"{pos.phi:12.3f}"
+                f"{virtual_angles['betain']:12.3f}"
+                f"{virtual_angles['betaout']:12.3f}"
             )
 
 
@@ -158,11 +156,11 @@ def demo_scan_qaz(h, k, l):
         pos, virtual_angles = next(iter(hklcalc.get_position(h, k, l, wavelength)))
         print(
             f"{virtual_angles['qaz']:<8.2f}"
-            f"{pos.mu * TODEG:12.3f}"
-            f"{pos.delta * TODEG:12.3f}"
-            f"{pos.nu * TODEG:12.3f}"
-            f"{pos.phi * TODEG:12.3f}"
-            f"{virtual_angles['theta'] * TODEG:12.3f}"
+            f"{pos.mu:12.3f}"
+            f"{pos.delta:12.3f}"
+            f"{pos.nu:12.3f}"
+            f"{pos.phi:12.3f}"
+            f"{virtual_angles['theta']:12.3f}"
         )
 
 
@@ -177,13 +175,13 @@ def demo_scan_hkl():
         pos, virtual_angles = next(iter(hklcalc.get_position(h, 0, l, wavelength)))
         print(
             f"[{h:2.1f} 0 {l:2.1f}] "
-            f"{pos.mu * TODEG:12.3f}"
-            f"{pos.delta * TODEG:12.3f}"
-            f"{pos.nu * TODEG:12.3f}"
-            f"{pos.phi * TODEG:12.3f}"
-            f"{virtual_angles['betain'] * TODEG:12.3f}"
-            f"{virtual_angles['betaout'] * TODEG:12.3f}"
-            f"{virtual_angles['theta'] * TODEG:12.3f}"
+            f"{pos.mu:12.3f}"
+            f"{pos.delta:12.3f}"
+            f"{pos.nu:12.3f}"
+            f"{pos.phi:12.3f}"
+            f"{virtual_angles['betain']:12.3f}"
+            f"{virtual_angles['betaout']:12.3f}"
+            f"{virtual_angles['theta']:12.3f}"
         )
 
 
@@ -196,7 +194,7 @@ if __name__ == "__main__":
 
     # We define reciprocal lattice directions in laboratory frame
     # taking into account 2 deg crystal mismount around mu axis.
-    start_pos = Position(-2 * TORAD, 0, 0, 0, 0, 0)
+    start_pos = Position(-2.0, 0, 0, 0, 0, 0, True)
     ubcalc.add_orientation((0, 0, 1), (0, 0, 1), start_pos, "norm")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), start_pos, "plane")
     ubcalc.calc_ub()

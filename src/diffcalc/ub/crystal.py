@@ -3,11 +3,11 @@
 A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
-from math import acos, cos, pi, sin, sqrt
+from math import acos, cos, degrees, pi, radians, sin, sqrt
 from typing import List, Optional, Tuple
 
 import numpy as np
-from diffcalc.util import TODEG, TORAD, allnum, angle_between_vectors, zero_round
+from diffcalc.util import allnum, angle_between_vectors, zero_round
 from numpy.linalg import inv
 
 
@@ -86,7 +86,7 @@ class Crystal:
             self.system = "Triclinic"
             self.a1, self.a2, self.a3 = tuple(float(val) for val in args[:3])
             self.alpha1, self.alpha2, self.alpha3 = tuple(
-                float(val) * TORAD for val in args[3:]
+                radians(float(val)) for val in args[3:]
             )
             self._set_reciprocal_cell(
                 self.a1, self.a2, self.a3, self.alpha1, self.alpha2, self.alpha3
@@ -215,9 +215,9 @@ class Crystal:
             self.a1,
             self.a2,
             self.a3,
-            self.alpha1 * TODEG,
-            self.alpha2 * TODEG,
-            self.alpha3 * TODEG,
+            degrees(self.alpha1),
+            degrees(self.alpha2),
+            degrees(self.alpha3),
         )
 
     def get_lattice_params(self) -> Tuple[str, Tuple[float, ...]]:
@@ -235,23 +235,23 @@ class Crystal:
                     self.a1,
                     self.a2,
                     self.a3,
-                    self.alpha1 * TODEG,
-                    self.alpha2 * TODEG,
-                    self.alpha3 * TODEG,
+                    degrees(self.alpha1),
+                    degrees(self.alpha2),
+                    degrees(self.alpha3),
                 )
             elif self.system == "Monoclinic":
                 return self.system, (
                     self.a1,
                     self.a2,
                     self.a3,
-                    self.alpha2 * TODEG,
+                    degrees(self.alpha2),
                 )
             elif self.system == "Orthorhombic":
                 return self.system, (self.a1, self.a2, self.a3)
             elif self.system == "Tetragonal" or self.system == "Hexagonal":
                 return self.system, (self.a1, self.a3)
             elif self.system == "Rhombohedral":
-                return self.system, (self.a1, self.alpha1 * TODEG)
+                return self.system, (self.a1, degrees(self.alpha1))
             elif self.system == "Cubic":
                 return self.system, (self.a1,)
             else:
@@ -269,12 +269,12 @@ class Crystal:
                 self.a1,
                 self.a2,
                 self.a3,
-                self.alpha1 * TORAD,
-                self.alpha2 * TORAD,
-                self.alpha3 * TORAD,
+                radians(self.alpha1),
+                radians(self.alpha2),
+                radians(self.alpha3),
             )
         elif system == "Monoclinic":
-            return (self.a1, self.a2, self.a3, pi / 2, self.alpha2 * TORAD, pi / 2)
+            return (self.a1, self.a2, self.a3, pi / 2, radians(self.alpha2), pi / 2)
         elif system == "Orthorhombic":
             return (self.a1, self.a2, self.a3, pi / 2, pi / 2, pi / 2)
         elif system == "Tetragonal":
@@ -284,9 +284,9 @@ class Crystal:
                 self.a1,
                 self.a1,
                 self.a1,
-                self.alpha1 * TORAD,
-                self.alpha1 * TORAD,
-                self.alpha1 * TORAD,
+                radians(self.alpha1),
+                radians(self.alpha1),
+                radians(self.alpha1),
             )
         elif system == "Hexagonal":
             return (self.a1, self.a1, self.a3, pi / 2, pi / 2, 2 * pi / 3)

@@ -16,17 +16,16 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-import dataclasses
 import itertools
 from itertools import chain
-from math import cos, pi, sin
+from math import cos, pi, radians, sin
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import TORAD, DiffcalcException, I, y_rotation, z_rotation
+from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
 from numpy import array
 
 from tests.diffcalc.scenarios import Pos, PosFromI16sEuler
@@ -100,8 +99,8 @@ class _BaseTest:
         self.places = 5
 
     def _configure_ub(self):
-        ZROT = z_rotation(self.zrot * TORAD)  # -PHI
-        YROT = y_rotation(self.yrot * TORAD)  # +CHI
+        ZROT = z_rotation(radians(self.zrot))  # -PHI
+        YROT = y_rotation(radians(self.yrot))  # +CHI
         U = ZROT @ YROT
         # UB = U @ self.B
         self.ubcalc.set_u(U)  # self.mock_ubcalc.UB = UB
@@ -117,13 +116,13 @@ class _BaseTest:
         self._configure_ub()
 
         pos_virtual_angles_pairs_in_degrees = self.hklcalc.get_position(
-            hkl[0], hkl[1], hkl[2], wavelength
+            hkl[0], hkl[1], hkl[2], wavelength, False
         )
         pos = list(chain(*pos_virtual_angles_pairs_in_degrees))[::2]
         virtual = list(chain(*pos_virtual_angles_pairs_in_degrees))[1::2]
         assert_array_almost_equal_in_list(
-            dataclasses.astuple(pos_expected),
-            [dataclasses.astuple(p) for p in pos],
+            pos_expected.astuple,
+            [p.astuple for p in pos],
             self.places,
         )
         # assert_array_almost_equal(pos, pos_expected, self.places)
@@ -139,7 +138,7 @@ class _BaseTest:
         self.zrot, self.yrot = zrot, yrot
         self._configure_ub()
         hkl = self.hklcalc.get_hkl(pos, wavelength)
-        virtual = self.hklcalc.get_virtual_angles(pos)
+        virtual = self.hklcalc.get_virtual_angles(pos, False)
         assert_array_almost_equal(
             hkl,
             hkl_expected,
@@ -202,7 +201,7 @@ class TestCubicVertical(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                    (cos(radians(4)), 0, sin(radians(4))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -262,7 +261,7 @@ class TestCubicVertical(_TestCubic):
                 ),
                 Pair(
                     "001-->100",
-                    (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                    (cos(radians(86)), 0, sin(radians(86))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -388,7 +387,7 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (sin(4 * TORAD), 0, cos(4 * TORAD)),
+                    (sin(radians(4)), 0, cos(radians(4))),
                     Pos(
                         mu=-8.01966360660,
                         delta=60,
@@ -448,7 +447,7 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                 ),
                 Pair(
                     "010-->001",
-                    (0, cos(86 * TORAD), sin(86 * TORAD)),
+                    (0, cos(radians(86)), sin(radians(86))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -504,7 +503,7 @@ class TestCubic_FixedPhiMode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                    (cos(radians(4)), 0, sin(radians(4))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -551,7 +550,7 @@ class TestCubic_FixedPhiMode(_TestCubic):
                 ),
                 Pair(
                     "001-->100",
-                    (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                    (cos(radians(86)), 0, sin(radians(86))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -608,7 +607,7 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
                     yrot,
                     wavelength,
                 ),
-                # Pair('100-->001', (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                # Pair('100-->001', (cos(radians(4)), 0, sin(radians(4))),
                 #     Pos(mu=0, delta=60, nu=0, eta=0 + self.zrot, chi=4 - self.yrot,
                 #         phi=30, unit='DEG'),),
                 # Pair('010', (0, 1, 0),
@@ -643,7 +642,7 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
                     yrot,
                     wavelength,
                 ),
-                # Pair('001-->100', (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                # Pair('001-->100', (cos(radians(86)), 0, sin(radians(86))),
                 #     Pos(mu=0, delta=60, nu=0, eta=0 + self.zrot, chi=86 - self.yrot,
                 #         phi=30, unit='DEG')),
             )
@@ -726,7 +725,7 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (sin(4 * TORAD), 0, cos(4 * TORAD)),
+                    (sin(radians(4)), 0, cos(radians(4))),
                     Pos(
                         mu=90,
                         delta=60,
@@ -786,7 +785,7 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                 ),
                 Pair(
                     "010-->001",
-                    (0, cos(86 * TORAD), sin(86 * TORAD)),
+                    (0, cos(radians(86)), sin(radians(86))),
                     Pos(
                         mu=90,
                         delta=60,
@@ -850,7 +849,7 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                 ),
                 Pair(
                     "010-->100",
-                    (sin(4 * TORAD), cos(4 * TORAD), 0),
+                    (sin(radians(4)), cos(radians(4)), 0),
                     Pos(
                         mu=0,
                         delta=60,
@@ -910,7 +909,7 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                 ),
                 Pair(
                     "001-->100",
-                    (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                    (cos(radians(86)), 0, sin(radians(86))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -974,7 +973,7 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                    (cos(radians(4)), 0, sin(radians(4))),
                     Pos(
                         mu=-90,
                         delta=60,
@@ -1034,7 +1033,7 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                 ),
                 Pair(
                     "010-->001",
-                    (0, cos(4 * TORAD), sin(4 * TORAD)),
+                    (0, cos(radians(4)), sin(radians(4))),
                     Pos(
                         mu=120 + 4,
                         delta=0,
@@ -1128,7 +1127,7 @@ class TestCubicVertical_Bisect(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (sin(4 * TORAD), 0, cos(4 * TORAD)),
+                    (sin(radians(4)), 0, cos(radians(4))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -1188,7 +1187,7 @@ class TestCubicVertical_Bisect(_TestCubic):
                 ),
                 Pair(
                     "010-->001",
-                    (0, cos(86 * TORAD), sin(86 * TORAD)),
+                    (0, cos(radians(86)), sin(radians(86))),
                     Pos(
                         mu=0,
                         delta=60,
@@ -1296,7 +1295,7 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (sin(4 * TORAD), 0, cos(4 * TORAD)),
+                    (sin(radians(4)), 0, cos(radians(4))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1356,7 +1355,7 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                 ),
                 Pair(
                     "010-->001",
-                    (0, cos(86 * TORAD), sin(86 * TORAD)),
+                    (0, cos(radians(86)), sin(radians(86))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1445,7 +1444,7 @@ class TestCubicHorizontal(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                    (cos(radians(4)), 0, sin(radians(4))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1490,7 +1489,7 @@ class TestCubicHorizontal(_TestCubic):
                 ),
                 Pair(
                     "001-->100",
-                    (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                    (cos(radians(86)), 0, sin(radians(86))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1613,7 +1612,7 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                    (cos(radians(4)), 0, sin(radians(4))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1658,7 +1657,7 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                 ),
                 Pair(
                     "001-->100",
-                    (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                    (cos(radians(86)), 0, sin(radians(86))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1797,7 +1796,7 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (cos(4 * TORAD), 0, sin(4 * TORAD)),
+                    (cos(radians(4)), 0, sin(radians(4))),
                     Pos(
                         mu=120 - 4,
                         delta=0,
@@ -1842,7 +1841,7 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                 ),  # degenerate case phi||q
                 Pair(
                     "001-->100",
-                    (cos(86 * TORAD), 0, sin(86 * TORAD)),
+                    (cos(radians(86)), 0, sin(radians(86))),
                     Pos(
                         mu=30 - 4,
                         delta=0,
@@ -1927,7 +1926,7 @@ class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (-sin(30 * TORAD), 0, cos(30 * TORAD)),
+                    (-sin(radians(30)), 0, cos(radians(30))),
                     Pos(
                         mu=30,
                         delta=0,
@@ -1981,7 +1980,7 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                 ),
                 Pair(
                     "010-->100",
-                    (sin(4 * TORAD), cos(4 * TORAD), 0),
+                    (sin(radians(4)), cos(radians(4)), 0),
                     Pos(
                         mu=0,
                         delta=60,
@@ -2026,7 +2025,7 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                 ),  # degenerate case phi||q
                 Pair(
                     "100-->010",
-                    (sin(86 * TORAD), cos(86 * TORAD), 0),
+                    (sin(radians(86)), cos(radians(86)), 0),
                     Pos(
                         mu=0,
                         delta=60,
@@ -2111,7 +2110,7 @@ class TestCubic_FixedGamMuChi30Mode(_TestCubic):
                 ),
                 Pair(
                     "100-->010",
-                    (sin(30 * TORAD), cos(30 * TORAD), 0),
+                    (sin(radians(30)), cos(radians(30)), 0),
                     Pos(
                         mu=0,
                         delta=60,
@@ -3035,7 +3034,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_2(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0 * TORAD}
+        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 0, 0.1),
             Pos(
@@ -3080,7 +3079,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
     def testHkl_all0_010to001(self):
         self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
-            (0, cos(4 * TORAD), sin(4 * TORAD)),
+            (0, cos(radians(4)), sin(radians(4))),
             Pos(
                 mu=120 - 4,
                 delta=0,
@@ -3227,7 +3226,7 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
                 {"chi": 90, "phi": 90, "mu": 0},
             ),
             (
-                (sin(4 * TORAD), cos(4 * TORAD), 0),
+                (sin(radians(4)), cos(radians(4)), 0),
                 Pos(
                     mu=0,
                     delta=60,
@@ -3277,7 +3276,7 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
     #
     # def testHkl_all0_010to100(self):
     #    self.constraints.asdict = {'chi': 0, 'phi': 0, 'mu': 0}
-    #    self._check((sin(4 * TORAD), cos(4 * TORAD), 0),
+    #    self._check((sin(radians(4)), cos(radians(4)), 0),
     #                Pos(mu=0, delta=60, nu=0, eta=120 - 4, chi=0, phi=0, unit='DEG'))
 
 
@@ -3373,7 +3372,7 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
                 {"chi": 90, "eta": 0, "mu": 0},
             ),
             (
-                (sin(4 * TORAD), cos(4 * TORAD), 0),
+                (sin(radians(4)), cos(radians(4)), 0),
                 Pos(
                     mu=0,
                     delta=60,
@@ -3392,7 +3391,7 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
     # def testHkl_all0_001(self):
-    #    self.constraints.asdict = {'eta': 30 * TORAD, 'chi': 90 * TORAD, 'mu': 0}
+    #    self.constraints.asdict = {'eta': radians(30), 'chi': 90 * TORAD, 'mu': 0}
     #    self._check((0, 0, 1),
     #                Pos(mu=0, delta=60, nu=0, eta=30, chi=90, phi=0, unit='DEG'), fails=True)
     #
@@ -3423,7 +3422,7 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
     #
     # def testHkl_all0_010to100(self):
     #    self.constraints.asdict = {'chi': 0, 'eta': 0, 'mu': 0}
-    #    self._check((sin(4 * TORAD), cos(4 * TORAD), 0),
+    #    self._check((sin(radians(4)), cos(radians(4)), 0),
     #                Pos(mu=0, delta=60, nu=0, eta=0, chi=0, phi=120 - 4, unit='DEG'))
 
 
@@ -3516,7 +3515,7 @@ class TestConstrain3Sample_MuEtaPhi(_TestCubic):
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
-                (sin(4 * TORAD), 0, cos(4 * TORAD)),
+                (sin(radians(4)), 0, cos(radians(4))),
                 Pos(
                     mu=0,
                     delta=60,
@@ -3535,7 +3534,7 @@ class TestConstrain3Sample_MuEtaPhi(_TestCubic):
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
     # def testHkl_all0_001(self):
-    #    self.constraints.asdict = {'eta': 0, 'phi': 0, 'mu': 30 * TORAD}
+    #    self.constraints.asdict = {'eta': 0, 'phi': 0, 'mu': radians(30)}
     #    self._check((0, 0, 1),
     #                Pos(mu=30, delta=0, nu=60, eta=0, chi=0, phi=0, unit='DEG'))
     #
@@ -3565,8 +3564,8 @@ class TestConstrain3Sample_MuEtaPhi(_TestCubic):
     #                Pos(mu=0, delta=90, nu=0, eta=0, chi=90, phi=90, unit='DEG'), fails=True)
     #
     # def testHkl_all0_010to100(self):
-    #    self.constraints.asdict = {'eta': 30 * TORAD, 'phi': 0, 'mu': 0}
-    #    self._check((sin(4 * TORAD), 0, cos(4 * TORAD)),
+    #    self.constraints.asdict = {'eta': radians(30), 'phi': 0, 'mu': 0}
+    #    self._check((sin(radians(4)), 0, cos(radians(4))),
     #                Pos(mu=0, delta=60, nu=0, eta=30, chi=90 - 4, phi=0, unit='DEG'))
 
 

@@ -17,12 +17,13 @@
 ###
 
 import math
+from math import degrees
 from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import TODEG, I
+from diffcalc.util import I
 from numpy import array
 
 from tests.diffcalc.scenarios import Pos
@@ -56,8 +57,8 @@ class Test_position_to_virtual_angles:
     ):
         """All in degrees"""
         pos = Pos(mu=mu, delta=delta, nu=nu, eta=eta, chi=chi, phi=phi)
-        calculated = self.calc.get_virtual_angles(pos)[name] * TODEG
-        assert_almost_equal(calculated, expected)
+        calculated = self.calc.get_virtual_angles(pos, False)[name]
+        assert_almost_equal(degrees(calculated), expected)
 
     # theta
 

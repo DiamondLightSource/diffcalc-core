@@ -1,16 +1,17 @@
 """Module handling constraint information for diffractometer calculations."""
-from dataclasses import dataclass
+import dataclasses
 from enum import Enum
 from itertools import zip_longest
+from math import degrees, radians
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
-from diffcalc.util import TODEG, TORAD, DiffcalcException
+from diffcalc.util import DiffcalcException
 
 _con_category = Enum("_con_category", "DETECTOR REFERENCE SAMPLE")
 _con_type = Enum("_con_type", "VALUE VOID")
 
 
-@dataclass(eq=False)
+@dataclasses.dataclass(eq=False)
 class _Constraint:
     name: str
     _category: _con_category
@@ -57,7 +58,11 @@ class Constraints:
                                mu, eta & chi
     """
 
-    def __init__(self, constraints: Collection[Union[Tuple[str, float], str]] = None):
+    def __init__(
+        self,
+        constraints: Collection[Union[Tuple[str, float], str]] = None,
+        indegrees: bool = True,
+    ):
         """Object for setting diffractometer angle constraints."""
         self._delta = _Constraint("delta", _con_category.DETECTOR, _con_type.VALUE)
         self._nu = _Constraint("nu", _con_category.DETECTOR, _con_type.VALUE)
@@ -100,6 +105,7 @@ class Constraints:
             self._bisect,
             self._omega,
         )
+        self.indegrees = indegrees
         if constraints is not None:
             if isinstance(constraints, dict):
                 self.asdict = constraints
@@ -244,7 +250,7 @@ class Constraints:
             if isinstance(con.value, bool):
                 return con.value
             elif isinstance(con.value, (int, float)):
-                return con.value * TODEG
+                return degrees(con.value) if self.indegrees else con.value
             else:
                 raise DiffcalcException(
                     f"Invalid {con.name} value type: {type(con.value)}"
@@ -267,7 +273,7 @@ class Constraints:
                     )
             if con._type is _con_type.VALUE:
                 try:
-                    con.value = float(val) * TORAD
+                    con.value = radians(float(val)) if self.indegrees else float(val)
                     return
                 except ValueError:
                     raise DiffcalcException(
@@ -599,6 +605,42 @@ class Constraints:
             lines.append("!   %d more constraints required" % required)
         lines.extend([self._report_constraint(con) for con in self._all if con.active])
         return lines
+
+    @classmethod
+    def asdegrees(cls, constraints: "Constraints") -> "Constraints":
+        """Create new Constraints object with angles in degrees.
+
+        Parameters
+        ----------
+        constraints: Constraints
+            Input Constraints object
+
+        Returns
+        -------
+        Constraints
+            New Constraints object with angles in degrees.
+        """
+        res = cls(constraints.asdict, indegrees=constraints.indegrees)
+        res.indegrees = True
+        return res
+
+    @classmethod
+    def asradians(cls, constraints: "Constraints") -> "Constraints":
+        """Create new Constraints object with angles in radians.
+
+        Parameters
+        ----------
+        constraints: Constraints
+            Input Position object
+
+        Returns
+        -------
+        Constraints
+            New Constraints object with angles in radians.
+        """
+        res = cls(constraints.asdict, indegrees=constraints.indegrees)
+        res.indegrees = False
+        return res
 
     def is_fully_constrained(self, con: Optional[_Constraint] = None) -> bool:
         """Check if configuration is fully constrained.

@@ -19,11 +19,12 @@
 # TODO: class largely copied from test_calc
 
 from collections import namedtuple
+from math import radians
 
 import pytest
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import Crystal
-from diffcalc.util import TORAD, DiffcalcException, I
+from diffcalc.util import DiffcalcException, I
 from numpy import array
 
 from tests.diffcalc.hkl.test_calc import _BaseTest
@@ -61,7 +62,7 @@ class TestSurfaceNormalVerticalCubic(_BaseTest):
             chi=90 + 30,
             phi=90,
         )
-        self._check((0, 0, 1), pos, {"betain": 30 * TORAD, "betaout": 30 * TORAD})
+        self._check((0, 0, 1), pos, {"betain": radians(30), "betaout": radians(30)})
 
     def testHkl011(self):
         pos = Pos(
@@ -72,7 +73,7 @@ class TestSurfaceNormalVerticalCubic(_BaseTest):
             chi=90,
             phi=90,
         )
-        self._check((0, 1, 1), pos, {"betain": 0, "betaout": 90 * TORAD})
+        self._check((0, 1, 1), pos, {"betain": 0, "betaout": radians(90)})
 
     def testHkl010(self):
         pos = Pos(
@@ -83,11 +84,11 @@ class TestSurfaceNormalVerticalCubic(_BaseTest):
             chi=30,
             phi=90,
         )
-        self._check((0, 1, 0), pos, {"betain": -60 * TORAD, "betaout": 60 * TORAD})
+        self._check((0, 1, 0), pos, {"betain": -radians(60), "betaout": radians(60)})
 
     @pytest.mark.xfail(raises=DiffcalcException)
     def testHkl100(self):
-        self._check((1, 0, 0), None, {"alpha": 30 * TORAD, "beta": 30 * TORAD})
+        self._check((1, 0, 0), None, {"alpha": radians(30), "beta": radians(30)})
 
     def testHkl110(self):
         pos = Pos(
@@ -98,7 +99,7 @@ class TestSurfaceNormalVerticalCubic(_BaseTest):
             chi=45,
             phi=45,
         )
-        self._check((1, 1, 0), pos, {"alpha": 30 * TORAD, "beta": 30 * TORAD})
+        self._check((1, 1, 0), pos, {"alpha": radians(30), "beta": radians(30)})
 
 
 # Primary and secondary reflections found with the help of DDIF on Diamond's
@@ -211,7 +212,7 @@ class TestFixedMuEta(_BaseTest):
             HKL0,
             self._convert_willmott_pos(REF0),
             self.wavelength,
-            {"alpha": 2 * TORAD},
+            {"alpha": radians(2)},
         )
 
     def testHkl_0_7_22_found_orientation_setting(self):
@@ -224,14 +225,14 @@ class TestFixedMuEta(_BaseTest):
             HKL1,
             self._convert_willmott_pos(REF1),
             self.wavelength,
-            {"alpha": 2 * TORAD},
+            {"alpha": radians(2)},
         )
 
     def testHkl_2_19_32_calculated_from_DDIF(self):
         self.places = 3
         willpos = WillPos(delta=21.974, gamma=4.419, omegah=2, phi=-33.803)
         self._check(
-            (2, 19, 32), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (2, 19, 32), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_0_7_22_calculated_from_DDIF(self):
@@ -240,14 +241,14 @@ class TestFixedMuEta(_BaseTest):
             delta=11.241801854649, gamma=-3.038407637123, omegah=2, phi=-86.56344250267
         )
         self._check(
-            (0, 7, 22), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (0, 7, 22), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_2_m5_12_calculated_from_DDIF(self):
         self.places = 3
         willpos = WillPos(delta=5.224, gamma=10.415, omegah=2, phi=-1.972)
         self._check(
-            (2, -5, 12), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (2, -5, 12), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_2_19_32_calculated_predicted_with_diffcalc_and_found(self):
@@ -255,7 +256,7 @@ class TestFixedMuEta(_BaseTest):
             delta=21.974032376045, gamma=4.418955754003, omegah=2, phi=-33.80254
         )
         self._check(
-            (2, 19, 32), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (2, 19, 32), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_0_7_22_calculated_predicted_with_diffcalc_and_found(self):
@@ -263,7 +264,7 @@ class TestFixedMuEta(_BaseTest):
             delta=11.241801854649, gamma=-3.038407637123, omegah=2, phi=-86.563442502670
         )
         self._check(
-            (0, 7, 22), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (0, 7, 22), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_2_m5_12_calculated_predicted_with_diffcalc_and_found(self):
@@ -271,7 +272,7 @@ class TestFixedMuEta(_BaseTest):
             delta=5.223972025344, gamma=10.415435905622, omegah=2, phi=-90 + 88.02751
         )
         self._check(
-            (2, -5, 12), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (2, -5, 12), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
 
@@ -355,19 +356,19 @@ class Test_Fixed_Eta_Chi(TestFixedMuEta):
     def testHkl_2_19_32_calculated_predicted_with_diffcalc_and_found(self):
         willpos = WillPos(delta=22.0332862, gamma=-4.0973643, omegah=2, phi=64.0273584)
         self._check(
-            (2, 19, 32), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (2, 19, 32), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_0_7_22_calculated_predicted_with_diffcalc_and_found(self):
         willpos = WillPos(delta=11.2572236, gamma=-2.9800571, omegah=2, phi=-86.5634425)
         self._check(
-            (0, 7, 22), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (0, 7, 22), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
     def testHkl_2_m5_12_calculated_predicted_with_diffcalc_and_found(self):
         willpos = WillPos(delta=5.3109941, gamma=-10.3716944, omegah=2, phi=167.0041454)
         self._check(
-            (2, -5, 12), self._convert_willmott_pos(willpos), {"alpha": 2 * TORAD}
+            (2, -5, 12), self._convert_willmott_pos(willpos), {"alpha": radians(2)}
         )
 
 
@@ -470,7 +471,7 @@ class Test_Pt531_FixedMuChi(_BaseTest):
             Pt531_HKL0,
             self._convert_willmott_pos(Pt531_REF0),
             self.wavelength,
-            {"alpha": 2 * TORAD},
+            {"alpha": radians(2)},
         )
 
     def testHkl_1_found_orientation_setting(self):
@@ -483,31 +484,31 @@ class Test_Pt531_FixedMuChi(_BaseTest):
             Pt531_HKL1,
             self._convert_willmott_pos(Pt531_REF1),
             self.wavelength,
-            {"alpha": 2 * TORAD},
+            {"alpha": radians(2)},
         )
 
     def testHkl_0_calculated_from_DDIF(self):
         self.places = 7
         pos_expected = self._convert_willmott_pos(Pt531_REF0)
-        self._check(Pt531_HKL0, pos_expected, {"alpha": 2 * TORAD})
+        self._check(Pt531_HKL0, pos_expected, {"alpha": radians(2)})
 
     def testHkl_1_calculated_from_DDIF(self):
         self.places = 7
         self._check(
-            Pt531_HKL1, self._convert_willmott_pos(Pt531_REF1), {"alpha": 2 * TORAD}
+            Pt531_HKL1, self._convert_willmott_pos(Pt531_REF1), {"alpha": radians(2)}
         )
 
     def testHkl_2_calculated_from_DDIF(self):
         self.places = 7
         self._check(
-            Pt531_HKL2, self._convert_willmott_pos(Pt531_REF2), {"alpha": 2 * TORAD}
+            Pt531_HKL2, self._convert_willmott_pos(Pt531_REF2), {"alpha": radians(2)}
         )
 
     def testHkl_2_m1_0_16(self):
         self.places = 7
         pos = WillPos(delta=25.7990976, gamma=-6.2413545, omegah=2, phi=47.4624380)
         #        pos.phi -= 360
-        self._check((-1, 0, 16), self._convert_willmott_pos(pos), {"alpha": 2 * TORAD})
+        self._check((-1, 0, 16), self._convert_willmott_pos(pos), {"alpha": radians(2)})
 
 
 class Test_Pt531_Fixed_Mu_eta_(Test_Pt531_FixedMuChi):
@@ -520,17 +521,17 @@ class Test_Pt531_Fixed_Mu_eta_(Test_Pt531_FixedMuChi):
     def testHkl_1_calculated_from_DDIF(self):
         self.places = 7
         self._check(
-            Pt531_HKL1, self._convert_willmott_pos(Pt531_REF12), {"alpha": 2 * TORAD}
+            Pt531_HKL1, self._convert_willmott_pos(Pt531_REF12), {"alpha": radians(2)}
         )
 
     def testHkl_2_calculated_from_DDIF(self):
         self.places = 7
         self._check(
-            Pt531_HKL2, self._convert_willmott_pos(Pt531_REF22), {"alpha": 2 * TORAD}
+            Pt531_HKL2, self._convert_willmott_pos(Pt531_REF22), {"alpha": radians(2)}
         )
 
     def testHkl_2_m1_0_16(self):
         self.places = 7
         pos = WillPos(delta=25.7990976, gamma=6.2413545, omegah=2, phi=-47.4949600)
         #        pos.phi -= 360
-        self._check((-1, 0, 16), self._convert_willmott_pos(pos), {"alpha": 2 * TORAD})
+        self._check((-1, 0, 16), self._convert_willmott_pos(pos), {"alpha": radians(2)})

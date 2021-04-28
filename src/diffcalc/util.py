@@ -1,5 +1,5 @@
 """Collection of auxiliary mathematical methods."""
-from math import acos, cos, isclose, pi, sin
+from math import acos, cos, isclose, sin
 from typing import Any, Sequence, Tuple
 
 import numpy as np
@@ -9,8 +9,6 @@ from scipy.spatial.transform.rotation import Rotation
 I: np.ndarray = np.identity(3)
 
 SMALL: float = 1e-7
-TORAD: float = pi / 180
-TODEG: float = 180 / pi
 
 
 def x_rotation(th: float) -> np.ndarray:

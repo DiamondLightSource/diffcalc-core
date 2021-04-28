@@ -64,7 +64,7 @@ class Reflection:
             reflection tag.
         """
         h, k, l, pos, en, tag = dataclasses.astuple(self)
-        return (h, k, l), pos, en, tag
+        return (h, k, l), pos.astuple, en, tag
 
 
 class ReflectionList:
@@ -270,7 +270,7 @@ class ReflectionList:
         List[str]
             List containing reference reflection table rows.
         """
-        axes = tuple(fd.name.upper() for fd in dataclasses.fields(Position))
+        axes = tuple(fd.upper() for fd in Position.fields)
         if not self.reflections:
             return ["   <<< none specified >>>"]
 
@@ -356,7 +356,7 @@ class Orientation:
             position object and orientation tag.
         """
         h, k, l, x, y, z, pos, tag = dataclasses.astuple(self)
-        return (h, k, l), (x, y, z), pos, tag
+        return (h, k, l), (x, y, z), pos.astuple, tag
 
 
 class OrientationList:
@@ -571,7 +571,7 @@ class OrientationList:
         List[str]
             List containing reference orientations table rows.
         """
-        axes = tuple(fd.name.upper() for fd in dataclasses.fields(Position))
+        axes = tuple(fd.upper() for fd in Position.fields)
         if not self.orientations:
             return ["   <<< none specified >>>"]
 

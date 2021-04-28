@@ -90,9 +90,9 @@ def test_save_and_restore_ubcalc_with_reflections(tmpdir):
 
     ubcalc2 = UBCalculation.load(filename)
 
-    eq_(ubcalc2.get_reflection(1), ref1)
-    eq_(ubcalc2.get_reflection(2), ref2)
-    eq_(ubcalc2.get_reflection(3), ref3)
+    eq_(ubcalc2.get_reflection(1).astuple, ref1.astuple)
+    eq_(ubcalc2.get_reflection(2).astuple, ref2.astuple)
+    eq_(ubcalc2.get_reflection(3).astuple, ref3.astuple)
 
 
 def test_save_and_restore_ubcalc_with_UB_from_two_ref(tmpdir):

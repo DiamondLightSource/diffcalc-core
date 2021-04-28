@@ -3,8 +3,9 @@
 Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
+from copy import copy
 from itertools import product
-from math import acos, asin, atan, atan2, cos, isnan, pi, sin, sqrt, tan
+from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, tan
 from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -19,7 +20,6 @@ from diffcalc.hkl.geometry import (
 from diffcalc.log import logging
 from diffcalc.util import (
     SMALL,
-    TODEG,
     DiffcalcException,
     I,
     angle_between_vectors,
@@ -52,7 +52,7 @@ class HklCalculation:
     -------
     get_hkl(pos: Position, wavelength: float) -> Tuple[float, float, float]
         Calculate miller indices corresponding to a diffractometer positions.
-    get_virtual_angles(pos: Position) -> Dict[str,float]
+    get_virtual_angles(pos: Position, asdegrees: bool = True) -> Dict[str,float]
         Calculate pseudo-angles corresponding to a diffractometer position.
     """
 
@@ -87,7 +87,8 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
+        pos_in_rad = Position.asradians(pos)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -95,13 +96,17 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
+    def get_virtual_angles(
+        self, pos: Position, asdegrees: bool = True
+    ) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
 
         Parameters
         ----------
         pos: Position
             Diffractometer position
+        asdegrees: bool = True
+            If True, return angles in degrees
 
         Returns
         -------
@@ -109,9 +114,12 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
-        theta, qaz = self._theta_and_qaz_from_detector_angles(pos.delta, pos.nu)  # (19)
+        pos_in_rad = Position.asradians(pos)
+        theta, qaz = self._theta_and_qaz_from_detector_angles(
+            pos_in_rad.delta, pos_in_rad.nu
+        )  # (19)
 
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
 
@@ -140,7 +148,7 @@ class HklCalculation:
 
         psi = next(self._calc_psi(alpha, theta, tau, qaz, naz))
 
-        return {
+        result = {
             "theta": theta,
             "ttheta": 2 * theta,
             "qaz": qaz,
@@ -152,9 +160,12 @@ class HklCalculation:
             "betain": betain,
             "betaout": betaout,
         }
+        if asdegrees:
+            result = {key: degrees(val) for key, val in result.items()}
+        return result
 
     def get_position(
-        self, h: float, k: float, l: float, wavelength: float
+        self, h: float, k: float, l: float, wavelength: float, asdegrees: bool = True
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
@@ -171,6 +182,8 @@ class HklCalculation:
                 l miller index
             wavelength: float
                 wavelength in Angstroms
+            asdegrees: bool
+                If True, return angles in degrees
 
         Returns
         -------
@@ -181,14 +194,22 @@ class HklCalculation:
         """
         pos_virtual_angles_pairs = self._calc_hkl_to_position(h, k, l, wavelength)
         assert pos_virtual_angles_pairs
-        pos_virtual_angles_pairs_in_degrees = []
+        results = []
 
-        for pos_virtual_angles in pos_virtual_angles_pairs:
-            self._verify_pos_map_to_hkl(h, k, l, wavelength, pos_virtual_angles[0])
-            self._verify_virtual_angles(h, k, l, *pos_virtual_angles)
-            pos_virtual_angles_pairs_in_degrees.append(pos_virtual_angles)
+        for pos, virtual_angles in pos_virtual_angles_pairs:
+            self._verify_pos_map_to_hkl(h, k, l, wavelength, pos)
+            self._verify_virtual_angles(h, k, l, pos, virtual_angles)
+            if asdegrees:
+                res_pos = Position.asdegrees(pos)
+                res_virtual_angles = {
+                    key: degrees(val) for key, val in virtual_angles.items()
+                }
+            else:
+                res_pos = Position.asradians(pos)
+                res_virtual_angles = copy(virtual_angles)
+            results.append((res_pos, res_virtual_angles))
 
-        return pos_virtual_angles_pairs_in_degrees
+        return results
 
     def _calc_hkl_to_position(
         self, h: float, k: float, l: float, wavelength: float
@@ -375,7 +396,7 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-            pseudo_angles = self.get_virtual_angles(position)
+            pseudo_angles = self.get_virtual_angles(position, False)
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -511,12 +532,12 @@ class HklCalculation:
             # Equation 26 for alpha
             sin_alpha = cos(tau) * sin(theta) - cos(theta) * sin(tau) * cos(psi)
             if abs(sin_alpha) > 1 + SMALL:
-                raise DiffcalcException(UNREACHABLE_MSG % (name, value * TODEG))
+                raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
             alpha = asin(bound(sin_alpha))
             # Equation 27 for beta
             sin_beta = cos(tau) * sin(theta) + cos(theta) * sin(tau) * cos(psi)
             if abs(sin_beta) > 1 + SMALL:
-                raise DiffcalcException(UNREACHABLE_MSG % (name, value * TODEG))
+                raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
 
             beta = asin(bound(sin_beta))
 
@@ -527,14 +548,14 @@ class HklCalculation:
             alpha = value  # (24)
             sin_beta = 2 * sin(theta) * cos(tau) - sin(alpha)
             if abs(sin_beta) > 1 + SMALL:
-                raise DiffcalcException(UNREACHABLE_MSG % (name, value * TODEG))
+                raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
             beta = asin(sin_beta)
 
         elif name == "beta" or name == "betaout":
             beta = value
             sin_alpha = 2 * sin(theta) * cos(tau) - sin(beta)  # (24)
             if abs(sin_alpha) > 1 + SMALL:
-                raise DiffcalcException(UNREACHABLE_MSG % (name, value * TODEG))
+                raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
 
             alpha = asin(sin_alpha)
 
@@ -596,7 +617,7 @@ class HklCalculation:
         if is_small(sin_2theta):
             raise DiffcalcException(
                 "No meaningful scattering vector (Q) can be found when "
-                f"theta is so small {theta * TODEG:.4f}."
+                f"theta is so small {degrees(theta):.4f}."
             )
 
         if constraint_name == "delta":
@@ -648,7 +669,7 @@ class HklCalculation:
                 raise DiffcalcException(
                     "The %s circle constraint to %.0f degrees is redundant."
                     "Please change this constraint or use 4-circle mode."
-                    % ("nu", nu * TODEG)
+                    % ("nu", degrees(nu))
                 )
             cos_delta = cos_2theta / cos(nu)
             cos_qaz = cos_delta * sin(nu) / sin_2theta
@@ -745,18 +766,18 @@ class HklCalculation:
             samp_constraints, psi, theta, h_phi, n_phi
         ):
             qaz, psi, mu, eta, chi, phi = angles
-            values_in_deg = tuple(v * TODEG for v in angles)
+            values_in_deg = tuple(degrees(v) for v in angles)
             logger.debug(
                 "Initial angles: xi=%.3f, psi=%.3f, mu=%.3f, "
                 "eta=%.3f, chi=%.3f, phi=%.3f" % values_in_deg
             )  # Try to find a solution for each possible transformed xi
 
             logger.debug("")
-            msg = "---Trying psi={:.3f}, qaz={:.3f}".format(psi * TODEG, qaz * TODEG)
+            msg = "---Trying psi={:.3f}, qaz={:.3f}".format(degrees(psi), degrees(qaz))
             logger.debug(msg)
 
             for delta, nu, _ in self._calc_remaining_detector_angles("qaz", qaz, theta):
-                logger.debug("delta=%.3f, %s=%.3f", delta * TODEG, "nu", nu * TODEG)
+                logger.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
                 # for mu, eta, chi, phi in self._generate_sample_solutions(
                 #    mu, eta, chi, phi, samp_constraints.keys(), delta,
                 #    nu, wavelength, (h, k, l), ref_constraint_name,
@@ -798,8 +819,8 @@ class HklCalculation:
                 logger.debug(
                     "Eta and phi cannot be chosen uniquely with chi so close "
                     "to 0 or 180. Returning phi=%.3f and eta=%.3f",
-                    phi * TODEG,
-                    eta * TODEG,
+                    degrees(phi),
+                    degrees(eta),
                 )
                 yield mu, eta, chi, phi
             else:
@@ -969,11 +990,13 @@ class HklCalculation:
                 return
             for mu in mu_vals:
                 qaz = __get_qaz_value(mu, eta, chi, phi)
-                logger.debug("--- Trying mu:%.f qaz_%.f", mu * TODEG, qaz * TODEG)
+                logger.debug("--- Trying mu:%.f qaz_%.f", degrees(mu), degrees(qaz))
                 for delta, nu, _ in self._calc_remaining_detector_angles(
                     "qaz", qaz, theta
                 ):
-                    logger.debug("delta=%.3f, %s=%.3f", delta * TODEG, "nu", nu * TODEG)
+                    logger.debug(
+                        "delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu)
+                    )
                     yield mu, delta, nu, eta, chi, phi
 
         elif "eta" not in samp_constraints:
@@ -999,11 +1022,13 @@ class HklCalculation:
                 return
             for eta in eta_vals:
                 qaz = __get_qaz_value(mu, eta, chi, phi)
-                logger.debug("--- Trying eta:%.f qaz_%.f", eta * TODEG, qaz * TODEG)
+                logger.debug("--- Trying eta:%.f qaz_%.f", degrees(eta), degrees(qaz))
                 for delta, nu, _ in self._calc_remaining_detector_angles(
                     "qaz", qaz, theta
                 ):
-                    logger.debug("delta=%.3f, %s=%.3f", delta * TODEG, "nu", nu * TODEG)
+                    logger.debug(
+                        "delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu)
+                    )
                     yield mu, delta, nu, eta, chi, phi
 
         elif "chi" not in samp_constraints:
@@ -1032,11 +1057,11 @@ class HklCalculation:
                 return
             for chi in chi_vals:
                 qaz = __get_qaz_value(mu, eta, chi, phi)
-                logger.debug("--- Trying chi:%.f qaz_%.f", chi * TODEG, qaz * TODEG)
+                logger.debug("--- Trying chi:%.f qaz_%.f", degrees(chi), degrees(qaz))
                 for delta, nu, _ in self._calc_remaining_detector_angles(
                     "qaz", qaz, theta
                 ):
-                    logger.debug("delta=%.3f, %s=%.3f", delta * TODEG, "nu", nu * TODEG)
+                    logger.debug("delta=%.3f, nu=%.3f", degrees(delta), degrees(nu))
                     yield mu, delta, nu, eta, chi, phi
 
         elif "phi" not in samp_constraints:
@@ -1061,11 +1086,11 @@ class HklCalculation:
                 return
             for phi in phi_vals:
                 qaz = __get_qaz_value(mu, eta, chi, phi)
-                logger.debug("--- Trying phi:%.f qaz_%.f", phi * TODEG, qaz * TODEG)
+                logger.debug("--- Trying phi:%.f qaz_%.f", degrees(phi), degrees(qaz))
                 for delta, nu, _ in self._calc_remaining_detector_angles(
                     "qaz", qaz, theta
                 ):
-                    logger.debug("delta=%.3f, %s=%.3f", delta * TODEG, "nu", nu * TODEG)
+                    logger.debug("delta=%.3f, nu=%.3f", degrees(delta), degrees(nu))
                     yield mu, delta, nu, eta, chi, phi
         else:
             raise DiffcalcException(
@@ -1657,7 +1682,7 @@ class HklCalculation:
                 print(
                     "DEGENERATE: with chi=0, phi and eta are colinear:"
                     "choosing eta = delta/2 by adding % 7.3f to eta and "
-                    "removing it from phi. (mu=%s=0 only)" % (eta_diff * TODEG, "nu")
+                    "removing it from phi. (mu=nu=0 only)" % degrees(eta_diff)
                 )
                 print("            original:", pos)
             newpos = Position(
@@ -1677,8 +1702,8 @@ class HklCalculation:
             if print_degenerate:
                 print(
                     "DEGENERATE: with chi=90, phi and mu are colinear: choosing"
-                    " mu = %s/2 by adding % 7.3f to mu and to phi. "
-                    "(delta=eta=0 only)" % ("nu", mu_diff * TODEG)
+                    " mu = nu/2 by adding % 7.3f to mu and to phi. "
+                    "(delta=eta=0 only)" % degrees(mu_diff)
                 )
                 print("            original:", pos)
             newpos = Position(
@@ -1727,7 +1752,7 @@ class HklCalculation:
     ) -> None:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
-        virtual_angles_readback = self.get_virtual_angles(pos)
+        virtual_angles_readback = self.get_virtual_angles(pos, False)
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
                 r = virtual_angles_readback[key]

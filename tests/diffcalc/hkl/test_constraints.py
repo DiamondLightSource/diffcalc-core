@@ -17,6 +17,8 @@
 ###
 
 
+from math import degrees
+
 import pytest
 from diffcalc.hkl.constraints import Constraints, _con_type, _Constraint
 from diffcalc.util import DiffcalcException
@@ -131,6 +133,26 @@ def test_all_init(con_dict, con_tuple, con_set, con_list):
         cm = Constraints(el)
         assert_dict_almost_equal(cm.asdict, con_dict)
         # eq_(cm.astuple, con_tuple)
+
+
+@pytest.mark.parametrize(
+    ("con_dict"),
+    [
+        {"nu": 0.1, "mu": 0.2, "a_eq_b": True},
+        {"nu": -0.1, "mu": 0.2, "a_eq_b": True},
+    ],
+)
+def test_asdegrees_asradians(con_dict):
+    cm = Constraints(con_dict)
+    cm_deg = Constraints.asdegrees(cm)
+    for k, v in cm_deg.asdict.items():
+        assert cm.asdict[k] == pytest.approx(v)
+    cm_rad = Constraints.asradians(cm)
+    for k, v in cm_rad.asdict.items():
+        if isinstance(v, bool):
+            assert cm.asdict[k] == pytest.approx(v)
+        else:
+            assert cm.asdict[k] == pytest.approx(degrees(v))
 
 
 def test_str_constraint(cm):

@@ -16,19 +16,18 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import asin, atan2, cos, sin
+from math import asin, atan2, cos, degrees, radians, sin
 
 # from diffcalc.hkl.vlieg.geometry import VliegPosition
 from diffcalc.hkl.calc import sign
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.reference import Reflection
-from diffcalc.util import TODEG, TORAD
 
 
 def Pos(*args, **kwargs):
     if args:
         return Position(*args)
-    return Position(**{k: v * TORAD for k, v in kwargs.items()})
+    return Position(**{k: radians(v) for k, v in kwargs.items()})
 
 
 def PosFromI16sEuler(phi, chi, eta, mu, delta, gamma):
@@ -44,27 +43,24 @@ def PosFromI16sEuler(phi, chi, eta, mu, delta, gamma):
 
 def VliegPos(alpha=None, delta=None, gamma=None, omega=None, chi=None, phi=None):
     """Convert six-circle Vlieg diffractometer angles into 4S+2D You geometry"""
-    asin_delta = asin(sin(delta * TORAD) * cos(gamma * TORAD)) * TODEG  # Eq.(83)
+    sin_alpha = sin(radians(alpha))
+    cos_alpha = cos(radians(alpha))
+    sin_delta = sin(radians(delta))
+    cos_delta = cos(radians(delta))
+    sin_gamma = sin(radians(gamma))
+    cos_gamma = cos(radians(gamma))
+    asin_delta = degrees(asin(sin_delta * cos_gamma))  # Eq.(83)
     vals_delta = [asin_delta, 180.0 - asin_delta]
     idx, _ = min(
         [(i, abs(delta - d)) for i, d in enumerate(vals_delta)], key=lambda x: x[1]
     )
     pos_delta = vals_delta[idx]
-    sgn = sign(cos(pos_delta * TORAD))
-    pos_nu = (
+    sgn = sign(cos(radians(pos_delta)))
+    pos_nu = degrees(
         atan2(
-            sgn
-            * (
-                cos(delta * TORAD) * cos(gamma * TORAD) * sin(alpha * TORAD)
-                + cos(alpha * TORAD) * sin(gamma * TORAD)
-            ),
-            sgn
-            * (
-                cos(delta * TORAD) * cos(gamma * TORAD) * cos(alpha * TORAD)
-                - sin(alpha * TORAD) * sin(gamma * TORAD)
-            ),
+            sgn * (cos_delta * cos_gamma * sin_alpha + cos_alpha * sin_gamma),
+            sgn * (cos_delta * cos_gamma * cos_alpha - sin_alpha * sin_gamma),
         )
-        * TODEG
     )  # Eq.(84)
     return Pos(mu=alpha, delta=pos_delta, nu=pos_nu, eta=omega, chi=chi, phi=phi)
 

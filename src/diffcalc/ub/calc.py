@@ -4,12 +4,12 @@ This module provides a number of objects and functions for setting UB matrix
 and reference/surface normal vectors based on reflections and/or orientations
 and crystal miscut information.
 """
+import dataclasses
 import pickle
 import uuid
 from copy import deepcopy
-from dataclasses import dataclass
 from itertools import product
-from math import acos, asin, cos, pi, sin
+from math import acos, asin, cos, degrees, pi, radians, sin
 from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -19,8 +19,6 @@ from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
 from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
 from diffcalc.util import (
     SMALL,
-    TODEG,
-    TORAD,
     DiffcalcException,
     allnum,
     bound,
@@ -33,7 +31,7 @@ from diffcalc.util import (
 from numpy.linalg import inv, norm
 
 
-@dataclass
+@dataclasses.dataclass
 class ReferenceVector:
     """Class representing reference vector information.
 
@@ -303,7 +301,7 @@ class UBCalculation:
         lines = []
         fmt = "% 9.5f % 9.5f % 9.5f"
         rotation_angle, rotation_axis = self.get_miscut()
-        angle = 0 if is_small(rotation_angle) else rotation_angle * TODEG
+        angle = 0 if is_small(rotation_angle) else degrees(rotation_angle)
         axis = tuple(0 if is_small(x) else x for x in rotation_axis.T.tolist()[0])
         if abs(norm(rotation_axis)) < SMALL:
             lines.append("   miscut angle:".ljust(self._WIDTH) + "  0")
@@ -1026,7 +1024,7 @@ class UBCalculation:
         rotation_angle = acos(cos_rotation_angle)
 
         uvw = rotation_axis.T.tolist()[0]  # TODO: cleanup
-        print("resulting U angle: %.5f deg" % (rotation_angle * TODEG))
+        print(f"resulting U angle: {degrees(rotation_angle):.5f} deg")
         u_repr = ", ".join(["% .5f" % el for el in uvw])
         print("resulting U axis direction: [%s]" % u_repr)
 
@@ -1096,7 +1094,7 @@ class UBCalculation:
             self.set_lattice(*lat)
         mc_angle, mc_axis = self.get_miscut_from_hkl(hkl, position)
         if mc_angle and refine_umatrix:
-            self.set_miscut(mc_axis, mc_angle * TORAD, True)
+            self.set_miscut(mc_axis, radians(mc_angle), True)
 
     def fit_ub(
         self,
@@ -1203,12 +1201,20 @@ class UBCalculation:
         a2 = cross3(b3.T, b1.T) * 2 * pi / V
         a3 = cross3(b1.T, b2.T) * 2 * pi / V
         ax, bx, cx = norm(a1), norm(a2), norm(a3)
-        alpha = acos(dot3(a2, a3) / (bx * cx)) * TODEG
-        beta = acos(dot3(a1, a3) / (ax * cx)) * TODEG
-        gamma = acos(dot3(a1, a2) / (ax * bx)) * TODEG
+        alpha = acos(dot3(a2, a3) / (bx * cx))
+        beta = acos(dot3(a1, a3) / (ax * cx))
+        gamma = acos(dot3(a1, a2) / (ax * bx))
 
         lattice_name = self.crystal.get_lattice()[0]
-        return new_umatrix, (lattice_name, ax, bx, cx, alpha, beta, gamma)
+        return new_umatrix, (
+            lattice_name,
+            ax,
+            bx,
+            cx,
+            degrees(alpha),
+            degrees(beta),
+            degrees(gamma),
+        )
 
     def get_miscut(self) -> Tuple[float, np.ndarray]:
         """Calculate miscut angle and axis from U matrix.
@@ -1257,13 +1263,10 @@ class UBCalculation:
             return None, None
         axis = axis / norm(axis)
         try:
-            miscut = (
-                acos(bound(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
-                * TODEG
-            )
+            miscut = acos(bound(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
         except AssertionError:
             return 0, (0, 0, 0)
-        return miscut, (axis[0, 0], axis[1, 0], axis[2, 0])
+        return degrees(miscut), (axis[0, 0], axis[1, 0], axis[2, 0])
 
     def set_miscut(
         self,

@@ -16,7 +16,9 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from diffcalc.util import SMALL, TORAD, radians_equivalent
+from math import radians
+
+from diffcalc.util import SMALL, radians_equivalent
 from pytest import approx
 
 
@@ -162,4 +164,4 @@ mneq_ = matrixeq_ = assert_matrix_almost_equal
 
 
 def degrees_equivalent(first, second, tolerance=SMALL):
-    return radians_equivalent(first * TORAD, second * TORAD, tolerance * TORAD)
+    return radians_equivalent(radians(first), radians(second), radians(tolerance))

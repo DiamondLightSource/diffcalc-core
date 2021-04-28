@@ -16,11 +16,10 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import atan, sqrt
+from math import atan, radians, sqrt
 
 import pytest
 from diffcalc.ub.crystal import Crystal
-from diffcalc.util import TORAD
 from numpy import array
 
 from tests.diffcalc import scenarios
@@ -59,19 +58,19 @@ class TestCrystalUnderTest:
         xtal = Crystal("cube", 1, 1, 1, 90, 90, 90)
         assert xtal.get_hkl_plane_angle((0, 0, 1), (0, 0, 2)) == pytest.approx(0)
         assert xtal.get_hkl_plane_angle((0, 1, 0), (0, 0, 2)) == pytest.approx(
-            90 * TORAD
+            radians(90)
         )
         assert xtal.get_hkl_plane_angle((1, 0, 0), (0, 0, 2)) == pytest.approx(
-            90 * TORAD
+            radians(90)
         )
         assert xtal.get_hkl_plane_angle((1, 1, 0), (0, 0, 2)) == pytest.approx(
-            90 * TORAD
+            radians(90)
         )
         assert xtal.get_hkl_plane_angle((0, 1, 1), (0, 0, 2)) == pytest.approx(
-            45 * TORAD
+            radians(45)
         )
         assert xtal.get_hkl_plane_angle((1, 0, 1), (0, 0, 2)) == pytest.approx(
-            45 * TORAD
+            radians(45)
         )
         assert xtal.get_hkl_plane_angle((1, 1, 1), (0, 0, 2)) == pytest.approx(
             atan(sqrt(2.0))

@@ -6,7 +6,6 @@ different constraints, e.g. scattering plane and reference vector orientations.
 """
 
 from itertools import product
-from math import pi
 from pprint import pprint
 
 import numpy as np
@@ -14,40 +13,39 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import TODEG, TORAD
 
 
 def in_range_mu_nu_phi(pos: Position) -> bool:
-    """Check diffractometer position is in acceptale np.arange.
+    """Check diffractometer position is in acceptable np.arange.
 
-    mu in (0, pi/2)
-    nu in (0, pi/2)
-    phi in (-pi/2, pi/2)
+    mu in (0, 90) deg
+    nu in (0, 90) deg
+    phi in (-90, 90) deg
 
     Parameters
     ----------
     pos: Position
-        Diffractometer postion to be checked.
+        Diffractometer position to be checked.
 
     Returns
     -------
     bool
         True, if position is in the acceptable np.arange.
     """
-    return all((0 < pos.mu < pi / 2, 0 < pos.nu < pi / 2, -pi / 2 < pos.phi < pi / 2))
+    return all((0 < pos.mu < 90, 0 < pos.nu < 90, -90 < pos.phi < 90))
 
 
 def in_range_del_eta_phi(pos: Position) -> bool:
-    """Check diffractometer position is in acceptale np.arange.
+    """Check diffractometer position is in acceptable np.arange.
 
-    delta in (-pi/2, pi/2)
-    eta in (-pi/2, pi/2)
-    phi in (-pi/2, pi/2)
+    delta in (-90, 90) deg
+    eta in (-90, 90) deg
+    phi in (-90, 90) deg
 
     Parameters
     ----------
     pos: Position
-        Diffractometer postion to be checked.
+        Diffractometer position to be checked.
 
     Returns
     -------
@@ -56,9 +54,9 @@ def in_range_del_eta_phi(pos: Position) -> bool:
     """
     return all(
         (
-            -pi / 2 < pos.delta < pi / 2,
-            -pi / 2 < pos.eta < pi / 2,
-            -pi / 2 < pos.phi < pi / 2,
+            -90 < pos.delta < 90,
+            -90 < pos.eta < 90,
+            -90 < pos.phi < 90,
         )
     )
 
@@ -71,16 +69,16 @@ def get_hkl_positions():
         for pos_001, virtual_angles in all_pos:
             if in_range_mu_nu_phi(pos_001):
                 for angle, val in pos_001.asdict.items():
-                    print(f"{angle:<8s}:{val * TODEG:>8.2f}")
+                    print(f"{angle:<8s}:{val:>8.2f}")
                 print("-" * 18)
                 for angle, val in virtual_angles.items():
-                    print(f"{angle:<8s}:{val * TODEG:>8.2f}")
+                    print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(7.31 * TORAD, 0.0, 10.62 * TORAD, 0, 0.0, 0)
+    pos1 = Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0, True)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
-        print(f"{angle:<8s}:{val * TODEG:>8.2f}")
+        print(f"{angle:<8s}:{val:>8.2f}")
     print("-" * 18)
     print(f"\n{'hkl':<8s}: [{hkl1[0]:1.1f} {hkl1[1]:1.1f} {hkl1[2]:1.1f}]")
 
@@ -96,15 +94,15 @@ def demo_scan_hkl():
         pos, virtual_angles = next(iter(hklcalc.get_position(h, 0, l, wavelength)))
         print(
             f"[{h:2.1f} 0 {l:2.1f}] "
-            f"{pos.mu * TODEG:12.3f}"
-            f"{pos.delta * TODEG:12.3f}"
-            f"{pos.nu * TODEG:12.3f}"
-            f"{pos.eta * TODEG:12.3f}"
-            f"{pos.chi * TODEG:12.3f}"
-            f"{pos.phi * TODEG:12.3f}"
-            f"{virtual_angles['alpha'] * TODEG:12.3f}"
-            f"{virtual_angles['beta'] * TODEG:12.3f}"
-            f"{virtual_angles['theta'] * TODEG:12.3f}"
+            f"{pos.mu:12.3f}"
+            f"{pos.delta:12.3f}"
+            f"{pos.nu:12.3f}"
+            f"{pos.eta:12.3f}"
+            f"{pos.chi:12.3f}"
+            f"{pos.phi:12.3f}"
+            f"{virtual_angles['alpha']:12.3f}"
+            f"{virtual_angles['beta']:12.3f}"
+            f"{virtual_angles['theta']:12.3f}"
         )
 
 
@@ -120,12 +118,12 @@ def demo_scan_alpha():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
-                    f"{virtual_angles['alpha'] * TODEG:6.2f}"
-                    f"{pos.mu * TODEG:12.3f}"
-                    f"{pos.nu * TODEG:12.3f}"
-                    f"{pos.chi * TODEG:12.3f}"
-                    f"{pos.phi * TODEG:12.3f}"
-                    f"{virtual_angles['theta'] * TODEG:12.3f}"
+                    f"{virtual_angles['alpha']:6.2f}"
+                    f"{pos.mu:12.3f}"
+                    f"{pos.nu:12.3f}"
+                    f"{pos.chi:12.3f}"
+                    f"{pos.phi:12.3f}"
+                    f"{virtual_angles['theta']:12.3f}"
                 )
 
 
@@ -141,13 +139,13 @@ def demo_scan_qaz():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
-                    f"{virtual_angles['qaz'] * TODEG:6.2f}"
-                    f"{pos.mu * TODEG:12.3f}"
-                    f"{pos.delta * TODEG:12.3f}"
-                    f"{pos.nu * TODEG:12.3f}"
-                    f"{pos.chi * TODEG:12.3f}"
-                    f"{pos.phi * TODEG:12.3f}"
-                    f"{virtual_angles['psi'] * TODEG:12.3f}"
+                    f"{virtual_angles['qaz']:6.2f}"
+                    f"{pos.mu:12.3f}"
+                    f"{pos.delta:12.3f}"
+                    f"{pos.nu:12.3f}"
+                    f"{pos.chi:12.3f}"
+                    f"{pos.phi:12.3f}"
+                    f"{virtual_angles['psi']:12.3f}"
                 )
 
 
@@ -163,14 +161,14 @@ def demo_scan_psi():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
-                    f"{virtual_angles['psi'] * TODEG:6.2f}"
-                    f"{pos.mu * TODEG:12.3f}"
-                    f"{pos.delta * TODEG:12.3f}"
-                    f"{pos.nu * TODEG:12.3f}"
-                    f"{pos.eta * TODEG:12.3f}"
-                    f"{pos.chi * TODEG:12.3f}"
-                    f"{pos.phi * TODEG:12.3f}"
-                    f"{virtual_angles['qaz'] * TODEG:12.3f}"
+                    f"{virtual_angles['psi']:6.2f}"
+                    f"{pos.mu:12.3f}"
+                    f"{pos.delta:12.3f}"
+                    f"{pos.nu:12.3f}"
+                    f"{pos.eta:12.3f}"
+                    f"{pos.chi:12.3f}"
+                    f"{pos.phi:12.3f}"
+                    f"{virtual_angles['qaz']:12.3f}"
                 )
 
     print("\n\nResetting crystal miscut to 0 (i.e. setting identity U matrix)\n")
@@ -185,14 +183,14 @@ def demo_scan_psi():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
-                    f"{virtual_angles['psi'] * TODEG:6.2f}"
-                    f"{pos.mu * TODEG:12.3f}"
-                    f"{pos.delta * TODEG:12.3f}"
-                    f"{pos.nu * TODEG:12.3f}"
-                    f"{pos.eta * TODEG:12.3f}"
-                    f"{pos.chi * TODEG:12.3f}"
-                    f"{pos.phi * TODEG:12.3f}"
-                    f"{virtual_angles['qaz'] * TODEG:12.3f}"
+                    f"{virtual_angles['psi']:6.2f}"
+                    f"{pos.mu:12.3f}"
+                    f"{pos.delta:12.3f}"
+                    f"{pos.nu:12.3f}"
+                    f"{pos.eta:12.3f}"
+                    f"{pos.chi:12.3f}"
+                    f"{pos.phi:12.3f}"
+                    f"{virtual_angles['qaz']:12.3f}"
                 )
 
 
@@ -205,7 +203,7 @@ if __name__ == "__main__":
 
     ubcalc.add_reflection(
         (0, 0, 1),
-        Position(7.31 * TORAD, 0.0, 10.62 * TORAD, 0, 0.0, 0),
+        Position(7.31, 0.0, 10.62, 0, 0.0, 0, True),
         12.39842,
         "refl1",
     )

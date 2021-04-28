@@ -16,14 +16,14 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import sqrt
+from math import degrees, radians, sqrt
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
-from diffcalc.util import TODEG, TORAD, DiffcalcException
+from diffcalc.util import DiffcalcException
 from numpy import array
 
 from tests.diffcalc import scenarios
@@ -47,11 +47,13 @@ class TestUBCalculation:
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
         ubcalc.set_lattice("xtal", "Cubic", 1)
-        ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
+        ubcalc.add_reflection(
+            (0, 0, 1), Position(0, 60, 0, 30, 0, 0, True), 12.4, "ref1"
+        )
         ubcalc.add_orientation(
             (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
         )
-        ubcalc.set_miscut(None, 2.0 * TORAD)
+        ubcalc.set_miscut(None, radians(2.0))
 
         assert (
             str(ubcalc)
@@ -438,7 +440,7 @@ CRYSTAL ORIENTATIONS
         ubcalc = UBCalculation("test_get_ttheta_from_hkl")
         ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
         assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(
-            60 * TORAD
+            radians(60)
         )
 
     def test_miscut(self):
@@ -447,17 +449,17 @@ CRYSTAL ORIENTATIONS
         ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
         beam_axis = array([[0], [1], [0]]).T.tolist()[0]
         beam_maxis = array([[0], [-1], [0]]).T.tolist()[0]
-        ubcalc.set_miscut(beam_axis, 30 * TORAD)
+        ubcalc.set_miscut(beam_axis, radians(30))
         mneq_(
             ubcalc.n_hkl,
             array([[-0.5000000], [0.00000], [0.8660254]]),
         )
-        ubcalc.set_miscut(beam_axis, 15 * TORAD, True)
+        ubcalc.set_miscut(beam_axis, radians(15), True)
         mneq_(
             ubcalc.n_hkl,
             array([[-0.7071068], [0.00000], [0.7071068]]),
         )
-        ubcalc.set_miscut(beam_maxis, 45 * TORAD, True)
+        ubcalc.set_miscut(beam_maxis, radians(45), True)
         mneq_(ubcalc.n_hkl, array([[0.0], [0.0], [1.0]]))
 
     @pytest.mark.parametrize(
@@ -467,9 +469,9 @@ CRYSTAL ORIENTATIONS
     def test_get_miscut_from_hkl(self, axis, angle, hkl):
         ubcalc = UBCalculation("testing_calc_miscut")
         ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
-        ubcalc.set_miscut(axis, angle * TORAD)
+        ubcalc.set_miscut(axis, radians(angle))
         hklcalc = HklCalculation(ubcalc, Constraints({"delta": 0, "psi": 0, "eta": 0}))
-        pos, _ = hklcalc.get_position(*hkl, 1.0)[0]
+        pos, _ = hklcalc.get_position(*hkl, 1.0, False)[0]
         ubcalc.set_miscut(None, 0)
         miscut, miscut_axis = ubcalc.get_miscut_from_hkl(hkl, pos)
         assert miscut == pytest.approx(angle)
@@ -487,9 +489,9 @@ CRYSTAL ORIENTATIONS
     def test_get_miscut(self, axis, angle):
         ubcalc = UBCalculation("testing_calc_miscut")
         ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
-        ubcalc.set_miscut(axis, angle * TORAD)
+        ubcalc.set_miscut(axis, radians(angle))
         test_angle, test_axis = ubcalc.get_miscut()
-        assert test_angle * TODEG == pytest.approx(angle)
+        assert degrees(test_angle) == pytest.approx(angle)
         mneq_(
             array([test_axis]),
             array([axis]),
