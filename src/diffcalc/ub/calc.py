@@ -801,16 +801,11 @@ class UBCalculation:
         Raises
         ------
         ValueError
-            if collection isn't (3,3) shape.
+            if collection isn't (3, 3) shape.
         """
-        if type(matrix) in (list, tuple):
-            m = np.array(matrix, dtype="object")
-        else:
-            m = np.array(matrix)
-        if not isinstance(m, np.ndarray):
-            raise TypeError("Invalid input U matrix type")
+        m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
-            raise TypeError("Expects (3, 3) NumPy matrix.")
+            raise TypeError("set_u expects (3, 3) NumPy matrix.")
 
         if self.UB is None:
             print("Calculating UB matrix.")
@@ -821,8 +816,19 @@ class UBCalculation:
         if self.crystal is not None:
             self.UB = self.U @ self.crystal.B
 
-    def set_ub(self, m):
-        """Manually sets U matrix.
+    def set_ub(
+        self,
+        matrix: Union[
+            np.ndarray,
+            List[List[float]],
+            Tuple[
+                Tuple[float, float, float],
+                Tuple[float, float, float],
+                Tuple[float, float, float],
+            ],
+        ],
+    ) -> None:
+        """Manually sets UB matrix.
 
         Parameters
         ----------
@@ -831,22 +837,16 @@ class UBCalculation:
                       Tuple[Tuple[float, float, float],
                             Tuple[float, float, float],
                             Tuple[float, float, float]]
-            Collection containing U matrix coordinates.
+            Collection containing UB matrix coordinates.
 
         Raises
         ------
         ValueError
-            if collection isn't (3,3) shape.
+            if collection isn't (3, 3) shape.
         """
-        """Manually sets UB. matrix must be 3*3 Jama or python matrix.
-        Turns off aution UB calcualtion.
-        """
-        if type(m) in (list, tuple):
-            m = np.array(m, dtype="object")
-        if not isinstance(m, np.ndarray):
-            raise TypeError("Invalid input UB matrix type")
+        m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
-            raise TypeError("Expects 3*3 matrix")
+            raise TypeError("set_ub expects (3, 3) NumPy matrix.")
 
         self.UB = m
 

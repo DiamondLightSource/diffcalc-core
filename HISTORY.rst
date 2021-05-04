@@ -12,6 +12,7 @@ returning calculated angles in degrees or radians.
 * Add fields attribute to Position class with angle names.
 * Remove TORAD, TODEG constants.
 * Change the default angles units in Position class to degrees.
+* Fix manually set UB matrix type compatibility issue.
 
 0.2.1 (2021-04-20)
 ------------------

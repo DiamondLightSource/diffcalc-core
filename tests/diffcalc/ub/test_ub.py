@@ -290,12 +290,12 @@ CRYSTAL ORIENTATIONS
             setu(1, 2)
         with pytest.raises(TypeError):
             setu(1)
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             setu("a")
         with pytest.raises(TypeError):
             setu([1, 2, 3])
-        with pytest.raises(TypeError):
-            setu([[1, 2, 3], [1, 2, 3], [1, 2]])
+        with pytest.raises(ValueError):
+            setu([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0], [1.0, 2.0]])
         # diffCalcException expected if no lattice set yet
         setu([[1, 2, 3], [1, 2, 3], [1, 2, 3]])  # check no exceptions only
         setu(((1, 2, 3), (1, 2, 3), (1, 2, 3)))  # check no exceptions only
@@ -306,11 +306,11 @@ CRYSTAL ORIENTATIONS
         setub = ubcalc.set_ub
         with pytest.raises(TypeError):
             setub(1)
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             setub("a")
         with pytest.raises(TypeError):
             setub([1, 2, 3])
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             setub([[1, 2, 3], [1, 2, 3], [1, 2]])
         setub([[1, 2, 3], [1, 2, 3], [1, 2, 3]])  # check no exceptions only
         setub(((1, 2, 3), (1, 2, 3), (1, 2, 3)))  # check no exceptions only
