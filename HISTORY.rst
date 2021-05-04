@@ -2,8 +2,9 @@
 History
 =======
 
-0.3.0
------
+0.3.0 (2021-05-04)
+------------------
+
 * Add indegrees attribute in Position and Constraints class for angle units.
 * Add asdegrees, asradians methods for converting Position and Constraints
 attributes between degrees and radians.
