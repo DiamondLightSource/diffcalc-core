@@ -24,14 +24,8 @@ from diffcalc.hkl.geometry import Position
 from diffcalc.ub.reference import Reflection
 
 
-def Pos(*args, **kwargs):
-    if args:
-        return Position(*args)
-    return Position(**{k: radians(v) for k, v in kwargs.items()})
-
-
 def PosFromI16sEuler(phi, chi, eta, mu, delta, gamma):
-    return Pos(
+    return Position(
         mu=mu,
         delta=delta,
         nu=gamma,
@@ -62,7 +56,7 @@ def VliegPos(alpha=None, delta=None, gamma=None, omega=None, chi=None, phi=None)
             sgn * (cos_delta * cos_gamma * cos_alpha - sin_alpha * sin_gamma),
         )
     )  # Eq.(84)
-    return Pos(mu=alpha, delta=pos_delta, nu=pos_nu, eta=omega, chi=chi, phi=phi)
+    return Position(mu=alpha, delta=pos_delta, nu=pos_nu, eta=omega, chi=chi, phi=phi)
 
 
 class SessionScenario:

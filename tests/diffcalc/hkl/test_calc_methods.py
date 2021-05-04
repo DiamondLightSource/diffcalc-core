@@ -26,7 +26,6 @@ from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import I
 from numpy import array
 
-from tests.diffcalc.scenarios import Pos
 from tests.tools import assert_almost_equal, assert_matrix_almost_equal
 
 x = array([[1], [0], [0]])
@@ -56,7 +55,7 @@ class Test_position_to_virtual_angles:
         self, name, expected, mu=-99, delta=99, nu=99, eta=99, chi=99, phi=99
     ):
         """All in degrees"""
-        pos = Pos(mu=mu, delta=delta, nu=nu, eta=eta, chi=chi, phi=phi)
+        pos = Position(mu=mu, delta=delta, nu=nu, eta=eta, chi=chi, phi=phi)
         calculated = self.calc.get_virtual_angles(pos, False)[name]
         assert_almost_equal(degrees(calculated), expected)
 
@@ -210,7 +209,7 @@ class Test_position_to_virtual_angles:
     def test_psi5(self):
         # self.check_angle('psi', 0, mu=10, delta=.00000001,
         # nu=0, eta=0, chi=90, phi=0)
-        pos = Pos(mu=0, delta=0, nu=0, eta=0, chi=90, phi=0)
+        pos = Position(mu=0, delta=0, nu=0, eta=0, chi=90, phi=0)
         assert isnan(self.calc.get_virtual_angles(pos)["psi"])
 
     def test_psi6(self):

@@ -74,7 +74,7 @@ def get_hkl_positions():
                 for angle, val in virtual_angles.items():
                     print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0, True)
+    pos1 = Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     ubcalc.add_reflection(
         (0, 0, 1),
-        Position(7.31, 0.0, 10.62, 0, 0.0, 0, True),
+        Position(7.31, 0.0, 10.62, 0, 0.0, 0),
         12.39842,
         "refl1",
     )

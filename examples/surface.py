@@ -57,7 +57,7 @@ def demo_hkl_positions():
                 for angle, val in virtual_angles.items():
                     print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(3.00, 7.90, 14.79, 0.0, 0.0, 8.30, True)
+    pos1 = Position(3.00, 7.90, 14.79, 0.0, 0.0, 8.30)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
     # We define reciprocal lattice directions in laboratory frame
     # taking into account 2 deg crystal mismount around mu axis.
-    start_pos = Position(-2.0, 0, 0, 0, 0, 0, True)
+    start_pos = Position(-2.0, 0, 0, 0, 0, 0)
     ubcalc.add_orientation((0, 0, 1), (0, 0, 1), start_pos, "norm")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), start_pos, "plane")
     ubcalc.calc_ub()

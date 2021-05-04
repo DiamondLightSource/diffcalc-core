@@ -361,7 +361,8 @@ class HklCalculation:
             )
 
         tidy_solutions = [
-            self._tidy_degenerate_solutions(Position(*pos)) for pos in solution_tuples
+            self._tidy_degenerate_solutions(Position(*pos, False))
+            for pos in solution_tuples
         ]
 
         # def _find_duplicate_angles(el):
@@ -1686,7 +1687,13 @@ class HklCalculation:
                 )
                 print("            original:", pos)
             newpos = Position(
-                pos.mu, pos.delta, pos.nu, desired_eta, pos.chi, pos.phi - eta_diff
+                pos.mu,
+                pos.delta,
+                pos.nu,
+                desired_eta,
+                pos.chi,
+                pos.phi - eta_diff,
+                False,
             )
 
         elif (
@@ -1707,7 +1714,13 @@ class HklCalculation:
                 )
                 print("            original:", pos)
             newpos = Position(
-                desired_mu, pos.delta, pos.nu, pos.eta, pos.chi, pos.phi + mu_diff
+                desired_mu,
+                pos.delta,
+                pos.nu,
+                pos.eta,
+                pos.chi,
+                pos.phi + mu_diff,
+                False,
             )
         else:
             newpos = pos

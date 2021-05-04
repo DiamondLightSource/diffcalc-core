@@ -27,7 +27,6 @@ from diffcalc.util import DiffcalcException
 from numpy import array
 
 from tests.diffcalc import scenarios
-from tests.diffcalc.scenarios import Pos
 from tests.test_tools import eq_
 from tests.tools import assert_iterable_almost_equal, mneq_
 
@@ -47,9 +46,7 @@ class TestUBCalculation:
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
         ubcalc.set_lattice("xtal", "Cubic", 1)
-        ubcalc.add_reflection(
-            (0, 0, 1), Position(0, 60, 0, 30, 0, 0, True), 12.4, "ref1"
-        )
+        ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
         ubcalc.add_orientation(
             (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
         )
@@ -391,7 +388,11 @@ CRYSTAL ORIENTATIONS
         ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
         ubcalc.set_miscut(None, 0)
         ubcalc.refine_ub(
-            (1, 1, 0), Pos(mu=0, delta=60, nu=0, eta=30, chi=0, phi=0), 1.0, True, True
+            (1, 1, 0),
+            Position(mu=0, delta=60, nu=0, eta=30, chi=0, phi=0),
+            1.0,
+            True,
+            True,
         )
         eq_(("xtal", sqrt(2.0), sqrt(2.0), 1, 90, 90, 90), ubcalc.crystal.get_lattice())
         mneq_(
@@ -471,7 +472,7 @@ CRYSTAL ORIENTATIONS
         ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
         ubcalc.set_miscut(axis, radians(angle))
         hklcalc = HklCalculation(ubcalc, Constraints({"delta": 0, "psi": 0, "eta": 0}))
-        pos, _ = hklcalc.get_position(*hkl, 1.0, False)[0]
+        pos, _ = hklcalc.get_position(*hkl, 1.0)[0]
         ubcalc.set_miscut(None, 0)
         miscut, miscut_axis = ubcalc.get_miscut_from_hkl(hkl, pos)
         assert miscut == pytest.approx(angle)

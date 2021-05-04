@@ -38,7 +38,7 @@ class Position:
         chi angle value
     phi: float, default = 0.0
         phi angle value
-    indegrees: bool, default = False
+    indegrees: bool, default = True
         If True, arguments are angles in degrees.
     """
 
@@ -59,7 +59,7 @@ class Position:
         eta: float = 0.0,
         chi: float = 0.0,
         phi: float = 0.0,
-        indegrees: bool = False,
+        indegrees: bool = True,
     ):
         self._mu: float = radians(mu) if indegrees else mu
         self._delta: float = radians(delta) if indegrees else delta
