@@ -388,8 +388,6 @@ def get_q_phi(pos: Position) -> np.ndarray:
     """
     pos_in_rad = Position.asradians(pos)
     [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
-    # Equation 12: Compute the momentum transfer vector in the lab  frame
     y = np.array([[0], [1], [0]])
     q_lab = (NU @ DELTA - I) @ y
-    # Transform this into the phi frame.
-    return inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_lab
+    return np.array(inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_lab)

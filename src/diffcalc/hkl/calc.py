@@ -9,6 +9,7 @@ from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, ta
 from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
+from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import (
     Position,
     get_rotation_matrices,
@@ -18,6 +19,7 @@ from diffcalc.hkl.geometry import (
     rot_PHI,
 )
 from diffcalc.log import logging
+from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
@@ -508,8 +510,8 @@ class HklCalculation:
             else:
                 sin_psi = cos(alpha) * sin(qaz - naz)
                 sgn = sign(sin_tau)
-                eps = sin_psi ** 2 + cos_psi ** 2
-                sigma_ = eps / sin_tau ** 2 - 1
+                eps = sin_psi**2 + cos_psi**2
+                sigma_ = eps / sin_tau**2 - 1
                 if not is_small(sigma_):
                     print(
                         "WARNING: Diffcalc could not calculate a unique azimuth "
@@ -937,7 +939,7 @@ class HklCalculation:
                     "Sample orientation cannot be chosen uniquely. Please choose a different set of constraints."
                 )
             ks = atan2(A, B)
-            acos_alp = acos(bound(C / sqrt(A ** 2 + B ** 2)))
+            acos_alp = acos(bound(C / sqrt(A**2 + B**2)))
             if is_small(acos_alp):
                 alp_list = [
                     ks,
@@ -1513,7 +1515,7 @@ class HklCalculation:
                 acos_phi = acos(
                     bound(
                         (N_phi[2, 0] * cos(chi) - V20)
-                        / (sin(chi) * sqrt(A ** 2 + B ** 2))
+                        / (sin(chi) * sqrt(A**2 + B**2))
                     )
                 )
             except AssertionError:
@@ -1562,7 +1564,7 @@ class HklCalculation:
             try:
                 acos_rhs = acos(
                     bound(
-                        (sin(qaz) * cos(theta) / cos(eta) - V) / sqrt(X ** 2 + Y ** 2)
+                        (sin(qaz) * cos(theta) / cos(eta) - V) / sqrt(X**2 + Y**2)
                     )
                 )
             except AssertionError:
@@ -1605,7 +1607,7 @@ class HklCalculation:
                 acos_V00 = acos(
                     bound(
                         (cos(theta) * sin(qaz) - N_phi[2, 0] * cos(eta) * sin(chi))
-                        / sqrt(A ** 2 + B ** 2)
+                        / sqrt(A**2 + B**2)
                     )
                 )
             except AssertionError:
@@ -1785,3 +1787,8 @@ class HklCalculation:
                         "anglesToVirtualAngles of %f" % virtual_angles_readback[key]
                     )
                     raise DiffcalcException(s)
+
+
+hkl = HklCalculation(UBCalculation(), Constraints({"qaz": 0, "alpha": 0, "eta": 0}))
+
+result = hkl.get_position(0, 0, 1, 0.1)

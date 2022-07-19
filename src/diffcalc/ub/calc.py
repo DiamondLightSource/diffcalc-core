@@ -17,10 +17,10 @@ from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
 from diffcalc.ub.crystal import Crystal
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
 from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
+from diffcalc.ub.systems import available_systems
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
-    allnum,
     bound,
     cross3,
     dot3,
@@ -99,7 +99,7 @@ class ReferenceVector:
             n_ref_new = UB @ n_ref_array
         else:
             n_ref_new = inv(UB) @ n_ref_array
-        return n_ref_new / norm(n_ref_new)
+        return np.array(n_ref_new / norm(n_ref_new))
 
     def set_array(self, n_ref: np.ndarray) -> None:
         """Set reference vector coordinates from NumPy array.
@@ -372,15 +372,14 @@ class UBCalculation:
     def set_lattice(
         self,
         name: str,
-        system: Optional[
-            Union[str, float]
-        ] = None,  # FIXME: Cannot set Union type for  positional arguments
+        system: Optional[str] = None,
         a: Optional[float] = None,
         b: Optional[float] = None,
         c: Optional[float] = None,
         alpha: Optional[float] = None,
         beta: Optional[float] = None,
         gamma: Optional[float] = None,
+        indegrees: bool = True,
     ) -> None:
         """Set crystal lattice parameters using shortform notation.
 
@@ -400,15 +399,14 @@ class UBCalculation:
         (a,) -- assumes Cubic system
         (a, c) -- assumes Tetragonal system
         (a, b, c) -- assumes Orthorombic system
-        (a, b, c, angle) -- assumes Monoclinic system with beta not equal to 90 or
-                            Hexagonal system if a = b and gamma = 120
+        (a, b, c, beta) -- assumes Monoclinic system
         (a, b, c, alpha, beta, gamma) -- sets Triclinic system
 
         Parameters
         ----------
         name: str
             Crystal name
-        system: Optional[float], default = None
+        system: Optional[str], default = None
             Crystal lattice type.
         a: Optional[float], default = None
             Crystal lattice parameter.
@@ -417,49 +415,30 @@ class UBCalculation:
         c: Optional[float], default = None
             Crystal lattice parameter.
         alpha: Optional[float], default = None
-            Crystal lattice angle.
+            Crystal lattice angle in degrees
         beta: Optional[float], default = None
-            Crystal lattice angle.
+            Crystal lattice angle in degrees
         gamma: Optional[float], default = None
-            Crystal lattice angle.
+            Crystal lattice angle in degrees
         """
-        if not isinstance(name, str):
-            raise TypeError("Invalid crystal name.")
-        shortform = tuple(
-            val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
-        )
-        if not shortform:
-            raise TypeError("Please specify unit cell parameters.")
-        elif allnum(shortform):
-            sf = shortform
-            if len(sf) == 1:
-                system = "Cubic"
-            elif len(sf) == 2:
-                system = "Tetragonal"
-            elif len(sf) == 3:
-                system = "Orthorhombic"
-            elif len(sf) == 4:
-                if is_small(float(sf[0]) - float(sf[1])) and sf[3] == 120:
-                    system = "Hexagonal"
-                else:
-                    system = "Monoclinic"
-            elif len(sf) == 6:
-                system = "Triclinic"
-            else:
-                raise TypeError(
-                    "Invalid number of input parameters to set unit lattice."
-                )
-            fullform = (system,) + shortform
-        else:
-            if not isinstance(shortform[0], str):
-                raise TypeError("Invalid unit cell parameters specified.")
-            fullform = shortform
-        if self.name is None:
+        assumed_systems = {
+            1: "Cubic",
+            2: "Tetragonal",
+            3: "Orthorombic",
+            4: "Monoclinic",
+            6: "Triclinic",
+        }
+
+        params = [val for val in (a, b, c, alpha, beta, gamma) if val is not None]
+
+        if not system:
+            system = assumed_systems[len(params)]
+        elif system not in available_systems:
             raise DiffcalcException(
-                "Cannot set lattice until a UBCalcaluation has been started "
-                "with newubcalc"
+                f"invalid system, choose from one of: {available_systems}"
             )
-        self.crystal = Crystal(name, *fullform)
+
+        self.crystal = Crystal(name, params, system, indegrees=indegrees)
 
     ### Reference vector ###
     @property
@@ -1208,9 +1187,9 @@ class UBCalculation:
         lattice_name = self.crystal.get_lattice()[0]
         return new_umatrix, (
             lattice_name,
-            ax,
-            bx,
-            cx,
+            float(ax),
+            float(bx),
+            float(cx),
             degrees(alpha),
             degrees(beta),
             degrees(gamma),
@@ -1231,7 +1210,8 @@ class UBCalculation:
             rotation_angle = 0.0
         else:
             rotation_axis = rotation_axis / norm(rotation_axis)
-            cos_rotation_angle = bound(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
+            vector_product = dot3(self.surf_nphi, surf_rot)
+            cos_rotation_angle = bound(vector_product / float(norm(surf_rot)))
             rotation_angle = acos(cos_rotation_angle)
         return rotation_angle, rotation_axis
 
@@ -1263,7 +1243,9 @@ class UBCalculation:
             return None, None
         axis = axis / norm(axis)
         try:
-            miscut = acos(bound(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
+            miscut = acos(
+                bound(dot3(q_vec, hkl_nphi) / float(norm(q_vec) * norm(hkl_nphi)))
+            )
         except AssertionError:
             return 0, (0, 0, 0)
         return degrees(miscut), (axis[0, 0], axis[1, 0], axis[2, 0])
@@ -1355,7 +1337,7 @@ class UBCalculation:
             Scaling factor and updated crystal lattice parameters.
         """
         q_vec = get_q_phi(pos)
-        q_hkl = norm(q_vec) / wavelength
+        q_hkl = float(norm(q_vec) / wavelength)
         d_hkl = self.crystal.get_hkl_plane_distance(hkl)
         sc = 1 / (q_hkl * d_hkl)
         name, a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
@@ -1375,3 +1357,90 @@ class UBCalculation:
             alpha2,
             alpha3,
         )
+
+
+# def VliegPos(alpha=None, delta=None, gamma=None, omega=None, chi=None, phi=None):
+#     """Convert six-circle Vlieg diffractometer angles into 4S+2D You geometry"""
+#     sin_alpha = sin(radians(alpha))
+#     cos_alpha = cos(radians(alpha))
+#     sin_delta = sin(radians(delta))
+#     cos_delta = cos(radians(delta))
+#     sin_gamma = sin(radians(gamma))
+#     cos_gamma = cos(radians(gamma))
+#     asin_delta = degrees(asin(sin_delta * cos_gamma))  # Eq.(83)
+#     vals_delta = [asin_delta, 180.0 - asin_delta]
+#     idx, _ = min(
+#         [(i, abs(delta - d)) for i, d in enumerate(vals_delta)], key=lambda x: x[1]
+#     )
+#     pos_delta = vals_delta[idx]
+#     sgn = sign(cos(radians(pos_delta)))
+#     pos_nu = degrees(
+#         atan2(
+#             sgn * (cos_delta * cos_gamma * sin_alpha + cos_alpha * sin_gamma),
+#             sgn * (cos_delta * cos_gamma * cos_alpha - sin_alpha * sin_gamma),
+#         )
+#     )  # Eq.(84)
+#     return Position(mu=alpha, delta=pos_delta, nu=pos_nu, eta=omega, chi=chi, phi=phi)
+
+
+# ubcalc = UBCalculation()
+# ubcalc.add_reflection(
+#     (0, 1, 2),
+#     VliegPos(0.0000, 23.7405, 0.0000, 11.8703, 46.3100, 43.1304),
+#     12.3984,
+#     "ref1",
+# )
+# ubcalc.add_reflection(
+#     (1, 0, 3),
+#     VliegPos(0.0000, 34.4282, 0.000, 17.2141, 46.4799, 12.7852),
+#     12.3984,
+#     "ref2",
+# )
+# ubcalc.add_reflection(
+#     (2, 2, 6),
+#     VliegPos(0.0000, 82.8618, 0.000, 41.4309, 41.5154, 26.9317),
+#     12.3984,
+#     "ref3",
+# )
+# ubcalc.add_reflection(
+#     (4, 1, 4),
+#     VliegPos(0.0000, 71.2763, 0.000, 35.6382, 29.5042, 14.5490),
+#     12.3984,
+#     "ref4",
+# )
+# ubcalc.add_reflection(
+#     (8, 3, 1),
+#     VliegPos(0.0000, 97.8850, 0.000, 48.9425, 5.6693, 16.7929),
+#     12.3984,
+#     "ref5",
+# )
+# ubcalc.add_reflection(
+#     (6, 4, 5),
+#     VliegPos(0.0000, 129.6412, 0.000, 64.8206, 24.1442, 24.6058),
+#     12.3984,
+#     "ref6",
+# )
+# ubcalc.add_reflection(
+#     (3, 5, 7),
+#     VliegPos(0.0000, 135.9159, 0.000, 67.9579, 34.3696, 35.1816),
+#     12.3984,
+#     "ref7",
+# )
+
+# a, b, c, alpha, beta, gamma = 7.51, 7.73, 7.00, 106.0, 113.5, 99.5
+
+# ubcalc.set_lattice("Dalyite", "Triclinic", 7.51, 7.73, 7.00, 106.0, 113.5, 99.5)
+# ubcalc.calc_ub("ref1", "ref2")
+
+# init_latt = (
+#     1.06 * a,
+#     1.07 * b,
+#     0.94 * c,
+#     1.05 * alpha,
+#     1.06 * beta,
+#     0.95 * gamma,
+# )
+# ubcalc.set_lattice("Dalyite", "Triclinic", *init_latt)
+# ubcalc.set_miscut((0.2, 0.8, 0.1), 3.0, True)
+
+# ubcalc.fit_ub(["ref1", "ref2", "ref3", "ref4", "ref5", "ref6", "ref7"], True, True)

@@ -265,8 +265,10 @@ def sessions(P=VliegPos):
 
     session4 = SessionScenario()
     session4.name = "test_orth"
+    # session4.lattice = (7.51, 7.73, 7.00, 106.0, 113.5, 99.5)
     session4.lattice = (1.41421, 1.41421, 1.00000, 90, 90, 90)
-    session4.system = "Orthorhombic"
+    # session4.system = "Orthorhombic"
+    session4.system = "Triclinic"
     session4.bmatrix = ((4.44288, 0, 0), (0, 4.44288, 0), (0, 0, 6.28319))
     session4.ref1 = Reflection(
         0,
