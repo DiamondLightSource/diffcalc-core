@@ -13,13 +13,13 @@ stages:
   - job: checks
     displayName: static code analysis
     pool:
-      vmImage: ubuntu-20.04
+      vmImage: ubuntu-latest
     steps:
       # Use Python >=3.8 for syntax validation
     - task: UsePythonVersion@0
       displayName: Set up python
       inputs:
-        versionSpec: 3.8
+        versionSpec: 3.9
 
       # Run syntax validation on a shallow clone
     - bash: |
@@ -39,12 +39,12 @@ stages:
   - job: build
     displayName: build package
     pool:
-      vmImage: ubuntu-20.04
+      vmImage: ubuntu-latest
     steps:
     - task: UsePythonVersion@0
       displayName: Set up python
       inputs:
-        versionSpec: 3.8
+        versionSpec: 3.9
 
     - bash: |
         pip install -U pip
@@ -78,7 +78,7 @@ stages:
   jobs:
   - job: linux
     pool:
-      vmImage: ubuntu-20.04
+      vmImage: ubuntu-latest
     strategy:
       matrix:
         python36:
@@ -101,14 +101,14 @@ stages:
   - job: pypi
     displayName: Publish pypi release
     pool:
-      vmImage: ubuntu-20.04
+      vmImage: ubuntu-latest
     steps:
     - checkout: none
 
     - task: UsePythonVersion@0
       displayName: Set up python
       inputs:
-        versionSpec: 3.8
+        versionSpec: 3.9
 
     - task: DownloadBuildArtifacts@0
       displayName: Get pre-built package
