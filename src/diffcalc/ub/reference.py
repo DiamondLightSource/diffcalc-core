@@ -1,8 +1,34 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
+
+
+@dataclasses.dataclass
+class JSONReflection:
+    h: float
+    k: float
+    l: float
+    pos: Dict[str, Any]
+    energy: float
+    tag: str
+
+    @property
+    def asdict(self):
+        return self.__dict__
+
+
+@dataclasses.dataclass
+class JSONOrientation:
+    h: float
+    k: float
+    l: float
+    x: float
+    y: float
+    z: float
+    pos: Dict[str, Any]
+    tag: str
 
 
 @dataclasses.dataclass
@@ -32,17 +58,6 @@ class Reflection:
     energy: float
     tag: str
 
-    def __post_init__(self):
-        """Check input argument types.
-
-        Raises
-        ------
-        TypeError
-            If pos argument has invalid type.
-        """
-        if not isinstance(self.pos, Position):
-            raise TypeError(f"Invalid position object type {type(self.pos)}.")
-
     @property
     def astuple(
         self,
@@ -65,6 +80,44 @@ class Reflection:
         """
         h, k, l, pos, en, tag = dataclasses.astuple(self)
         return (h, k, l), pos.astuple, en, tag
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        """Return reference reflection data as dictionary.
+
+        Returns
+        -------
+        JSONReflection
+            Class structure containing miller indices, position as a dictionary, energy
+            and reflection tag.
+        """
+        class_info = self.__dict__
+        class_info["pos"] = self.pos.asdict
+        return class_info
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Reflection":
+        """Create reflection object from a dictionary.
+
+        Parameters
+        ----------
+        data : JSONReflection
+            Class structure containing miller indices, position as a dictionary, energy
+            and reflection tag
+
+        Returns
+        -------
+        Reflection
+            An instance of the Reflection class.
+        """
+        return cls(
+            data["h"],
+            data["k"],
+            data["l"],
+            Position(**data["pos"]),
+            data["energy"],
+            data["tag"],
+        )
 
 
 class ReflectionList:
@@ -242,6 +295,16 @@ class ReflectionList:
         self.reflections[num1] = self.reflections[num2]
         self.reflections[num2] = orig1
 
+    @property
+    def asdict(self) -> List[Dict[str, Any]]:
+        return [ref.asdict for ref in self.reflections]
+
+    @classmethod
+    def fromdict(cls, data: List[Dict[str, Any]]) -> "ReflectionList":
+        # for each item in the list, call Reflection.fromdict()
+        reflections = [Reflection.fromdict(each_ref) for each_ref in data]
+        return cls(reflections)
+
     def __len__(self) -> int:
         """Return number of reference reflections in the list.
 
@@ -324,17 +387,6 @@ class Orientation:
     pos: Position
     tag: str
 
-    def __post_init__(self):
-        """Check input argument types.
-
-        Raises
-        ------
-        TypeError
-            If pos argument has invalid type.
-        """
-        if not isinstance(self.pos, Position):
-            raise TypeError(f"Invalid position object type {type(self.pos)}.")
-
     @property
     def astuple(
         self,
@@ -357,6 +409,25 @@ class Orientation:
         """
         h, k, l, x, y, z, pos, tag = dataclasses.astuple(self)
         return (h, k, l), (x, y, z), pos.astuple, tag
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        class_info = self.__dict__
+        class_info["pos"] = self.pos.asdict
+        return class_info
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Orientation":
+        return cls(
+            data["h"],
+            data["k"],
+            data["l"],
+            data["x"],
+            data["y"],
+            data["z"],
+            Position(**data["pos"]),
+            data["tag"],
+        )
 
 
 class OrientationList:
@@ -543,6 +614,15 @@ class OrientationList:
         self.orientations[num1] = self.orientations[num2]
         self.orientations[num2] = orig1
 
+    @property
+    def asdict(self) -> List[Dict[str, Any]]:
+        return [ori.asdict for ori in self.orientations]
+
+    @classmethod
+    def fromdict(cls, data: List[Dict[str, Any]]) -> "OrientationList":
+        orientations = [Orientation.fromdict(each_ref) for each_ref in data]
+        return cls(orientations)
+
     def __len__(self) -> int:
         """Return number of reference orientations in the list.
 
@@ -595,3 +675,26 @@ class OrientationList:
             values = (n, h, k, l, x, y, z) + angles + (tag,)
             lines.append(str_format % values)
         return lines
+
+
+# test = Reflection(1, 1, 0, Position(7, 0, 10, 0, 0, 0), 12, "wat")
+# data = test.asdict
+
+# test2 = Reflection.fromdict(data)
+
+# rlist = ReflectionList([test, test2])
+# rlist_dict = rlist.asdict
+
+# rlist2 = ReflectionList.fromdict(rlist_dict)
+
+# Otest = Orientation(1, 0, 1, 1, 0, 1, Position(7, 0, 10, 0, 0, 0), "something")
+# Odata = Otest.asdict
+
+# Otest2 = Orientation.fromdict(Odata)
+
+# olist = OrientationList([Otest, Otest2])
+# olist_dict = olist.asdict
+
+# olist2 = OrientationList.fromdict(olist_dict)
+
+# print("wat")

@@ -10,13 +10,19 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal
+from diffcalc.ub.crystal import Crystal, JSONCrystal
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
-from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
+from diffcalc.ub.reference import (
+    JSONOrientation,
+    JSONReflection,
+    OrientationList,
+    Reflection,
+    ReflectionList,
+)
 from diffcalc.ub.systems import available_systems
 from diffcalc.util import (
     SMALL,
@@ -29,6 +35,28 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
+
+
+@dataclasses.dataclass
+class JSONReferenceVector:
+    n_ref: Tuple[float, float, float]
+    rlv: bool
+
+    @property
+    def asdict(self):
+        return self.__dict__
+
+
+@dataclasses.dataclass
+class JSONUBCalculation:
+    name: str
+    crystal: Optional[JSONCrystal]
+    reflist: List[JSONReflection]
+    orientlist: List[JSONOrientation]
+    reference: Dict[str, Any]
+    surface: Dict[str, Any]
+    u_matrix: Optional[List[List[float]]]
+    ub_matrix: Optional[List[List[float]]]
 
 
 @dataclasses.dataclass
@@ -129,6 +157,14 @@ class ReferenceVector:
             )
         (r1, r2, r3) = tuple(n_ref.T[0].tolist())
         self.n_ref = (r1, r2, r3)
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return self.__dict__
+
+    # @classmethod
+    # def fromdict(cls, data: Dict[str, Any]) -> "ReferenceVector":
+    #     return cls(**data)
 
 
 class UBCalculation:
@@ -438,7 +474,7 @@ class UBCalculation:
                 f"invalid system, choose from one of: {available_systems}"
             )
 
-        self.crystal = Crystal(name, params, system, indegrees=indegrees)
+        self.crystal = Crystal(name, system, params, indegrees=indegrees)
 
     ### Reference vector ###
     @property
@@ -532,7 +568,10 @@ class UBCalculation:
             identifying tag for the reflection
         """
         if self.reflist is None:
-            raise DiffcalcException("No UBCalculation loaded")
+            raise DiffcalcException(
+                "No UBCalculation loaded"
+            )  # self.reflist is never None.
+            # i.e. upon initialising UBCalculation(), it's generated.
         self.reflist.add_reflection(hkl, position, energy, tag)
 
     def edit_reflection(
@@ -1358,89 +1397,51 @@ class UBCalculation:
             alpha3,
         )
 
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "crystal": self.crystal.asdict if self.crystal is not None else None,
+            "reflist": self.reflist.asdict,
+            "orientlist": self.orientlist.asdict,
+            "reference": self.reference.asdict,
+            "surface": self.surface.asdict,
+            "u_matrix": self.U.tolist() if self.U is not None else None,
+            "ub_matrix": self.UB.tolist() if self.UB is not None else None,
+        }
 
-# def VliegPos(alpha=None, delta=None, gamma=None, omega=None, chi=None, phi=None):
-#     """Convert six-circle Vlieg diffractometer angles into 4S+2D You geometry"""
-#     sin_alpha = sin(radians(alpha))
-#     cos_alpha = cos(radians(alpha))
-#     sin_delta = sin(radians(delta))
-#     cos_delta = cos(radians(delta))
-#     sin_gamma = sin(radians(gamma))
-#     cos_gamma = cos(radians(gamma))
-#     asin_delta = degrees(asin(sin_delta * cos_gamma))  # Eq.(83)
-#     vals_delta = [asin_delta, 180.0 - asin_delta]
-#     idx, _ = min(
-#         [(i, abs(delta - d)) for i, d in enumerate(vals_delta)], key=lambda x: x[1]
-#     )
-#     pos_delta = vals_delta[idx]
-#     sgn = sign(cos(radians(pos_delta)))
-#     pos_nu = degrees(
-#         atan2(
-#             sgn * (cos_delta * cos_gamma * sin_alpha + cos_alpha * sin_gamma),
-#             sgn * (cos_delta * cos_gamma * cos_alpha - sin_alpha * sin_gamma),
-#         )
-#     )  # Eq.(84)
-#     return Position(mu=alpha, delta=pos_delta, nu=pos_nu, eta=omega, chi=chi, phi=phi)
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "UBCalculation":
+        # need to return exactly the same object.
+        ubcalc = cls(data["name"])
+        ubcalc.crystal = (
+            Crystal.fromdict(data["crystal"]) if data["crystal"] is not None else None
+        )
+        ubcalc.reflist = ReflectionList.fromdict(data["reflist"])
+        ubcalc.orientlist = OrientationList.fromdict(data["orientlist"])
+        ubcalc.reference = ReferenceVector(**data["reference"])
+        ubcalc.surface = ReferenceVector(**data["surface"])
+        ubcalc.U = np.array(data["u_matrix"]) if data["u_matrix"] is not None else None
+        ubcalc.UB = (
+            np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
+        )
+        return ubcalc
 
 
-# ubcalc = UBCalculation()
-# ubcalc.add_reflection(
-#     (0, 1, 2),
-#     VliegPos(0.0000, 23.7405, 0.0000, 11.8703, 46.3100, 43.1304),
-#     12.3984,
-#     "ref1",
+# test = UBCalculation("test")
+# test.set_lattice(name="test", a=4.913, c=5.405)
+# test.add_reflection(
+#     hkl=(0, 0, 1),
+#     position=Position(7.31, 0, 10.62, 0, 0, 0),
+#     energy=12.39842,
+#     tag="refl1",
 # )
-# ubcalc.add_reflection(
-#     (1, 0, 3),
-#     VliegPos(0.0000, 34.4282, 0.000, 17.2141, 46.4799, 12.7852),
-#     12.3984,
-#     "ref2",
-# )
-# ubcalc.add_reflection(
-#     (2, 2, 6),
-#     VliegPos(0.0000, 82.8618, 0.000, 41.4309, 41.5154, 26.9317),
-#     12.3984,
-#     "ref3",
-# )
-# ubcalc.add_reflection(
-#     (4, 1, 4),
-#     VliegPos(0.0000, 71.2763, 0.000, 35.6382, 29.5042, 14.5490),
-#     12.3984,
-#     "ref4",
-# )
-# ubcalc.add_reflection(
-#     (8, 3, 1),
-#     VliegPos(0.0000, 97.8850, 0.000, 48.9425, 5.6693, 16.7929),
-#     12.3984,
-#     "ref5",
-# )
-# ubcalc.add_reflection(
-#     (6, 4, 5),
-#     VliegPos(0.0000, 129.6412, 0.000, 64.8206, 24.1442, 24.6058),
-#     12.3984,
-#     "ref6",
-# )
-# ubcalc.add_reflection(
-#     (3, 5, 7),
-#     VliegPos(0.0000, 135.9159, 0.000, 67.9579, 34.3696, 35.1816),
-#     12.3984,
-#     "ref7",
-# )
+# test.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
+# test.n_hkl = (1.0, 0.0, 0.0)
 
-# a, b, c, alpha, beta, gamma = 7.51, 7.73, 7.00, 106.0, 113.5, 99.5
+# # test.calc_ub()
 
-# ubcalc.set_lattice("Dalyite", "Triclinic", 7.51, 7.73, 7.00, 106.0, 113.5, 99.5)
-# ubcalc.calc_ub("ref1", "ref2")
+# tdict = test.asdict
 
-# init_latt = (
-#     1.06 * a,
-#     1.07 * b,
-#     0.94 * c,
-#     1.05 * alpha,
-#     1.06 * beta,
-#     0.95 * gamma,
-# )
-# ubcalc.set_lattice("Dalyite", "Triclinic", *init_latt)
-# ubcalc.set_miscut((0.2, 0.8, 0.1), 3.0, True)
-
-# ubcalc.fit_ub(["ref1", "ref2", "ref3", "ref4", "ref5", "ref6", "ref7"], True, True)
+# test2 = UBCalculation.fromdict(tdict)
+# print("a")

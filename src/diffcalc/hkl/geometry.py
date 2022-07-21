@@ -9,7 +9,7 @@ References
        J. Appl. Cryst. (1999). 32, 614-623.
 """
 from math import degrees, radians
-from typing import Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 import numpy as np
 from diffcalc.util import I, x_rotation, y_rotation, z_rotation
@@ -42,13 +42,14 @@ class Position:
         If True, arguments are angles in degrees.
     """
 
-    fields: Tuple[str, str, str, str, str, str] = (
+    fields: Tuple[str, str, str, str, str, str, str] = (
         "mu",
         "delta",
         "nu",
         "eta",
         "chi",
         "phi",
+        "indegrees",
     )
 
     def __init__(
@@ -83,7 +84,7 @@ class Position:
         Position
             New Position object with angles in degrees.
         """
-        res = cls(**pos.asdict, indegrees=pos.indegrees)
+        res = cls(**pos.asdict)
         res.indegrees = True
         return res
 
@@ -101,7 +102,7 @@ class Position:
         Position
             New Position object with angles in radians.
         """
-        res = cls(**pos.asdict, indegrees=pos.indegrees)
+        res = cls(**pos.asdict)
         res.indegrees = False
         return res
 
@@ -220,7 +221,7 @@ class Position:
         self._phi = None
 
     @property
-    def asdict(self) -> Dict[str, float]:
+    def asdict(self) -> Dict[str, Any]:
         """Return dictionary of diffractometer angles.
 
         Returns
@@ -230,8 +231,12 @@ class Position:
         """
         return {field: getattr(self, field) for field in self.fields}
 
+    # @classmethod
+    # def fromdict(cls, data: Mapping[str, Any]) -> "Position":
+    #     return cls(**data)
+
     @property
-    def astuple(self) -> Tuple[float, float, float, float, float, float]:
+    def astuple(self) -> Tuple[Any, ...]:
         """Return tuple of diffractometer angles.
 
         Returns
@@ -239,7 +244,7 @@ class Position:
         Tuple[float, float, float, float, float, float]
             Tuple of angle values.
         """
-        mu, delta, nu, eta, chi, phi = tuple(
+        mu, delta, nu, eta, chi, phi, _ = tuple(
             getattr(self, field) for field in self.fields
         )
         return mu, delta, nu, eta, chi, phi

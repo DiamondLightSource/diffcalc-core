@@ -3,6 +3,7 @@
 A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
+from dataclasses import dataclass
 from math import acos, cos, degrees, pi, radians, sin, sqrt
 from typing import Any, Dict, List, Tuple, Union
 
@@ -16,6 +17,17 @@ def lists_equal(list1: List[Any], list2: List[Any]) -> bool:
     if len(list1) != len(list2):
         return False
     return bool(np.all([item in list2 for item in list1]))
+
+
+@dataclass
+class JSONCrystal:
+    name: str
+    system: str
+    lattice_params: Dict[str, float]
+
+    @property
+    def asdict(self):
+        return self.__dict__
 
 
 class Crystal:
@@ -59,8 +71,8 @@ class Crystal:
     def __init__(
         self,
         name: str,
-        lattice_params: Union[Dict[str, float], List[float]],
         system: str,
+        lattice_params: Union[Dict[str, float], List[float]],
         indegrees: bool = True,
     ) -> None:
         """Create a new crystal lattice and calculates B matrix.
@@ -242,7 +254,6 @@ class Crystal:
     def _set_cell_for_system(self, params: Dict[str, float]) -> None:
         default_params = self.default_params
 
-        # loop through params, and replace default_params[param] with the value there.
         for param_key, param_value in params.items():
             if (param_key == ("alpha" or "beta" or "gamma")) and self.indegrees:
                 default_params[param_key] = radians(param_value)
@@ -301,11 +312,30 @@ class Crystal:
         angle = angle_between_vectors(nphi1, nphi2)
         return angle
 
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        """Serialise the crystal into a JSON compatible dictionary"""
+        return {
+            "name": self.name,
+            "system": self.system,
+            "lattice_params": self.lattice_params,
+            "indegrees": self.indegrees,
+        }
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Crystal":
+        return Crystal(**data)
+
+
+# def deserialise_crystal(crystal_data: JSONCrystal):
+#     return Crystal(**crystal_data.asdict)
+
 
 # test = Crystal(
 #     name="test", lattice_params={"a": 4.913, "c": 5.405}, system="Tetragonal"
 # )
 # test.get_hkl_plane_angle((0, 0, 1), (0, 1, 3))
+# data = test.asdict
 
 # output = test.get_lattice_params()
 # print("yay")
