@@ -10,7 +10,7 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -99,7 +99,8 @@ class ReferenceVector:
             n_ref_new = UB @ n_ref_array
         else:
             n_ref_new = inv(UB) @ n_ref_array
-        return n_ref_new / norm(n_ref_new)
+
+        return np.array(n_ref_new / float(norm(n_ref_new)))
 
     def set_array(self, n_ref: np.ndarray) -> None:
         """Set reference vector coordinates from NumPy array.
@@ -425,7 +426,7 @@ class UBCalculation:
         """
         if not isinstance(name, str):
             raise TypeError("Invalid crystal name.")
-        shortform = tuple(
+        shortform: Tuple[Any, ...] = tuple(
             val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
         )
         if not shortform:
@@ -449,17 +450,17 @@ class UBCalculation:
                 raise TypeError(
                     "Invalid number of input parameters to set unit lattice."
                 )
-            fullform = (system,) + shortform
+            fullform: Tuple[Any, ...] = (system,) + shortform
+            self.crystal = Crystal(name, *fullform)
         else:
             if not isinstance(shortform[0], str):
                 raise TypeError("Invalid unit cell parameters specified.")
-            fullform = shortform
+            self.crystal = Crystal(name, *shortform)
         if self.name is None:
             raise DiffcalcException(
                 "Cannot set lattice until a UBCalcaluation has been started "
                 "with newubcalc"
             )
-        self.crystal = Crystal(name, *fullform)
 
     ### Reference vector ###
     @property
@@ -1200,7 +1201,7 @@ class UBCalculation:
         a1 = cross3(b2.T, b3.T) * 2 * pi / V
         a2 = cross3(b3.T, b1.T) * 2 * pi / V
         a3 = cross3(b1.T, b2.T) * 2 * pi / V
-        ax, bx, cx = norm(a1), norm(a2), norm(a3)
+        ax, bx, cx = float(norm(a1)), float(norm(a2)), float(norm(a3))
         alpha = acos(dot3(a2, a3) / (bx * cx))
         beta = acos(dot3(a1, a3) / (ax * cx))
         gamma = acos(dot3(a1, a2) / (ax * bx))
@@ -1231,7 +1232,9 @@ class UBCalculation:
             rotation_angle = 0.0
         else:
             rotation_axis = rotation_axis / norm(rotation_axis)
-            cos_rotation_angle = bound(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
+            cos_rotation_angle = bound(
+                float(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
+            )
             rotation_angle = acos(cos_rotation_angle)
         return rotation_angle, rotation_axis
 
@@ -1263,7 +1266,9 @@ class UBCalculation:
             return None, None
         axis = axis / norm(axis)
         try:
-            miscut = acos(bound(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
+            miscut = acos(
+                bound(float(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
+            )
         except AssertionError:
             return 0, (0, 0, 0)
         return degrees(miscut), (axis[0, 0], axis[1, 0], axis[2, 0])
@@ -1357,7 +1362,7 @@ class UBCalculation:
         q_vec = get_q_phi(pos)
         q_hkl = norm(q_vec) / wavelength
         d_hkl = self.crystal.get_hkl_plane_distance(hkl)
-        sc = 1 / (q_hkl * d_hkl)
+        sc = float(1 / (q_hkl * d_hkl))
         name, a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
         if abs(sc - 1.0) < SMALL:
             return None, None

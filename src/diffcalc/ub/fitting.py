@@ -27,25 +27,27 @@ def _get_refl_hkl(
 
 
 def _func_crystal(
-    vals: Sequence[float], uc_system: str, refl_data: Tuple[np.ndarray, Position, float]
+    vals: Sequence[float],
+    uc_system: str,
+    refl_data: List[Tuple[np.ndarray, Position, float]],
 ) -> float:
     try:
         trial_cr = Crystal("trial", uc_system, *vals)
     except Exception:
         return 1e6
 
-    res = 0
+    res = 0.0
     for (hkl_vals, pos_vals, en) in refl_data:
         wl = 12.3984 / en
         [_, DELTA, NU, _, _, _] = get_rotation_matrices(pos_vals)
         q_pos = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wl], [0]])
         q_hkl = trial_cr.B @ hkl_vals
-        res += (norm(q_pos) - norm(q_hkl)) ** 2
+        res += (float(norm(q_pos)) - float(norm(q_hkl))) ** 2
     return res
 
 
 def _func_orient(
-    vals, crystal: Crystal, refl_data: Tuple[np.ndarray, Position, float]
+    vals, crystal: Crystal, refl_data: List[Tuple[np.ndarray, Position, float]]
 ) -> float:
     quat = _get_quat_from_u123(*vals)
     trial_u = _get_rot_matrix(*quat)
@@ -67,19 +69,19 @@ def _get_rot_matrix(q0: float, q1: float, q2: float, q3: float) -> np.ndarray:
     rot = np.array(
         [
             [
-                q0 ** 2 + q1 ** 2 - q2 ** 2 - q3 ** 2,
+                q0**2 + q1**2 - q2**2 - q3**2,
                 2.0 * (q1 * q2 - q0 * q3),
                 2.0 * (q1 * q3 + q0 * q2),
             ],
             [
                 2.0 * (q1 * q2 + q0 * q3),
-                q0 ** 2 - q1 ** 2 + q2 ** 2 - q3 ** 2,
+                q0**2 - q1**2 + q2**2 - q3**2,
                 2.0 * (q2 * q3 - q0 * q1),
             ],
             [
                 2.0 * (q1 * q3 - q0 * q2),
                 2.0 * (q2 * q3 + q0 * q1),
-                q0 ** 2 - q1 ** 2 - q2 ** 2 + q3 ** 2,
+                q0**2 - q1**2 - q2**2 + q3**2,
             ],
         ]
     )
