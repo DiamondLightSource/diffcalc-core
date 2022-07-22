@@ -137,11 +137,11 @@ class Constraints:
         return "\n".join(lines)
 
     @property
-    def _constrained(self):
+    def constrained(self):
         return tuple(con for con in self._all if con.active)
 
     @property
-    def _detector(self):
+    def detector(self):
         return {
             con.name: con.value
             for con in self._all
@@ -149,7 +149,7 @@ class Constraints:
         }
 
     @property
-    def _reference(self):
+    def reference(self):
         return {
             con.name: con.value
             for con in self._all
@@ -157,7 +157,7 @@ class Constraints:
         }
 
     @property
-    def _sample(self):
+    def sample(self):
         return {
             con.name: con.value
             for con in self._all
@@ -210,7 +210,7 @@ class Constraints:
             Tuple with all constrained angle names and values.
         """
         res = []
-        for con in self._constrained:
+        for con in self.constrained:
             if con._type is _con_type.VALUE:
                 res.append((con.name, getattr(self, con.name)))
             elif con._type is _con_type.VOID:
@@ -289,7 +289,7 @@ class Constraints:
             if val is None or val is False:
                 con.value = None
                 return
-            active_con = {c for c in self._constrained if c._category is con._category}
+            active_con = {c for c in self.constrained if c._category is con._category}
             num_active_con = len(active_con)
             if con in active_con:
                 _set_value(val)
@@ -304,14 +304,14 @@ class Constraints:
                 # We don't know which one we should replace.
                 raise DiffcalcException(
                     f"Cannot set {con.name} constraint. First un-constrain one of the\n"
-                    f"angles {', '.join(sorted(c.name for c in self._constrained))}."
+                    f"angles {', '.join(sorted(c.name for c in self.constrained))}."
                 )
             elif num_active_con == 0:
                 # We need to replace a constraint from other category.
                 # We don't know which one to replace
                 raise DiffcalcException(
                     f"Cannot set {con.name} constraint. First un-constrain one of the\n"
-                    f"angles {', '.join(sorted(c.name for c in self._constrained))}."
+                    f"angles {', '.join(sorted(c.name for c in self.constrained))}."
                 )
             elif num_active_con == 1:
                 # If we have only one constraint in the requested category.
@@ -596,7 +596,7 @@ class Constraints:
 
     def _report_constraints_lines(self) -> List[str]:
         lines = []
-        required = 3 - len(self._constrained)
+        required = 3 - len(self.constrained)
         if required == 0:
             pass
         elif required == 1:
@@ -659,7 +659,7 @@ class Constraints:
             constraint category or no constraints are available.
         """
         if con is None:
-            return len(self._constrained) >= 3
+            return len(self.constrained) >= 3
 
         _max_constrained = {
             _con_category.DETECTOR: 1,
@@ -667,7 +667,7 @@ class Constraints:
             _con_category.SAMPLE: 3,
         }
         count_constrained = len(
-            {c for c in self._constrained if c._category is con._category}
+            {c for c in self.constrained if c._category is con._category}
         )
         return count_constrained >= _max_constrained[con._category]
 
@@ -685,50 +685,50 @@ class Constraints:
             raise ValueError("Three constraints required")
 
         count_detector = len(
-            {c for c in self._constrained if c._category is _con_category.DETECTOR}
+            {c for c in self.constrained if c._category is _con_category.DETECTOR}
         )
         count_reference = len(
-            {c for c in self._constrained if c._category is _con_category.REFERENCE}
+            {c for c in self.constrained if c._category is _con_category.REFERENCE}
         )
         count_sample = len(
-            {c for c in self._constrained if c._category is _con_category.SAMPLE}
+            {c for c in self.constrained if c._category is _con_category.SAMPLE}
         )
         if count_sample == 3:
             if (
-                set(self._constrained) == {self._chi, self._phi, self._eta}
-                or set(self._constrained) == {self._chi, self._phi, self._mu}
-                or set(self._constrained) == {self._chi, self._eta, self._mu}
-                or set(self._constrained) == {self._phi, self._eta, self._mu}
+                set(self.constrained) == {self._chi, self._phi, self._eta}
+                or set(self.constrained) == {self._chi, self._phi, self._mu}
+                or set(self.constrained) == {self._chi, self._eta, self._mu}
+                or set(self.constrained) == {self._phi, self._eta, self._mu}
             ):
                 return True
             return False
 
         if count_sample == 1:
-            return self._omega not in set(
-                self._constrained
-            ) and self._bisect not in set(self._constrained)
+            return self._omega not in set(self.constrained) and self._bisect not in set(
+                self.constrained
+            )
 
         if count_reference == 1:
             return (
-                {self._chi, self._phi}.issubset(self._constrained)
-                or {self._chi, self._eta}.issubset(self._constrained)
-                or {self._chi, self._mu}.issubset(self._constrained)
-                or {self._mu, self._eta}.issubset(self._constrained)
-                or {self._mu, self._phi}.issubset(self._constrained)
-                or {self._eta, self._phi}.issubset(self._constrained)
+                {self._chi, self._phi}.issubset(self.constrained)
+                or {self._chi, self._eta}.issubset(self.constrained)
+                or {self._chi, self._mu}.issubset(self.constrained)
+                or {self._mu, self._eta}.issubset(self.constrained)
+                or {self._mu, self._phi}.issubset(self.constrained)
+                or {self._eta, self._phi}.issubset(self.constrained)
             )
 
         if count_detector == 1:
             return (
-                {self._chi, self._phi}.issubset(self._constrained)
-                or {self._mu, self._eta}.issubset(self._constrained)
-                or {self._mu, self._phi}.issubset(self._constrained)
-                or {self._mu, self._chi}.issubset(self._constrained)
-                or {self._eta, self._phi}.issubset(self._constrained)
-                or {self._eta, self._chi}.issubset(self._constrained)
-                or {self._mu, self._bisect}.issubset(self._constrained)
-                or {self._eta, self._bisect}.issubset(self._constrained)
-                or {self._omega, self._bisect}.issubset(self._constrained)
+                {self._chi, self._phi}.issubset(self.constrained)
+                or {self._mu, self._eta}.issubset(self.constrained)
+                or {self._mu, self._phi}.issubset(self.constrained)
+                or {self._mu, self._chi}.issubset(self.constrained)
+                or {self._eta, self._phi}.issubset(self.constrained)
+                or {self._eta, self._chi}.issubset(self.constrained)
+                or {self._mu, self._bisect}.issubset(self.constrained)
+                or {self._eta, self._bisect}.issubset(self.constrained)
+                or {self._omega, self._bisect}.issubset(self.constrained)
             )
 
         return False
