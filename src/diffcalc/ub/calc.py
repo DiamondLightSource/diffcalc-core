@@ -14,15 +14,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal, JSONCrystal
+from diffcalc.ub.crystal import Crystal
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
-from diffcalc.ub.reference import (
-    JSONOrientation,
-    JSONReflection,
-    OrientationList,
-    Reflection,
-    ReflectionList,
-)
+from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
 from diffcalc.ub.systems import available_systems
 from diffcalc.util import (
     SMALL,
@@ -35,28 +29,6 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
-
-
-@dataclasses.dataclass
-class JSONReferenceVector:
-    n_ref: Tuple[float, float, float]
-    rlv: bool
-
-    @property
-    def asdict(self):
-        return self.__dict__
-
-
-@dataclasses.dataclass
-class JSONUBCalculation:
-    name: str
-    crystal: Optional[JSONCrystal]
-    reflist: List[JSONReflection]
-    orientlist: List[JSONOrientation]
-    reference: Dict[str, Any]
-    surface: Dict[str, Any]
-    u_matrix: Optional[List[List[float]]]
-    ub_matrix: Optional[List[List[float]]]
 
 
 @dataclasses.dataclass
@@ -1426,22 +1398,3 @@ class UBCalculation:
             np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
         )
         return ubcalc
-
-
-# test = UBCalculation("test")
-# test.set_lattice(name="test", a=4.913, c=5.405)
-# test.add_reflection(
-#     hkl=(0, 0, 1),
-#     position=Position(7.31, 0, 10.62, 0, 0, 0),
-#     energy=12.39842,
-#     tag="refl1",
-# )
-# test.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
-# test.n_hkl = (1.0, 0.0, 0.0)
-
-# # test.calc_ub()
-
-# tdict = test.asdict
-
-# test2 = UBCalculation.fromdict(tdict)
-# print("a")

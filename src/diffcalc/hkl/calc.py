@@ -1800,26 +1800,3 @@ class HklCalculation:
             UBCalculation.fromdict(data["ubcalc"]),
             Constraints(constraint_data, indegrees),
         )
-
-
-# test = UBCalculation("test")
-# test.set_lattice(name="test", a=4.913, c=5.405)
-# test.add_reflection(
-#     hkl=(0, 0, 1),
-#     position=Position(7.31, 0, 10.62, 0, 0, 0),
-#     energy=12.39842,
-#     tag="refl1",
-# )
-# test.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
-# test.n_hkl = (1.0, 0.0, 0.0)
-
-# test.calc_ub("refl1", "plane")
-
-
-# hkl = HklCalculation(test, Constraints({"qaz": 0, "alpha": 0, "eta": 0}))
-
-# hkldict = hkl.asdict
-# hkl2 = HklCalculation.fromdict(hkldict)
-# result = hkl.get_position(0, 0, 1, 0.1)
-
-# print("a")
