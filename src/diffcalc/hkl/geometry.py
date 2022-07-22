@@ -392,4 +392,4 @@ def get_q_phi(pos: Position) -> np.ndarray:
     y = np.array([[0], [1], [0]])
     q_lab = (NU @ DELTA - I) @ y
     # Transform this into the phi frame.
-    return inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_lab
+    return np.array(inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_lab)

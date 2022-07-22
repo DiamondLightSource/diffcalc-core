@@ -377,9 +377,9 @@ class Crystal:
         float
             The angle between the crystal lattice planes.
         """
-        hkl1 = np.array([hkl1]).T
-        hkl2 = np.array([hkl2]).T
-        nphi1 = self.B @ hkl1
-        nphi2 = self.B @ hkl2
+        hkl1_transpose = np.array([hkl1]).T
+        hkl2_transpose = np.array([hkl2]).T
+        nphi1 = self.B @ hkl1_transpose
+        nphi2 = self.B @ hkl2_transpose
         angle = angle_between_vectors(nphi1, nphi2)
         return angle
