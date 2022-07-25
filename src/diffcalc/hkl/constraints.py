@@ -674,7 +674,7 @@ class Constraints:
     def is_current_mode_implemented(self) -> bool:
         """Check if current constraint set is implemented.
 
-        Configuration needs to be fully constraint for this method to work.
+        Configuration needs to be fully constrained for this method to work.
 
         Returns
         -------
@@ -682,7 +682,10 @@ class Constraints:
             True if current constraint set is supported.
         """
         if not self.is_fully_constrained():
-            raise ValueError("Three constraints required")
+            raise DiffcalcException(
+                "Diffcalc is not fully constrained.\n"
+                "Type 'help con' for instructions"
+            )
 
         count_detector = len(
             {c for c in self.constrained if c._category is _con_category.DETECTOR}

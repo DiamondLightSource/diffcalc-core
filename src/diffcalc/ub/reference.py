@@ -32,17 +32,6 @@ class Reflection:
     energy: float
     tag: str
 
-    def __post_init__(self):
-        """Check input argument types.
-
-        Raises
-        ------
-        TypeError
-            If pos argument has invalid type.
-        """
-        if not isinstance(self.pos, Position):
-            raise TypeError(f"Invalid position object type {type(self.pos)}.")
-
     @property
     def astuple(
         self,
@@ -159,10 +148,8 @@ class ReflectionList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        if isinstance(pos, Position):
-            self.reflections[num] = Reflection(*hkl, pos, energy, tag)
-        else:
-            raise TypeError("Invalid position parameter type")
+
+        self.reflections[num] = Reflection(*hkl, pos, energy, tag)
 
     def get_reflection(self, idx: Union[str, int]) -> Reflection:
         """Get a reference reflection.
@@ -324,17 +311,6 @@ class Orientation:
     pos: Position
     tag: str
 
-    def __post_init__(self):
-        """Check input argument types.
-
-        Raises
-        ------
-        TypeError
-            If pos argument has invalid type.
-        """
-        if not isinstance(self.pos, Position):
-            raise TypeError(f"Invalid position object type {type(self.pos)}.")
-
     @property
     def astuple(
         self,
@@ -418,10 +394,8 @@ class OrientationList:
         tag : str
             identifying tag for the orientation.
         """
-        if isinstance(pos, Position):
-            self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
-        else:
-            raise TypeError("Invalid position parameter type")
+
+        self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
 
     def edit_orientation(
         self,
@@ -460,10 +434,8 @@ class OrientationList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        if isinstance(pos, Position):
-            self.orientations[num] = Orientation(*hkl, *xyz, pos, tag)
-        else:
-            raise TypeError(f"Invalid position parameter type {type(pos)}")
+
+        self.orientations[num] = Orientation(*hkl, *xyz, pos, tag)
 
     def get_orientation(self, idx: Union[str, int]) -> Orientation:
         """Get a reference orientation.

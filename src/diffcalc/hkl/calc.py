@@ -132,19 +132,13 @@ class HklCalculation:
 
         n_lab = z_matrix @ self.ubcalc.n_phi
         alpha = asin(bound(-n_lab[1, 0]))
-        naz = atan2(n_lab[0, 0], n_lab[2, 0])  # (20)
+        naz = atan2(n_lab[0, 0], n_lab[2, 0])
 
         cos_tau = cos(alpha) * cos(theta) * cos(naz - qaz) + sin(alpha) * sin(theta)
-        tau = acos(bound(cos_tau))  # (23)
-
-        # Compute Tau using the dot product directly (THIS ALSO WORKS)
-        # q_lab = ( (NU @ DELTA - I ) @ np.array([[0],[1],[0]])
-        # norm = norm(q_lab)
-        # q_lab = np.array([[1],[0],[0]]) if norm == 0 else q_lab * (1/norm)
-        # tau_from_dot_product = acos(bound(dot3(q_lab, n_lab)))
+        tau = acos(bound(cos_tau))
 
         sin_beta = 2 * sin(theta) * cos(tau) - sin(alpha)
-        beta = asin(bound(sin_beta))  # (24)
+        beta = asin(bound(sin_beta))
 
         psi = next(self._calc_psi(alpha, theta, tau, qaz, naz))
 
@@ -212,12 +206,6 @@ class HklCalculation:
         return results
 
     def _check_constrained(self):
-        if not self.constraints.is_fully_constrained():
-            raise DiffcalcException(
-                "Diffcalc is not fully constrained.\n"
-                "Type 'help con' for instructions"
-            )
-
         if not self.constraints.is_current_mode_implemented():
             raise DiffcalcException(
                 "Sorry, the selected constraint combination is valid but "
@@ -247,18 +235,14 @@ class HklCalculation:
     def _calc_hkl_to_position(
         self, h: float, k: float, l: float, wavelength: float
     ) -> List[Tuple[Position, Dict[str, float]]]:
-        self._check_constrained()  # is hkl constrained?
+        self._check_constrained()
 
-        # constraints are dictionaries
         ref_constraint = self.constraints.reference
         det_constraint = self.constraints.detector
         samp_constraints = self.constraints.sample
 
-        # get necessary angles
         h_phi = self.ubcalc.UB @ np.array([[h], [k], [l]])
-        theta = (
-            self.ubcalc.get_ttheta_from_hkl((h, k, l), 12.39842 / wavelength) / 2.0
-        )  # __calc_theta(h_phi, wavelength)
+        theta = self.ubcalc.get_ttheta_from_hkl((h, k, l), 12.39842 / wavelength) / 2.0
         tau = angle_between_vectors(h_phi, self.ubcalc.n_phi)
         surf_tau = angle_between_vectors(h_phi, self.ubcalc.surf_nphi)
 
@@ -282,7 +266,7 @@ class HklCalculation:
         solution_tuples = []
         if det_constraint:
 
-            if len(samp_constraints) == 1:  # i.e. you have one reference constraint
+            if len(samp_constraints) == 1:
                 for (
                     qaz,
                     naz,
@@ -400,7 +384,7 @@ class HklCalculation:
                                 constraint_value, pseudo_angles[constraint_name]
                             )
                 position_pseudo_angles_pairs.append((position, pseudo_angles))
-            except AssertionError:
+            except AssertionError:  # why?
                 continue
         return position_pseudo_angles_pairs
 
@@ -409,9 +393,9 @@ class HklCalculation:
         Q = normalised(Q)
         n = normalised(n)
         if is_small(angle_between_vectors(Q, n)):
-            # Replace the reference vector with an alternative vector from Eq.(78)
+
             def __key_func(v):
-                return v[1]  # Workaround for mypy issue #9590
+                return v[1]
 
             idx_min, _ = min(
                 enumerate([abs(Q[0, 0]), abs(Q[1, 0]), abs(Q[2, 0])]),
@@ -441,14 +425,17 @@ class HklCalculation:
     def _calc_angle_between_naz_and_qaz(
         self, theta: float, alpha: float, tau: float
     ) -> float:
-        # Equation 30:
         top = cos(tau) - sin(alpha) * sin(theta)
         bottom = cos(alpha) * cos(theta)
         if is_small(bottom):
             if is_small(cos(alpha)):
-                raise ValueError("cos(alpha) is too small")
+                raise DiffcalcException(
+                    "cos(alpha) is too small: _calc_angle_between_naz_and_qaz."
+                )
             if is_small(cos(theta)):
-                raise ValueError("cos(theta) is too small")
+                raise DiffcalcException(
+                    "cos(theta) is too small: _calc_angle_between_naz_and_qaz."
+                )
         if is_small(sin(tau)):
             return 0.0
         return acos(bound(top / bottom))
@@ -465,13 +452,10 @@ class HklCalculation:
         sin_tau = sin(tau)
         cos_theta = cos(theta)
         if is_small(sin_tau):
-            # The reference vector is parallel to the scattering vector
             yield float("nan")
         elif is_small(cos_theta):
-            # Reflection is unreachable as theta angle is too close to 90 deg
             yield float("nan")
         elif is_small(sin(theta)):
-            # Reflection is unreachable as |Q| is too small
             yield float("nan")
         else:
             cos_psi = (cos(tau) * sin(theta) - sin(alpha)) / cos_theta  # (28)
@@ -553,7 +537,7 @@ class HklCalculation:
         try:
             naz_qaz_angle = self._calc_angle_between_naz_and_qaz(theta, alpha, tau)
         except AssertionError:
-            return
+            return  # why?
 
         if "naz" in list(det_constraint.keys()):
             naz_value = det_constraint["naz"]
@@ -630,7 +614,7 @@ class HklCalculation:
         try:
             asin_qaz = asin(bound(sin(delta_value) / sin_2theta))
         except AssertionError:
-            return
+            return #why?
 
         cos_delta = cos(delta_value)
         if is_small(cos_delta):
@@ -646,7 +630,7 @@ class HklCalculation:
             try:
                 acos_nu = acos(bound(cos_2theta / cos_delta))
             except AssertionError:
-                return
+                return #why?
 
         qaz_angles = (
             [
@@ -686,7 +670,7 @@ class HklCalculation:
             acos_delta = acos(bound(cos_delta))
             acos_qaz = acos(bound(cos_qaz))
         except AssertionError:
-            return
+            return #why?
 
         qaz_angles = (
             [
@@ -714,8 +698,8 @@ class HklCalculation:
     ) -> Iterable[Tuple[float, float, float]]:
         try:
             asin_delta = asin(sin(qaz_value) * sin_2theta)
-        except AssertionError:
-            return
+        except AssertionError: 
+            return #why?
 
         if is_small(cos(asin_delta)):
             delta_angles = [
@@ -741,7 +725,7 @@ class HklCalculation:
                         sgn_delta * sin_2theta * cos(qaz_value), sgn_delta * cos_2theta
                     )
                 except AssertionError:
-                    return
+                    return #why?
 
             yield delta, nu, qaz_value
 
@@ -842,7 +826,7 @@ class HklCalculation:
         try:
             acos_chi = acos(bound(v_matrix[2, 2]))
         except AssertionError:
-            return
+            return #why?
         if is_small(sin(acos_chi)):
             # chi ~= 0 or 180 and therefor phi || eta The solutions for phi
             # and eta here will be valid but will be chosen unpredictably.

@@ -7,7 +7,7 @@ from math import acos, cos, degrees, pi, radians, sin, sqrt
 from typing import List, Optional, Tuple
 
 import numpy as np
-from diffcalc.util import allnum, angle_between_vectors, zero_round
+from diffcalc.util import DiffcalcException, allnum, angle_between_vectors, zero_round
 from numpy.linalg import inv
 
 
@@ -78,7 +78,7 @@ class Crystal:
         )
         if allnum(args):
             if len(args) != 6:
-                raise ValueError(
+                raise DiffcalcException(
                     "Crystal definition requires six lattice "
                     "parameters or crystal system name."
                 )
@@ -93,12 +93,14 @@ class Crystal:
             )
         else:
             if not isinstance(args[0], str):
-                raise ValueError(f"Invalid crystal system name {args[0]}.")
+                raise DiffcalcException(f"Invalid crystal system name {args[0]}.")
             self.system = args[0]
             if allnum(args[1:]):
                 self._set_cell_for_system(system, a, b, c, alpha, beta, gamma)
             else:
-                raise ValueError("Crystal lattice parameters must be numeric type.")
+                raise DiffcalcException(
+                    "Crystal lattice parameters must be numeric type."
+                )
 
     def __str__(self) -> str:
         """Represent the crystal lattice information as a string.
@@ -255,11 +257,11 @@ class Crystal:
             elif self.system == "Cubic":
                 return self.system, (self.a1,)
             else:
-                raise TypeError(
+                raise DiffcalcException(
                     "Invalid crystal system parameter: %s" % str(self.system)
                 )
         except ValueError as e:
-            raise TypeError from e
+            raise DiffcalcException from e
 
     def _get_cell_for_system(
         self, system: str
@@ -293,7 +295,9 @@ class Crystal:
         elif system == "Cubic":
             return (self.a1, self.a1, self.a1, pi / 2, pi / 2, pi / 2)
         else:
-            raise TypeError("Invalid crystal system parameter: %s" % str(system))
+            raise DiffcalcException(
+                "Invalid crystal system parameter: %s" % str(system)
+            )
 
     def _set_cell_for_system(
         self,
@@ -329,7 +333,7 @@ class Crystal:
             else:
                 raise TypeError("Invalid crystal system parameter: %s" % str(system))
         except ValueError as e:
-            raise TypeError from e
+            raise DiffcalcException from e
         (
             self.a1,
             self.a2,

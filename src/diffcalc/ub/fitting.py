@@ -143,7 +143,7 @@ def _get_uc_upper_limits(system: str) -> List[float]:
             max_unit,
         ]
     else:
-        raise TypeError("Invalid crystal system parameter: %s" % str(system))
+        raise DiffcalcException("Invalid crystal system parameter: %s" % str(system))
 
 
 def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:

@@ -425,12 +425,12 @@ class UBCalculation:
             Crystal lattice angle.
         """
         if not isinstance(name, str):
-            raise TypeError("Invalid crystal name.")
+            raise DiffcalcException("Invalid crystal name.")
         shortform: Tuple[Any, ...] = tuple(
             val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
         )
         if not shortform:
-            raise TypeError("Please specify unit cell parameters.")
+            raise DiffcalcException("Please specify unit cell parameters.")
         elif allnum(shortform):
             sf = shortform
             if len(sf) == 1:
@@ -608,10 +608,7 @@ class UBCalculation:
         int:
             Number of reference reflections.
         """
-        try:
-            return len(self.reflist)
-        except TypeError:
-            return 0
+        return len(self.reflist)
 
     def get_tag_refl_num(self, tag: str) -> int:
         """Get a reference reflection index.
@@ -628,8 +625,6 @@ class UBCalculation:
         int:
             Reference reflection index
         """
-        if tag is None:
-            raise IndexError("Reflection tag is None")
         return self.reflist.get_tag_index(tag) + 1
 
     def del_reflection(self, idx: Union[str, int]) -> None:
@@ -673,8 +668,6 @@ class UBCalculation:
         tag : str
             identifying tag for the reflection
         """
-        if self.orientlist is None:
-            raise DiffcalcException("No UBCalculation loaded")
         if position is None:
             position = Position()
         self.orientlist.add_orientation(hkl, xyz, position, tag)
@@ -730,7 +723,7 @@ class UBCalculation:
         except TypeError:
             return 0
 
-    def get_tag_orient_num(self, tag):
+    def get_tag_orient_num(self, tag: str):
         """Get a reference orientation index.
 
         Get a reference orientation index for the
@@ -745,8 +738,6 @@ class UBCalculation:
         int:
             Reference orientation index
         """
-        if tag is None:
-            raise IndexError("Orientations tag is None")
         return self.orientlist.get_tag_index(tag) + 1
 
     def del_orientation(self, idx):
@@ -806,7 +797,7 @@ class UBCalculation:
         """
         m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
-            raise TypeError("set_u expects (3, 3) NumPy matrix.")
+            raise DiffcalcException("set_u expects (3, 3) NumPy matrix.")
 
         if self.UB is None:
             print("Calculating UB matrix.")
@@ -847,7 +838,7 @@ class UBCalculation:
         """
         m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
-            raise TypeError("set_ub expects (3, 3) NumPy matrix.")
+            raise DiffcalcException("set_ub expects (3, 3) NumPy matrix.")
 
         self.UB = m
 
@@ -1318,7 +1309,10 @@ class UBCalculation:
 
         Raises
         ------
-        ValueError
+        DiffcalcException
+            If no lattice parameters specified
+
+        DiffcalcException
             If reflection is unreachable at the provided energy.
         """
         if self.crystal is None:
@@ -1328,14 +1322,14 @@ class UBCalculation:
         wl = 12.39842 / en
         d = self.crystal.get_hkl_plane_distance(hkl)
         if wl > (2 * d):
-            raise ValueError(
+            raise DiffcalcException(
                 "Reflection un-reachable as wavelength (%f) is more than twice\n"
                 "the plane distance (%f)" % (wl, d)
             )
         try:
             return 2.0 * asin(wl / (d * 2))
         except ValueError as e:
-            raise ValueError(
+            raise DiffcalcException(
                 f"asin(wl / (d * 2) with wl={wl:f} and d={d:f}: " + e.args[0]
             )
 
