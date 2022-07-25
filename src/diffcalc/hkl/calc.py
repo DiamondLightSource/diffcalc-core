@@ -1815,24 +1815,3 @@ class HklCalculation:
                         "anglesToVirtualAngles of %f" % virtual_angles_readback[key]
                     )
                     raise DiffcalcException(s)
-
-
-test = UBCalculation("test")
-test.set_lattice(name="test", a=4.913, c=5.405)
-test.add_reflection(
-    hkl=(0, 0, 1),
-    position=Position(7.31, 0, 10.62, 0, 0, 0),
-    energy=12.39842,
-    tag="refl1",
-)
-test.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
-test.n_hkl = (1.0, 0.0, 0.0)
-
-test.calc_ub("refl1", "plane")
-
-
-# hklcalc = HklCalculation(test, Constraints({"delta": 1, "chi": 1, "phi": 1}))
-hklcalc = HklCalculation(test, Constraints({"qaz": 0, "alpha": 0, "eta": 0}))
-
-
-resultss = hklcalc.get_position(0, 0, 1, 0.1)
