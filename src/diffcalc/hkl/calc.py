@@ -9,7 +9,6 @@ from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, ta
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 
 import numpy as np
-from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import (
     Position,
     get_rotation_matrices,
@@ -19,7 +18,6 @@ from diffcalc.hkl.geometry import (
     rot_PHI,
 )
 from diffcalc.log import logging
-from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
