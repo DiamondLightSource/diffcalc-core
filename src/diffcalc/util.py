@@ -4,7 +4,7 @@ from typing import Any, Sequence, Tuple
 
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial import Rotation
+from scipy.spatial.transform import Rotation
 
 I: np.ndarray = np.identity(3)
 
