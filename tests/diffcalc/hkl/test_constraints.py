@@ -39,9 +39,9 @@ def cm():
 
 def test_init(cm):
     eq_(cm.asdict, dict())
-    eq_(cm._detector, dict())
-    eq_(cm._reference, dict())
-    eq_(cm._sample, dict())
+    eq_(cm.detector, dict())
+    eq_(cm.reference, dict())
+    eq_(cm.sample, dict())
 
 
 def test_dict_init():
@@ -203,7 +203,7 @@ def test_unconstrain_okay(cm):
     eq_(cm.asdict, dict())
     cm.delta = 1.0
     cm.mu = 2
-    eq_(cm._constrained, (cm._delta, cm._mu))
+    eq_(cm.constrained, (cm._delta, cm._mu))
     eq_(cm.asdict, {"delta": 1.0, "mu": 2})
     del cm.delta
     cm.mu = None
