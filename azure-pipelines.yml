@@ -15,11 +15,11 @@ stages:
     pool:
       vmImage: ubuntu-latest
     steps:
-      # Use Python >=3.8 for syntax validation
+      # Use Python >=3.7 for syntax validation
     - task: UsePythonVersion@0
       displayName: Set up python
       inputs:
-        versionSpec: 3.9
+        versionSpec: 3.7
 
       # Run syntax validation on a shallow clone
     - bash: |
@@ -45,7 +45,7 @@ stages:
     - task: UsePythonVersion@0
       displayName: Set up python
       inputs:
-        versionSpec: 3.9
+        versionSpec: 3.7
 
     - bash: |
         pip install -U pip
@@ -81,14 +81,14 @@ stages:
       vmImage: ubuntu-latest
     strategy:
       matrix:
-        python36:
-          PYTHON_VERSION: 3.6
         python37:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
+        python310:
+          PYTHON_VERSION: 3.10
     steps:
     - template: .azure-pipelines/ci.yml
 
