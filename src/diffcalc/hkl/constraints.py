@@ -188,7 +188,8 @@ class Constraints:
 
     @asdict.setter
     def asdict(self, constraints):
-        assert isinstance(constraints, dict)
+        if not isinstance(constraints, dict):
+            raise DiffcalcException("constraints needs to be a dictionary")
         self.clear()
         if constraints is None:
             return
@@ -223,7 +224,11 @@ class Constraints:
 
     @astuple.setter
     def astuple(self, constraints: Tuple[Union[Tuple[str, float], str], ...]) -> None:
-        assert isinstance(constraints, tuple)
+        if not isinstance(constraints, tuple):
+            raise DiffcalcException(
+                "constraints needs to have type: ",
+                "Tuple[Union[Tuple[str, float], str], ...]",
+            )
         self.clear()
         if constraints is None:
             return

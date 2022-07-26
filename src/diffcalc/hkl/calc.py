@@ -187,7 +187,6 @@ class HklCalculation:
                 angles dictionary.
         """
         pos_virtual_angles_pairs = self._calc_hkl_to_position(h, k, l, wavelength)
-        assert pos_virtual_angles_pairs
         results = []
 
         for pos, virtual_angles in pos_virtual_angles_pairs:
@@ -365,6 +364,7 @@ class HklCalculation:
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
             pseudo_angles = self.get_virtual_angles(position, False)
+
             try:
                 for constraint in [
                     self.constraints.reference,
@@ -372,22 +372,26 @@ class HklCalculation:
                 ]:
                     for constraint_name, constraint_value in constraint.items():
                         if constraint_name == "a_eq_b":
-                            assert radians_equivalent(
+                            if not radians_equivalent(
                                 pseudo_angles["alpha"], pseudo_angles["beta"]
-                            )
+                            ):
+                                raise AssertionError
                         elif constraint_name == "bin_eq_bout":
-                            assert radians_equivalent(
+                            if not radians_equivalent(
                                 pseudo_angles["betain"], pseudo_angles["betaout"]
-                            )
+                            ):
+                                raise AssertionError
                         elif constraint_name not in pseudo_angles:
                             continue
                         else:
-                            assert radians_equivalent(
+                            if not radians_equivalent(
                                 constraint_value, pseudo_angles[constraint_name]
-                            )
+                            ):
+                                raise AssertionError
                 position_pseudo_angles_pairs.append((position, pseudo_angles))
-            except AssertionError:  # why?
+            except AssertionError:
                 continue
+
         return position_pseudo_angles_pairs
 
     def _calc_N(self, Q: np.ndarray, n: np.ndarray) -> np.ndarray:
