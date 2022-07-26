@@ -3944,3 +3944,30 @@ class SkipTest_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
     def test_hkl_to_angles_given_UB(self, name, make_cases):
         case = make_cases(0, 0)
         self.case_generator(case[name])
+
+
+class TestConstrainDetRefSamp(_BaseTest):
+    def setup_method(self):
+        self.ubcalc = UBCalculation()
+        self.ubcalc.n_hkl = (1.0, 0.0, 0.0)
+
+        self.ubcalc.set_lattice(name="test", a=4.913, c=5.405)
+        self.ubcalc.add_reflection(
+            hkl=(0, 0, 1),
+            position=Position(7.31, 0, 10.62, 0, 0, 0),
+            energy=12.39842,
+            tag="refl1",
+        )
+        self.ubcalc.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
+        self.constraints = Constraints({"naz": 3, "alpha": 2, "eta": 1})
+        self.hklcalc = HklCalculation(self.ubcalc, self.constraints)
+
+    def _configure_ub(self):
+        self.ubcalc.calc_ub("refl1", "plane")
+
+    def testGetPosition(self):
+        self.setup_method()
+        self._configure_ub()
+
+        results = self.hklcalc.get_position(1, 2, 3, 1)
+        assert results

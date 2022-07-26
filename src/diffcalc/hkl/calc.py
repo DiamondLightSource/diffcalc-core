@@ -613,15 +613,9 @@ class HklCalculation:
             "qaz": self._calc_remaining_detector_angles_qaz_constrained,
         }
 
-        try:
-            detector_angles = constraint_callable[constraint_name](
-                constraint_value, sin_2theta, cos_2theta
-            )
-        except KeyError:
-            raise DiffcalcException(
-                constraint_name + " is not an explicit detector angle "
-                "(naz cannot be handled here)"
-            )
+        detector_angles = constraint_callable[constraint_name](
+            constraint_value, sin_2theta, cos_2theta
+        )
 
         yield from detector_angles
 
