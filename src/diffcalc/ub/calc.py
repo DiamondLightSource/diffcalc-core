@@ -553,8 +553,6 @@ class UBCalculation:
         tag : Optional[str], default = None
             identifying tag for the reflection
         """
-        if self.reflist is None:
-            raise DiffcalcException("No UBCalculation loaded")
         self.reflist.add_reflection(hkl, position, energy, tag)
 
     def edit_reflection(
@@ -651,7 +649,13 @@ class UBCalculation:
 
     ### Orientations ###
 
-    def add_orientation(self, hkl, xyz, position=None, tag=None):
+    def add_orientation(
+        self,
+        hkl: Tuple[float, float, float],
+        xyz: Tuple[float, float, float],
+        position: Optional[Position] = None,
+        tag: Optional[str] = None,
+    ):
         """Add a reference orientation.
 
         Adds a reference orientation in the diffractometer
