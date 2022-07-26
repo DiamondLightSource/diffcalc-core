@@ -3,6 +3,7 @@ import dataclasses
 from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
+from diffcalc.util import DiffcalcException
 
 
 @dataclasses.dataclass
@@ -127,7 +128,15 @@ class ReflectionList:
         tag : str
             Identifying tag for the reflection.
         """
-        self.reflections += [Reflection(*hkl, pos, energy, tag)]
+        msg = "Reflection could not be added due to inproper input parameters."
+
+        if (tag is not None) and (not isinstance(tag, str)):
+            raise DiffcalcException(msg)
+        try:
+            pos.astuple
+            self.reflections += [Reflection(*hkl, pos, energy, tag)]
+        except (TypeError, AttributeError):
+            raise DiffcalcException(msg)
 
     def edit_reflection(
         self,
@@ -439,8 +448,15 @@ class OrientationList:
         tag : str
             identifying tag for the orientation.
         """
+        msg = "Orientation could not be added due to inproper input parameters."
 
-        self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
+        if (tag is not None) and (not isinstance(tag, str)):
+            raise DiffcalcException(msg)
+        try:
+            pos.astuple
+            self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
+        except (TypeError, AttributeError):
+            raise DiffcalcException(msg)
 
     def edit_orientation(
         self,

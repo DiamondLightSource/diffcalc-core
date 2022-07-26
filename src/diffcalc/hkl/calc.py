@@ -306,8 +306,10 @@ class HklCalculation:
 
         elif len(samp_constraints) == 2:
 
-            psi_vals: Iterator[float] = (
-                ref_constraint["psi"]
+            psi_vals: Iterator[float] = iter(
+                [
+                    ref_constraint["psi"],
+                ]
                 if "psi" in list(ref_constraint.keys())
                 else self._calc_psi(alpha, theta, tau)
             )
