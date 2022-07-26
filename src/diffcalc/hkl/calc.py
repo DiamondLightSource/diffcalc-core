@@ -614,7 +614,7 @@ class HklCalculation:
         try:
             asin_qaz = asin(bound(sin(delta_value) / sin_2theta))
         except AssertionError:
-            return #why?
+            return  # why?
 
         cos_delta = cos(delta_value)
         if is_small(cos_delta):
@@ -630,7 +630,7 @@ class HklCalculation:
             try:
                 acos_nu = acos(bound(cos_2theta / cos_delta))
             except AssertionError:
-                return #why?
+                return  # why?
 
         qaz_angles = (
             [
@@ -670,7 +670,7 @@ class HklCalculation:
             acos_delta = acos(bound(cos_delta))
             acos_qaz = acos(bound(cos_qaz))
         except AssertionError:
-            return #why?
+            return  # why?
 
         qaz_angles = (
             [
@@ -698,8 +698,8 @@ class HklCalculation:
     ) -> Iterable[Tuple[float, float, float]]:
         try:
             asin_delta = asin(sin(qaz_value) * sin_2theta)
-        except AssertionError: 
-            return #why?
+        except AssertionError:
+            return  # why?
 
         if is_small(cos(asin_delta)):
             delta_angles = [
@@ -725,7 +725,7 @@ class HklCalculation:
                         sgn_delta * sin_2theta * cos(qaz_value), sgn_delta * cos_2theta
                     )
                 except AssertionError:
-                    return #why?
+                    return  # why?
 
             yield delta, nu, qaz_value
 
@@ -826,7 +826,7 @@ class HklCalculation:
         try:
             acos_chi = acos(bound(v_matrix[2, 2]))
         except AssertionError:
-            return #why?
+            return  # why?
         if is_small(sin(acos_chi)):
             # chi ~= 0 or 180 and therefor phi || eta The solutions for phi
             # and eta here will be valid but will be chosen unpredictably.
