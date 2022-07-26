@@ -10,7 +10,7 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -130,6 +130,14 @@ class ReferenceVector:
             )
         (r1, r2, r3) = tuple(n_ref.T[0].tolist())
         self.n_ref = (r1, r2, r3)
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return self.__dict__.copy()
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "ReferenceVector":
+        return cls(**data)
 
 
 class UBCalculation:
@@ -1374,3 +1382,33 @@ class UBCalculation:
             alpha2,
             alpha3,
         )
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "crystal": self.crystal.asdict if self.crystal is not None else None,
+            "reflist": self.reflist.asdict,
+            "orientlist": self.orientlist.asdict,
+            "reference": self.reference.asdict,
+            "surface": self.surface.asdict,
+            "u_matrix": self.U.tolist() if self.U is not None else None,
+            "ub_matrix": self.UB.tolist() if self.UB is not None else None,
+        }
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "UBCalculation":
+        # need to return exactly the same object.
+        ubcalc = cls(data["name"])
+        ubcalc.crystal = (
+            Crystal.fromdict(data["crystal"]) if data["crystal"] is not None else None
+        )
+        ubcalc.reflist = ReflectionList.fromdict(data["reflist"])
+        ubcalc.orientlist = OrientationList.fromdict(data["orientlist"])
+        ubcalc.reference = ReferenceVector(**data["reference"])
+        ubcalc.surface = ReferenceVector(**data["surface"])
+        ubcalc.U = np.array(data["u_matrix"]) if data["u_matrix"] is not None else None
+        ubcalc.UB = (
+            np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
+        )
+        return ubcalc

@@ -4,7 +4,7 @@ A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
 from math import acos, cos, degrees, pi, radians, sin, sqrt
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from diffcalc.util import DiffcalcException, allnum, angle_between_vectors, zero_round
@@ -387,3 +387,21 @@ class Crystal:
         nphi2 = self.B @ hkl2_transpose
         angle = angle_between_vectors(nphi1, nphi2)
         return angle
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        """Serialise the crystal into a JSON compatible dictionary"""
+        return {
+            "name": self.name,
+            "system": self.system,
+            "a": self.a1,
+            "b": self.a2,
+            "c": self.a3,
+            "alpha": self.alpha1,
+            "beta": self.alpha2,
+            "gamma": self.alpha3,
+        }
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Crystal":
+        return Crystal(**data)

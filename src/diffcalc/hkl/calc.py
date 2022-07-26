@@ -6,9 +6,10 @@ constraints.
 from copy import copy
 from itertools import product
 from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, tan
-from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 
 import numpy as np
+from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import (
     Position,
     get_rotation_matrices,
@@ -18,6 +19,7 @@ from diffcalc.hkl.geometry import (
     rot_PHI,
 )
 from diffcalc.log import logging
+from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
@@ -1797,3 +1799,15 @@ class HklCalculation:
                         "anglesToVirtualAngles of %f" % virtual_angles_readback[key]
                     )
                     raise DiffcalcException(s)
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return {"ubcalc": self.ubcalc.asdict, "constraints": self.constraints.asdict}
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "HklCalculation":
+        constraint_data = data["constraints"]
+        return HklCalculation(
+            UBCalculation.fromdict(data["ubcalc"]),
+            Constraints(constraint_data),
+        )
