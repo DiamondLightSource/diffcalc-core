@@ -211,7 +211,7 @@ class HklCalculation:
         if not self.constraints.is_current_mode_implemented():
             raise DiffcalcException(
                 "Sorry, the selected constraint combination is valid but "
-                "is not implemented. Type 'help con' for implemented combinations"
+                + "is not implemented. Type 'help con' for implemented combinations"
             )
 
     def _verify_angles(
@@ -220,18 +220,21 @@ class HklCalculation:
         if is_small(sin(tau)):
             if ref_constraint_name == "psi":
                 raise DiffcalcException(
-                    "Azimuthal angle 'psi' is undefined as reference and scattering vectors parallel.\n"
-                    "Please constrain one of the sample angles or choose different reference vector orientation."
+                    "Azimuthal angle 'psi' is undefined as reference and scattering "
+                    + "vectors parallel.\nPlease constrain one of the sample angles or"
+                    + " choose different reference vector orientation."
                 )
             elif ref_constraint_name == "a_eq_b":
                 raise DiffcalcException(
-                    "Reference constraint 'a_eq_b' is redundant as reference and scattering vectors are parallel.\n"
-                    "Please constrain one of the sample angles or choose different reference vector orientation."
+                    "Reference constraint 'a_eq_b' is redundant as reference and "
+                    + "scattering vectors are parallel.\nPlease constrain one of the "
+                    + "sample angles or choose different reference vector orientation."
                 )
         if is_small(sin(surf_tau)) and ref_constraint_name == "bin_eq_bout":
             raise DiffcalcException(
-                "Reference constraint 'bin_eq_bout' is redundant as scattering vectors is parallel to the surface normal.\n"
-                "Please select another constrain to define sample azimuthal orientation."
+                "Reference constraint 'bin_eq_bout' is redundant as scattering vectors"
+                + " is parallel to the surface normal.\nPlease select another"
+                + " constraint to define sample azimuthal orientation."
             )
 
     def _calc_hkl_to_position(
@@ -248,7 +251,7 @@ class HklCalculation:
         tau = angle_between_vectors(h_phi, self.ubcalc.n_phi)
         surf_tau = angle_between_vectors(h_phi, self.ubcalc.surf_nphi)
 
-        ### Reference constraint column ###
+        # Reference constraint column
 
         n_phi = self.ubcalc.n_phi
         if ref_constraint:
@@ -333,7 +336,7 @@ class HklCalculation:
         if not solution_tuples:
             raise DiffcalcException(
                 "No solutions were found. "
-                "Please consider using an alternative set of constraints."
+                + "Please consider using an alternative set of constraints."
             )
 
         tidy_solutions = [
@@ -347,7 +350,7 @@ class HklCalculation:
         if not position_pseudo_angles_pairs:
             raise DiffcalcException(
                 "No solutions were found. Please consider using "
-                "an alternative pseudo-angle constraints."
+                + "an alternative pseudo-angle constraints."
             )
 
         return position_pseudo_angles_pairs
@@ -588,7 +591,7 @@ class HklCalculation:
         if is_small(sin_2theta):
             raise DiffcalcException(
                 "No meaningful scattering vector (Q) can be found when "
-                f"theta is so small: {degrees(theta):.4f} degrees."
+                + f"theta is so small: {degrees(theta):.4f} degrees."
             )
 
         constraint_callable: Dict[
@@ -605,8 +608,9 @@ class HklCalculation:
             )
         except KeyError:
             raise DiffcalcException(
-                constraint_name + " is not an explicit detector angle "
-                "(naz cannot be handled here)"
+                constraint_name
+                + " is not an explicit detector angle "
+                + "(naz cannot be handled here)"
             )
 
         yield from detector_angles
@@ -663,9 +667,8 @@ class HklCalculation:
         cos_nu = cos(nu_value)
         if is_small(cos_nu):
             raise DiffcalcException(
-                "The %s circle constraint to %.0f degrees is redundant."
-                "Please change this constraint or use 4-circle mode."
-                % ("nu", degrees(nu_value))
+                f"The nu circle constraint to {degrees(nu_value)} degrees is "
+                + "redundant. Please change this constraint or use 4-circle mode."
             )
         cos_delta = cos_2theta / cos(nu_value)
         cos_qaz = cos_delta * sin(nu_value) / sin_2theta
@@ -842,9 +845,7 @@ class HklCalculation:
             phi = atan2(-v_matrix[1, 0], v_matrix[1, 1])
             logger.debug(
                 "Eta and phi cannot be chosen uniquely with chi so close "
-                "to 0 or 180. Returning phi=%.3f and eta=%.3f",
-                degrees(phi),
-                degrees(eta),
+                + f"to 0 or 180. Returning phi={degrees(phi)} and eta={degrees(eta)}"
             )
             yield mu_value, eta, chi, phi
         else:
@@ -861,7 +862,7 @@ class HklCalculation:
             return
         if is_small(cos(asin_eta)):
             raise DiffcalcException(
-                "Chi and mu cannot be chosen uniquely " "with eta so close to +/-90."
+                "Chi and mu cannot be chosen uniquely with eta so close to +/-90."
             )
         for eta in [asin_eta, pi - asin_eta]:
             sgn = sign(cos(eta))
@@ -879,7 +880,7 @@ class HklCalculation:
                 # TODO: Not likely to happen in real world!?
                 raise DiffcalcException(
                     "Chi and mu cannot be chosen uniquely with eta "
-                    "constrained so close to +-90."
+                    + "constrained so close to +-90."
                 )
             try:
                 asin_chi = asin(bound(z_matrix[0, 2] / cos_eta))
@@ -896,8 +897,8 @@ class HklCalculation:
             if is_small(sin_chi):
                 raise DiffcalcException(
                     "Eta and phi cannot be chosen uniquely with chi "
-                    "constrained so close to 0. (Please contact developer "
-                    "if this case is useful for you)"
+                    + "constrained so close to 0. (Please contact developer "
+                    + "if this case is useful for you)"
                 )
             try:
                 acos_eta = acos(bound(z_matrix[0, 2] / sin_chi))
@@ -918,8 +919,8 @@ class HklCalculation:
             if is_small(top_for_mu) and is_small(bot_for_mu):
                 raise DiffcalcException(
                     "Mu cannot be chosen uniquely as mu || phi with chi so close "
-                    "to +/-90 and eta so close 0 or 180.\nPlease choose "
-                    "a different set of constraints."
+                    + "to +/-90 and eta so close 0 or 180.\nPlease choose "
+                    + "a different set of constraints."
                 )
             mu = atan2(-top_for_mu, -bot_for_mu)  # (41)
 
@@ -932,8 +933,8 @@ class HklCalculation:
             if is_small(bot_for_phi) and is_small(top_for_phi):
                 DiffcalcException(
                     "Phi cannot be chosen uniquely as mu || phi with chi so close "
-                    "to +/-90 and eta so close 0 or 180.\nPlease choose a "
-                    "different set of constraints."
+                    + "to +/-90 and eta so close 0 or 180.\nPlease choose a "
+                    + "different set of constraints."
                 )
             phi = atan2(top_for_phi, bot_for_phi)  # (42)
             yield mu, eta, chi, phi
@@ -947,7 +948,8 @@ class HklCalculation:
         def __get_last_sample_angle(A: float, B: float, C: float) -> List[float]:
             if is_small(A) and is_small(B):
                 raise DiffcalcException(
-                    "Sample orientation cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Sample orientation cannot be chosen uniquely. Please choose a "
+                    + "different set of constraints."
                 )
             ks = atan2(A, B)
             acos_alp = acos(bound(C / sqrt(A**2 + B**2)))
@@ -1135,8 +1137,6 @@ class HklCalculation:
             b = sin(chi) * sin(eta) * sin(mu) - cos(chi) * cos(mu)
             sin_qaz = v_matrix[2, 0] * a - v_matrix[2, 2] * b
             cos_qaz = -v_matrix[2, 2] * a - v_matrix[2, 0] * b
-            # atan2_xi = atan2(v_matrix[2, 2] * a + v_matrix[2, 0] * b,
-            #           v_matrix[2, 0] * a - v_matrix[2, 2] * b)                        # (54)
             qaz = atan2(sin_qaz, cos_qaz)  # (54)
 
             a = sin(chi) * sin(mu) - cos(mu) * cos(chi) * sin(eta)
@@ -1155,7 +1155,8 @@ class HklCalculation:
             cos_chi = B * v_matrix[1, 0] - A * v_matrix[1, 2]
             if is_small(sin_chi) and is_small(cos_chi):
                 raise DiffcalcException(
-                    "Chi cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Chi cannot be chosen uniquely. Please choose a different set of "
+                    + "constraints."
                 )
             chi = atan2(sin_chi, cos_chi)
 
@@ -1178,17 +1179,12 @@ class HklCalculation:
             CHI = rot_CHI(chi)
             PHI = rot_PHI(phi)
             v_matrix = CHI @ PHI @ N_phi @ PSI.T @ THETA.T  # (46)
-
-            # atan2_xi = atan2(-v_matrix[2, 0], v_matrix[2, 2])
-            # atan2_eta = atan2(-v_matrix[0, 1], v_matrix[1, 1])
-            # atan2_mu = atan2(-v_matrix[2, 1], sqrt(v_matrix[2, 2] ** 2 + v_matrix[2, 0] ** 2))
             try:
                 asin_mu = asin(bound(-v_matrix[2, 1]))
             except AssertionError:
                 return
             for mu in [asin_mu, pi - asin_mu]:
                 sgn_cosmu = sign(cos(mu))
-                # xi = atan2(-sgn_cosmu * v_matrix[2, 0], sgn_cosmu * v_matrix[2, 2])
                 qaz = atan2(
                     sgn_cosmu * v_matrix[2, 2],
                     sgn_cosmu * v_matrix[2, 0],
@@ -1215,9 +1211,9 @@ class HklCalculation:
                 eps = atan2(sin(mu), sin(eta) * cos(mu))
                 chi_vals = [asin(bot) - eps, pi - asin(bot) - eps]  # (52)
 
-            ## Choose final chi solution here to obtain compatable xi and mu
-            ## TODO: This temporary solution works only for one case used on i07
-            ##       Return a list of possible solutions?
+            # Choose final chi solution here to obtain compatable xi and mu
+            # TODO: This temporary solution works only for one case used on i07
+            #       Return a list of possible solutions?
             # if is_small(eta) and is_small(mu + pi / 2):
             #    for chi in _generate_transformed_values(chi_orig):
             #        if  pi / 2 <= chi < pi:
@@ -1281,7 +1277,8 @@ class HklCalculation:
 
             if is_small(cos(mu)):
                 raise DiffcalcException(
-                    "Eta cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Eta cannot be chosen uniquely. Please choose a different set of "
+                    + "constraints."
                 )
             try:
                 acos_eta = acos(bound(v_matrix[1, 1] / cos(mu)))
@@ -1301,7 +1298,8 @@ class HklCalculation:
 
             if is_small(cos(eta)):
                 raise DiffcalcException(
-                    "Mu cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Mu cannot be chosen uniquely. Please choose a different set "
+                    + "of constraints."
                 )
             try:
                 acos_mu = acos(bound(v_matrix[1, 1] / cos(eta)))
@@ -1314,7 +1312,8 @@ class HklCalculation:
         else:
             raise DiffcalcException(
                 "No code yet to handle this combination of 2 sample "
-                "constraints and one reference!:" + str(samp_constraints)
+                + "constraints and one reference!:"
+                + str(samp_constraints)
             )
 
     def _calc_sample_angles_given_two_sample_and_detector(
@@ -1426,12 +1425,12 @@ class HklCalculation:
 
                 phi_vals = []
                 try:
-                    # For the case of (00l) reflection, where N_phi[0,0] = N_phi[1,0] = 0
+                    # For the case of (00l) reflection, where N_phi[0,0]=N_phi[1,0]=0
                     if is_small(N_phi[0, 0]) and is_small(N_phi[1, 0]):
                         raise DiffcalcException(
-                            "Phi cannot be chosen uniquely as q || phi and no reference "
-                            "vector or phi constraints have been set.\nPlease choose a different "
-                            "set of constraints."
+                            "Phi cannot be chosen uniquely as q || phi and no "
+                            + "reference vector or phi constraints have been set.\n"
+                            + "Please choose a different set of constraints."
                         )
                     bot = bound(
                         -v_matrix[1, 0] / sqrt(N_phi[0, 0] ** 2 + N_phi[1, 0] ** 2)
@@ -1473,14 +1472,11 @@ class HklCalculation:
                 if is_small(X) and is_small(Y):
                     raise DiffcalcException(
                         "Eta cannot be chosen uniquely as q || eta and no reference "
-                        "vector or eta constraints have been set.\nPlease choose a different "
-                        "set of constraints."
+                        + "vector or eta constraints have been set.\nPlease choose a "
+                        + "different set of constraints."
                     )
                 eta = atan2(X, Y)
 
-                # a = -cos(mu) * cos(qaz) * sin(theta) + sin(mu) * cos(theta)
-                # b = cos(mu) * sin(qaz)
-                # psi = atan2(-v_matrix[2, 2] * a - v_matrix[2, 1] * b, v_matrix[2, 1] * a - v_matrix[2, 2] * b)
                 yield mu, eta, chi, phi
 
         elif "mu" in samp_constraints and "phi" in samp_constraints:
@@ -1516,11 +1512,13 @@ class HklCalculation:
             B = N_phi[0, 0]
             if is_small(sin(chi)):
                 raise DiffcalcException(
-                    "Degenerate configuration with phi || eta axes cannot be set uniquely. Please choose a different set of constraints."
+                    "Degenerate configuration with phi || eta axes cannot be set "
+                    + "uniquely. Please choose a different set of constraints."
                 )
             if is_small(A) and is_small(B):
                 raise DiffcalcException(
-                    "Phi cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Phi cannot be chosen uniquely. Please choose a different set "
+                    + "of constraints."
                 )
             else:
                 ks = atan2(A, B)
@@ -1552,7 +1550,8 @@ class HklCalculation:
                 cos_eta = V00 * B00 - V10 * A00
                 if is_small(A00) and is_small(B00):
                     raise DiffcalcException(
-                        "Eta cannot be chosen uniquely. Please choose a different set of constraints."
+                        "Eta cannot be chosen uniquely. Please choose a different set "
+                        + "of constraints."
                     )
                 eta = atan2(sin_eta, cos_eta)
                 yield mu, eta, chi, phi
@@ -1567,8 +1566,8 @@ class HklCalculation:
             if is_small(X) and is_small(Y):
                 raise DiffcalcException(
                     "Chi cannot be chosen uniquely as q || chi and no reference "
-                    "vector or chi constraints have been set.\nPlease choose a different "
-                    "set of constraints."
+                    + "vector or chi constraints have been set.\nPlease choose a  "
+                    + "different set of constraints."
                 )
 
             v_matrix = (N_phi[1, 0] * cos(phi) - N_phi[0, 0] * sin(phi)) * tan(eta)
@@ -1613,7 +1612,8 @@ class HklCalculation:
             B = N_phi[0, 0] * cos(chi) * cos(eta) + N_phi[1, 0] * sin(eta)
             if is_small(A) and is_small(B):
                 raise DiffcalcException(
-                    "Phi cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Phi cannot be chosen uniquely. Please choose a different set of "
+                    + "constraints."
                 )
             else:
                 ks = atan2(A, B)
@@ -1663,7 +1663,8 @@ class HklCalculation:
                 cos_mu = (V10 * A20 - V20 * A10) * sign(B10 * A20 - B20 * A10)
                 if is_small(sin_mu) and is_small(cos_mu):
                     raise DiffcalcException(
-                        "Mu cannot be chosen uniquely. Please choose a different set of constraints."
+                        "Mu cannot be chosen uniquely. Please choose a different set"
+                        + " of constraints."
                     )
                 mu = atan2(sin_mu, cos_mu)
                 yield mu, eta, chi, phi
@@ -1671,7 +1672,8 @@ class HklCalculation:
         else:
             raise DiffcalcException(
                 "No code yet to handle this combination of 2 sample "
-                "constraints and one detector!:" + str(samp_constraints)
+                + "constraints and one detector!:"
+                + str(samp_constraints)
             )
 
     def _tidy_degenerate_solutions(
@@ -1758,17 +1760,12 @@ class HklCalculation:
         hkl = self.get_hkl(pos, wavelength)
         e = 0.001
         if (abs(hkl[0] - h) > e) or (abs(hkl[1] - k) > e) or (abs(hkl[2] - l) > e):
-            s = "ERROR: The angles calculated for hkl=({:f},{:f},{:f}) were {}.\n".format(
-                h,
-                k,
-                l,
-                str(pos),
+            s = (
+                f"ERROR: The angles calculated for hkl=({h},{k},{l}) were {str(pos)}."
+                + "\nConverting these angles back to hkl resulted in hkl="
+                + f"({hkl[0]},{hkl[1]},{hkl[2]})"
             )
-            s += "Converting these angles back to hkl resulted in hkl=" "(%f,%f,%f)" % (
-                hkl[0],
-                hkl[1],
-                hkl[2],
-            )
+
             raise DiffcalcException(s)
 
     def _verify_virtual_angles(

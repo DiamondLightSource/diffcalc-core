@@ -94,7 +94,7 @@ class DiffcalcException(Exception):
         return "\n".join(lines)
 
 
-### Matrices
+# Matrices
 
 
 def cross3(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -153,7 +153,7 @@ def angle_between_vectors(x: np.ndarray, y: np.ndarray) -> float:
     return acos(bound(costheta))
 
 
-## Math
+# Math
 
 
 def bound(x: float) -> float:
