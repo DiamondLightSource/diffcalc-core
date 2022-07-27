@@ -2,7 +2,13 @@ pip
 bump2version
 wheel
 pre-commit
+pyupgrade
+isort
+black
+blacken-docs
 flake8
+mypy
+pydocstyle
 tox
 coverage
 Sphinx
