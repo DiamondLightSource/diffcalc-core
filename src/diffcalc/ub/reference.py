@@ -1,8 +1,9 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
+from diffcalc.util import DiffcalcException
 
 
 @dataclasses.dataclass
@@ -32,17 +33,6 @@ class Reflection:
     energy: float
     tag: str
 
-    def __post_init__(self):
-        """Check input argument types.
-
-        Raises
-        ------
-        TypeError
-            If pos argument has invalid type.
-        """
-        if not isinstance(self.pos, Position):
-            raise TypeError(f"Invalid position object type {type(self.pos)}.")
-
     @property
     def astuple(
         self,
@@ -65,6 +55,23 @@ class Reflection:
         """
         h, k, l, pos, en, tag = dataclasses.astuple(self)
         return (h, k, l), pos.astuple, en, tag
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        class_info = self.__dict__.copy()
+        class_info["pos"] = self.pos.asdict
+        return class_info
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Reflection":
+        return cls(
+            data["h"],
+            data["k"],
+            data["l"],
+            Position(**data["pos"]),
+            data["energy"],
+            data["tag"],
+        )
 
 
 class ReflectionList:
@@ -121,7 +128,15 @@ class ReflectionList:
         tag : str
             Identifying tag for the reflection.
         """
-        self.reflections += [Reflection(*hkl, pos, energy, tag)]
+        msg = "Reflection could not be added due to inproper input parameters."
+
+        if (tag is not None) and (not isinstance(tag, str)):
+            raise DiffcalcException(msg)
+        try:
+            pos.astuple
+            self.reflections += [Reflection(*hkl, pos, energy, tag)]
+        except (TypeError, AttributeError):
+            raise DiffcalcException(msg)
 
     def edit_reflection(
         self,
@@ -159,10 +174,8 @@ class ReflectionList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        if isinstance(pos, Position):
-            self.reflections[num] = Reflection(*hkl, pos, energy, tag)
-        else:
-            raise TypeError("Invalid position parameter type")
+
+        self.reflections[num] = Reflection(*hkl, pos, energy, tag)
 
     def get_reflection(self, idx: Union[str, int]) -> Reflection:
         """Get a reference reflection.
@@ -290,6 +303,15 @@ class ReflectionList:
             lines.append(fmt % values)
         return lines
 
+    @property
+    def asdict(self) -> List[Dict[str, Any]]:
+        return [ref.asdict for ref in self.reflections]
+
+    @classmethod
+    def fromdict(cls, data: List[Dict[str, Any]]) -> "ReflectionList":
+        reflections = [Reflection.fromdict(each_ref) for each_ref in data]
+        return cls(reflections)
+
 
 @dataclasses.dataclass
 class Orientation:
@@ -324,17 +346,6 @@ class Orientation:
     pos: Position
     tag: str
 
-    def __post_init__(self):
-        """Check input argument types.
-
-        Raises
-        ------
-        TypeError
-            If pos argument has invalid type.
-        """
-        if not isinstance(self.pos, Position):
-            raise TypeError(f"Invalid position object type {type(self.pos)}.")
-
     @property
     def astuple(
         self,
@@ -357,6 +368,25 @@ class Orientation:
         """
         h, k, l, x, y, z, pos, tag = dataclasses.astuple(self)
         return (h, k, l), (x, y, z), pos.astuple, tag
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        class_info = self.__dict__.copy()
+        class_info["pos"] = self.pos.asdict
+        return class_info
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Orientation":
+        return cls(
+            data["h"],
+            data["k"],
+            data["l"],
+            data["x"],
+            data["y"],
+            data["z"],
+            Position(**data["pos"]),
+            data["tag"],
+        )
 
 
 class OrientationList:
@@ -418,10 +448,15 @@ class OrientationList:
         tag : str
             identifying tag for the orientation.
         """
-        if isinstance(pos, Position):
+        msg = "Orientation could not be added due to inproper input parameters."
+
+        if (tag is not None) and (not isinstance(tag, str)):
+            raise DiffcalcException(msg)
+        try:
+            pos.astuple
             self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
-        else:
-            raise TypeError("Invalid position parameter type")
+        except (TypeError, AttributeError):
+            raise DiffcalcException(msg)
 
     def edit_orientation(
         self,
@@ -460,10 +495,8 @@ class OrientationList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        if isinstance(pos, Position):
-            self.orientations[num] = Orientation(*hkl, *xyz, pos, tag)
-        else:
-            raise TypeError(f"Invalid position parameter type {type(pos)}")
+
+        self.orientations[num] = Orientation(*hkl, *xyz, pos, tag)
 
     def get_orientation(self, idx: Union[str, int]) -> Orientation:
         """Get a reference orientation.
@@ -595,3 +628,12 @@ class OrientationList:
             values = (n, h, k, l, x, y, z) + angles + (tag,)
             lines.append(str_format % values)
         return lines
+
+    @property
+    def asdict(self) -> List[Dict[str, Any]]:
+        return [orient.asdict for orient in self.orientations]
+
+    @classmethod
+    def fromdict(cls, data: List[Dict[str, Any]]) -> "OrientationList":
+        orientations = [Orientation.fromdict(each_orient) for each_orient in data]
+        return cls(orientations)

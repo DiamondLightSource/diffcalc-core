@@ -106,11 +106,11 @@ CRYSTAL ORIENTATIONS
 
     def test_set_lattice(self):
         ubcalc = UBCalculation("testing_set_lattice")
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             ubcalc.set_lattice(1)
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             ubcalc.set_lattice(1, 2)
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             ubcalc.set_lattice("HCl")
         ubcalc.set_lattice("NaCl", 1.1)
         eq_(("NaCl", 1.1, 1.1, 1.1, 90, 90, 90), ubcalc.crystal.get_lattice())
@@ -120,7 +120,7 @@ CRYSTAL ORIENTATIONS
         eq_(("NaCl", 1.1, 2.2, 3.3, 90, 90, 90), ubcalc.crystal.get_lattice())
         ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91)
         eq_(("NaCl", 1.1, 2.2, 3.3, 90, 91, 90), ubcalc.crystal.get_lattice())
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             ubcalc.set_lattice(("NaCl", 1.1, 2.2, 3.3, 91, 92))
         ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91, 92, 93)
         assert_iterable_almost_equal(
@@ -148,7 +148,7 @@ CRYSTAL ORIENTATIONS
         result = reflist.get_reflection(2)
         eq_(result.astuple, ((2.1, 2.2, 2.3), pos2.astuple, 2.10, "atag"))
 
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             ubcalc.add_reflection((3.1, 3.2, 3.3), pos3, 3.10)
         with pytest.raises(IndexError):
             reflist.get_reflection(3)
@@ -219,7 +219,7 @@ CRYSTAL ORIENTATIONS
         mneq_(array([[result.x, result.y, result.z]]), trans_orient1)
         eq_(result.tag, None)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             ubcalc.add_orientation(hkl2, orient2, "atag")
 
         ubcalc.add_orientation(hkl2, orient2, tag="atag")
@@ -288,11 +288,11 @@ CRYSTAL ORIENTATIONS
         setu = ubcalc.set_u
         with pytest.raises(TypeError):
             setu(1, 2)
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             setu(1)
         with pytest.raises(ValueError):
             setu("a")
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             setu([1, 2, 3])
         with pytest.raises(ValueError):
             setu([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0], [1.0, 2.0]])
@@ -304,11 +304,11 @@ CRYSTAL ORIENTATIONS
         # just test calling this method
         ubcalc = UBCalculation("test_setub")
         setub = ubcalc.set_ub
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             setub(1)
         with pytest.raises(ValueError):
             setub("a")
-        with pytest.raises(TypeError):
+        with pytest.raises(DiffcalcException):
             setub([1, 2, 3])
         with pytest.raises(ValueError):
             setub([[1, 2, 3], [1, 2, 3], [1, 2]])

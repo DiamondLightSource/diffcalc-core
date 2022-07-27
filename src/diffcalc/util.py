@@ -74,8 +74,9 @@ def xyz_rotation(axis: Tuple[float, float, float], angle: float) -> np.ndarray:
     np.ndarray
         Rotation matrix.
     """
-    rot = Rotation.from_rotvec(angle * np.array(axis) / norm(np.array(axis)))
-    return rot.as_matrix()
+    rot: Rotation = Rotation.from_rotvec(angle * np.array(axis) / norm(np.array(axis)))
+    rot_as_matrix: np.ndarray = rot.as_matrix()
+    return rot_as_matrix
 
 
 class DiffcalcException(Exception):
@@ -93,7 +94,7 @@ class DiffcalcException(Exception):
         return "\n".join(lines)
 
 
-### Matrices
+# Matrices
 
 
 def cross3(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -152,7 +153,7 @@ def angle_between_vectors(x: np.ndarray, y: np.ndarray) -> float:
     return acos(bound(costheta))
 
 
-## Math
+# Math
 
 
 def bound(x: float) -> float:
@@ -298,7 +299,8 @@ def normalised(vector: np.ndarray) -> np.ndarray:
     ndarray
         Normalised vector.
     """
-    return vector * (1.0 / norm(vector))
+    vector_norm: float = float(norm(vector))
+    return vector * (1.0 / vector_norm)
 
 
 def zero_round(num):

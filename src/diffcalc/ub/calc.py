@@ -10,7 +10,7 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -99,7 +99,8 @@ class ReferenceVector:
             n_ref_new = UB @ n_ref_array
         else:
             n_ref_new = inv(UB) @ n_ref_array
-        return n_ref_new / norm(n_ref_new)
+
+        return np.array(n_ref_new / float(norm(n_ref_new)))
 
     def set_array(self, n_ref: np.ndarray) -> None:
         """Set reference vector coordinates from NumPy array.
@@ -129,6 +130,10 @@ class ReferenceVector:
             )
         (r1, r2, r3) = tuple(n_ref.T[0].tolist())
         self.n_ref = (r1, r2, r3)
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return self.__dict__.copy()
 
 
 class UBCalculation:
@@ -424,12 +429,12 @@ class UBCalculation:
             Crystal lattice angle.
         """
         if not isinstance(name, str):
-            raise TypeError("Invalid crystal name.")
-        shortform = tuple(
+            raise DiffcalcException("Invalid crystal name.")
+        shortform: Tuple[Any, ...] = tuple(
             val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
         )
         if not shortform:
-            raise TypeError("Please specify unit cell parameters.")
+            raise DiffcalcException("Please specify unit cell parameters.")
         elif allnum(shortform):
             sf = shortform
             if len(sf) == 1:
@@ -449,17 +454,17 @@ class UBCalculation:
                 raise TypeError(
                     "Invalid number of input parameters to set unit lattice."
                 )
-            fullform = (system,) + shortform
+            fullform: Tuple[Any, ...] = (system,) + shortform
+            self.crystal = Crystal(name, *fullform)
         else:
             if not isinstance(shortform[0], str):
                 raise TypeError("Invalid unit cell parameters specified.")
-            fullform = shortform
+            self.crystal = Crystal(name, *shortform)
         if self.name is None:
             raise DiffcalcException(
                 "Cannot set lattice until a UBCalcaluation has been started "
                 "with newubcalc"
             )
-        self.crystal = Crystal(name, *fullform)
 
     ### Reference vector ###
     @property
@@ -607,10 +612,7 @@ class UBCalculation:
         int:
             Number of reference reflections.
         """
-        try:
-            return len(self.reflist)
-        except TypeError:
-            return 0
+        return len(self.reflist)
 
     def get_tag_refl_num(self, tag: str) -> int:
         """Get a reference reflection index.
@@ -627,8 +629,6 @@ class UBCalculation:
         int:
             Reference reflection index
         """
-        if tag is None:
-            raise IndexError("Reflection tag is None")
         return self.reflist.get_tag_index(tag) + 1
 
     def del_reflection(self, idx: Union[str, int]) -> None:
@@ -672,8 +672,6 @@ class UBCalculation:
         tag : str
             identifying tag for the reflection
         """
-        if self.orientlist is None:
-            raise DiffcalcException("No UBCalculation loaded")
         if position is None:
             position = Position()
         self.orientlist.add_orientation(hkl, xyz, position, tag)
@@ -729,7 +727,7 @@ class UBCalculation:
         except TypeError:
             return 0
 
-    def get_tag_orient_num(self, tag):
+    def get_tag_orient_num(self, tag: str):
         """Get a reference orientation index.
 
         Get a reference orientation index for the
@@ -744,8 +742,6 @@ class UBCalculation:
         int:
             Reference orientation index
         """
-        if tag is None:
-            raise IndexError("Orientations tag is None")
         return self.orientlist.get_tag_index(tag) + 1
 
     def del_orientation(self, idx):
@@ -805,7 +801,7 @@ class UBCalculation:
         """
         m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
-            raise TypeError("set_u expects (3, 3) NumPy matrix.")
+            raise DiffcalcException("set_u expects (3, 3) NumPy matrix.")
 
         if self.UB is None:
             print("Calculating UB matrix.")
@@ -846,7 +842,7 @@ class UBCalculation:
         """
         m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
-            raise TypeError("set_ub expects (3, 3) NumPy matrix.")
+            raise DiffcalcException("set_ub expects (3, 3) NumPy matrix.")
 
         self.UB = m
 
@@ -1200,7 +1196,7 @@ class UBCalculation:
         a1 = cross3(b2.T, b3.T) * 2 * pi / V
         a2 = cross3(b3.T, b1.T) * 2 * pi / V
         a3 = cross3(b1.T, b2.T) * 2 * pi / V
-        ax, bx, cx = norm(a1), norm(a2), norm(a3)
+        ax, bx, cx = float(norm(a1)), float(norm(a2)), float(norm(a3))
         alpha = acos(dot3(a2, a3) / (bx * cx))
         beta = acos(dot3(a1, a3) / (ax * cx))
         gamma = acos(dot3(a1, a2) / (ax * bx))
@@ -1231,7 +1227,9 @@ class UBCalculation:
             rotation_angle = 0.0
         else:
             rotation_axis = rotation_axis / norm(rotation_axis)
-            cos_rotation_angle = bound(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
+            cos_rotation_angle = bound(
+                float(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
+            )
             rotation_angle = acos(cos_rotation_angle)
         return rotation_angle, rotation_axis
 
@@ -1263,7 +1261,9 @@ class UBCalculation:
             return None, None
         axis = axis / norm(axis)
         try:
-            miscut = acos(bound(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
+            miscut = acos(
+                bound(float(dot3(q_vec, hkl_nphi) / (norm(q_vec) * norm(hkl_nphi))))
+            )
         except AssertionError:
             return 0, (0, 0, 0)
         return degrees(miscut), (axis[0, 0], axis[1, 0], axis[2, 0])
@@ -1313,7 +1313,10 @@ class UBCalculation:
 
         Raises
         ------
-        ValueError
+        DiffcalcException
+            If no lattice parameters specified
+
+        DiffcalcException
             If reflection is unreachable at the provided energy.
         """
         if self.crystal is None:
@@ -1323,14 +1326,14 @@ class UBCalculation:
         wl = 12.39842 / en
         d = self.crystal.get_hkl_plane_distance(hkl)
         if wl > (2 * d):
-            raise ValueError(
+            raise DiffcalcException(
                 "Reflection un-reachable as wavelength (%f) is more than twice\n"
                 "the plane distance (%f)" % (wl, d)
             )
         try:
             return 2.0 * asin(wl / (d * 2))
         except ValueError as e:
-            raise ValueError(
+            raise DiffcalcException(
                 f"asin(wl / (d * 2) with wl={wl:f} and d={d:f}: " + e.args[0]
             )
 
@@ -1357,7 +1360,7 @@ class UBCalculation:
         q_vec = get_q_phi(pos)
         q_hkl = norm(q_vec) / wavelength
         d_hkl = self.crystal.get_hkl_plane_distance(hkl)
-        sc = 1 / (q_hkl * d_hkl)
+        sc = float(1 / (q_hkl * d_hkl))
         name, a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
         if abs(sc - 1.0) < SMALL:
             return None, None
@@ -1375,3 +1378,33 @@ class UBCalculation:
             alpha2,
             alpha3,
         )
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "crystal": self.crystal.asdict if self.crystal is not None else None,
+            "reflist": self.reflist.asdict,
+            "orientlist": self.orientlist.asdict,
+            "reference": self.reference.asdict,
+            "surface": self.surface.asdict,
+            "u_matrix": self.U.tolist() if self.U is not None else None,
+            "ub_matrix": self.UB.tolist() if self.UB is not None else None,
+        }
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "UBCalculation":
+        # need to return exactly the same object.
+        ubcalc = cls(data["name"])
+        ubcalc.crystal = (
+            Crystal(**data["crystal"]) if data["crystal"] is not None else None
+        )
+        ubcalc.reflist = ReflectionList.fromdict(data["reflist"])
+        ubcalc.orientlist = OrientationList.fromdict(data["orientlist"])
+        ubcalc.reference = ReferenceVector(**data["reference"])
+        ubcalc.surface = ReferenceVector(**data["surface"])
+        ubcalc.U = np.array(data["u_matrix"]) if data["u_matrix"] is not None else None
+        ubcalc.UB = (
+            np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
+        )
+        return ubcalc

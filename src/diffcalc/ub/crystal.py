@@ -4,10 +4,10 @@ A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
 from math import acos, cos, degrees, pi, radians, sin, sqrt
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from diffcalc.util import allnum, angle_between_vectors, zero_round
+from diffcalc.util import DiffcalcException, allnum, angle_between_vectors, zero_round
 from numpy.linalg import inv
 
 
@@ -16,7 +16,8 @@ class Crystal:
 
     Contains the lattice parameters and calculated B matrix for the crystal
     under test. Also Calculates the distance between planes at a given hkl
-    value.
+    value. All angles are assumed to be given in degrees, and are converted
+    to radians.
 
     Attributes
     ----------
@@ -78,7 +79,7 @@ class Crystal:
         )
         if allnum(args):
             if len(args) != 6:
-                raise ValueError(
+                raise DiffcalcException(
                     "Crystal definition requires six lattice "
                     "parameters or crystal system name."
                 )
@@ -93,12 +94,14 @@ class Crystal:
             )
         else:
             if not isinstance(args[0], str):
-                raise ValueError(f"Invalid crystal system name {args[0]}.")
+                raise DiffcalcException(f"Invalid crystal system name {args[0]}.")
             self.system = args[0]
             if allnum(args[1:]):
                 self._set_cell_for_system(system, a, b, c, alpha, beta, gamma)
             else:
-                raise ValueError("Crystal lattice parameters must be numeric type.")
+                raise DiffcalcException(
+                    "Crystal lattice parameters must be numeric type."
+                )
 
     def __str__(self) -> str:
         """Represent the crystal lattice information as a string.
@@ -255,11 +258,11 @@ class Crystal:
             elif self.system == "Cubic":
                 return self.system, (self.a1,)
             else:
-                raise TypeError(
+                raise DiffcalcException(
                     "Invalid crystal system parameter: %s" % str(self.system)
                 )
         except ValueError as e:
-            raise TypeError from e
+            raise DiffcalcException from e
 
     def _get_cell_for_system(
         self, system: str
@@ -293,7 +296,9 @@ class Crystal:
         elif system == "Cubic":
             return (self.a1, self.a1, self.a1, pi / 2, pi / 2, pi / 2)
         else:
-            raise TypeError("Invalid crystal system parameter: %s" % str(system))
+            raise DiffcalcException(
+                "Invalid crystal system parameter: %s" % str(system)
+            )
 
     def _set_cell_for_system(
         self,
@@ -329,7 +334,7 @@ class Crystal:
             else:
                 raise TypeError("Invalid crystal system parameter: %s" % str(system))
         except ValueError as e:
-            raise TypeError from e
+            raise DiffcalcException from e
         (
             self.a1,
             self.a2,
@@ -377,9 +382,28 @@ class Crystal:
         float
             The angle between the crystal lattice planes.
         """
-        hkl1 = np.array([hkl1]).T
-        hkl2 = np.array([hkl2]).T
-        nphi1 = self.B @ hkl1
-        nphi2 = self.B @ hkl2
+        hkl1_transpose = np.array([hkl1]).T
+        hkl2_transpose = np.array([hkl2]).T
+        nphi1 = self.B @ hkl1_transpose
+        nphi2 = self.B @ hkl2_transpose
         angle = angle_between_vectors(nphi1, nphi2)
         return angle
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        """Serialise the crystal into a JSON compatible dictionary.
+
+        Note, because the class automatically assumes all angles are
+        in degrees, the returned angles alpha, beta and gamma are given
+        in degrees such that the dictionary can be directly unpacked as is.
+        """
+        return {
+            "name": self.name,
+            "system": self.system,
+            "a": self.a1,
+            "b": self.a2,
+            "c": self.a3,
+            "alpha": degrees(self.alpha1),
+            "beta": degrees(self.alpha2),
+            "gamma": degrees(self.alpha3),
+        }
