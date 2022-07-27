@@ -31,6 +31,11 @@ steps:
   displayName: Run tests
   workingDirectory: $(Pipeline.Workspace)/src
 
+- script: |
+    PYTHONDEVMODE=1 mypy src tests
+  displayName: Mypy
+  workingDirectory: $(Pipeline.Workspace)
+
 - bash: bash <(curl -s https://codecov.io/bash) -n "Python $(PYTHON_VERSION) $(Agent.OS)"
   env:
     CODECOV_TOKEN: $(CODECOV_TOKEN)

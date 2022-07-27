@@ -8,24 +8,23 @@ References
 .. [1] H. You. "Angle calculations for a '4S+2D' six-circle diffractometer"
        J. Appl. Cryst. (1999). 32, 614-623.
 """
+from dataclasses import dataclass
 from math import degrees, radians
-from typing import Dict, Tuple, Union
+from typing import Any, Tuple
 
 import numpy as np
 from diffcalc.util import I, x_rotation, y_rotation, z_rotation
 from numpy.linalg import inv
 
 
+@dataclass
 class Position:
     """Class representing diffractometer orientation.
 
     Diffractometer orientation corresponding to (4+2) geometry
-    defined in H. You paper (add reference)
 
     Attributes
     ----------
-    fields: Tuple[str, str, str, str, str, str]
-        Tuple with angle names
     mu: float, default = 0.0
         mu angle value
     delta: float, default = 0.0
@@ -42,32 +41,23 @@ class Position:
         If True, arguments are angles in degrees.
     """
 
-    fields: Tuple[str, str, str, str, str, str] = (
-        "mu",
-        "delta",
-        "nu",
-        "eta",
-        "chi",
-        "phi",
-    )
+    mu: float = 0.0
+    delta: float = 0.0
+    nu: float = 0.0
+    eta: float = 0.0
+    chi: float = 0.0
+    phi: float = 0.0
+    indegrees: bool = True
 
-    def __init__(
-        self,
-        mu: float = 0.0,
-        delta: float = 0.0,
-        nu: float = 0.0,
-        eta: float = 0.0,
-        chi: float = 0.0,
-        phi: float = 0.0,
-        indegrees: bool = True,
-    ):
-        self._mu: float = radians(mu) if indegrees else mu
-        self._delta: float = radians(delta) if indegrees else delta
-        self._nu: float = radians(nu) if indegrees else nu
-        self._eta: float = radians(eta) if indegrees else eta
-        self._chi: float = radians(chi) if indegrees else chi
-        self._phi: float = radians(phi) if indegrees else phi
-        self.indegrees: bool = indegrees
+    def __post_init__(self):
+        self.angles = {
+            "mu": self.mu,
+            "delta": self.delta,
+            "nu": self.nu,
+            "eta": self.eta,
+            "chi": self.chi,
+            "phi": self.phi,
+        }
 
     @classmethod
     def asdegrees(cls, pos: "Position") -> "Position":
@@ -83,9 +73,12 @@ class Position:
         Position
             New Position object with angles in degrees.
         """
-        res = cls(**pos.asdict, indegrees=pos.indegrees)
-        res.indegrees = True
-        return res
+        if not pos.indegrees:
+            return cls(
+                **{key: degrees(value) for key, value in pos.angles.items()},
+                indegrees=True
+            )
+        return pos
 
     @classmethod
     def asradians(cls, pos: "Position") -> "Position":
@@ -101,126 +94,15 @@ class Position:
         Position
             New Position object with angles in radians.
         """
-        res = cls(**pos.asdict, indegrees=pos.indegrees)
-        res.indegrees = False
-        return res
+        if pos.indegrees:
+            return cls(
+                **{key: radians(value) for key, value in pos.angles.items()},
+                indegrees=False
+            )
+        return pos
 
     @property
-    def mu(self) -> Union[float, None]:
-        """Value of of mu angle."""
-        if self.indegrees:
-            return degrees(self._mu)
-        else:
-            return self._mu
-
-    @mu.setter
-    def mu(self, val):
-        if self.indegrees:
-            self._mu = radians(val)
-        else:
-            self._mu = val
-
-    @mu.deleter
-    def mu(self):
-        self._mu = None
-
-    @property
-    def delta(self) -> Union[float, None]:
-        """Value of of delta angle."""
-        if self.indegrees:
-            return degrees(self._delta)
-        else:
-            return self._delta
-
-    @delta.setter
-    def delta(self, val):
-        if self.indegrees:
-            self._delta = radians(val)
-        else:
-            self._delta = val
-
-    @delta.deleter
-    def delta(self):
-        self._delta = None
-
-    @property
-    def nu(self) -> Union[float, None]:
-        """Value of of nu angle."""
-        if self.indegrees:
-            return degrees(self._nu)
-        else:
-            return self._nu
-
-    @nu.setter
-    def nu(self, val):
-        if self.indegrees:
-            self._nu = radians(val)
-        else:
-            self._nu = val
-
-    @nu.deleter
-    def nu(self):
-        self._nu = None
-
-    @property
-    def eta(self) -> Union[float, None]:
-        """Value of of eta angle."""
-        if self.indegrees:
-            return degrees(self._eta)
-        else:
-            return self._eta
-
-    @eta.setter
-    def eta(self, val):
-        if self.indegrees:
-            self._eta = radians(val)
-        else:
-            self._eta = val
-
-    @eta.deleter
-    def eta(self):
-        self._eta = None
-
-    @property
-    def chi(self) -> Union[float, None]:
-        """Value of of chi angle."""
-        if self.indegrees:
-            return degrees(self._chi)
-        else:
-            return self._chi
-
-    @chi.setter
-    def chi(self, val):
-        if self.indegrees:
-            self._chi = radians(val)
-        else:
-            self._chi = val
-
-    @chi.deleter
-    def chi(self):
-        self._chi = None
-
-    @property
-    def phi(self) -> Union[float, None]:
-        """Value of of phi angle."""
-        if self.indegrees:
-            return degrees(self._phi)
-        else:
-            return self._phi
-
-    @phi.setter
-    def phi(self, val):
-        if self.indegrees:
-            self._phi = radians(val)
-        else:
-            self._phi = val
-
-    @phi.deleter
-    def phi(self):
-        self._phi = None
-
-    @property
-    def asdict(self) -> Dict[str, float]:
+    def asdict(self):
         """Return dictionary of diffractometer angles.
 
         Returns
@@ -228,10 +110,12 @@ class Position:
         Dict[str, float]
             Dictionary of axis names and angle values.
         """
-        return {field: getattr(self, field) for field in self.fields}
+        class_info = self.angles.copy()
+        class_info["indegrees"] = self.indegrees
+        return class_info
 
     @property
-    def astuple(self) -> Tuple[float, float, float, float, float, float]:
+    def astuple(self) -> Tuple[Any, ...]:
         """Return tuple of diffractometer angles.
 
         Returns
@@ -239,10 +123,7 @@ class Position:
         Tuple[float, float, float, float, float, float]
             Tuple of angle values.
         """
-        mu, delta, nu, eta, chi, phi = tuple(
-            getattr(self, field) for field in self.fields
-        )
-        return mu, delta, nu, eta, chi, phi
+        return tuple(self.angles.values())
 
 
 def get_rotation_matrices(
@@ -388,8 +269,6 @@ def get_q_phi(pos: Position) -> np.ndarray:
     """
     pos_in_rad = Position.asradians(pos)
     [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
-    # Equation 12: Compute the momentum transfer vector in the lab  frame
     y = np.array([[0], [1], [0]])
     q_lab = (NU @ DELTA - I) @ y
-    # Transform this into the phi frame.
-    return inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_lab
+    return np.array(inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_lab)

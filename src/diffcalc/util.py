@@ -1,6 +1,6 @@
 """Collection of auxiliary mathematical methods."""
 from math import acos, cos, isclose, sin
-from typing import Any, Sequence, Tuple
+from typing import Any, Tuple
 
 import numpy as np
 from numpy.linalg import norm
@@ -74,8 +74,8 @@ def xyz_rotation(axis: Tuple[float, float, float], angle: float) -> np.ndarray:
     np.ndarray
         Rotation matrix.
     """
-    rot = Rotation.from_rotvec(angle * np.array(axis) / norm(np.array(axis)))
-    return rot.as_matrix()
+    rot: Rotation = Rotation.from_rotvec(angle * np.array(axis) / norm(np.array(axis)))
+    return np.array(rot.as_matrix())
 
 
 class DiffcalcException(Exception):
@@ -225,22 +225,6 @@ def isnum(o: Any) -> bool:
     return isinstance(o, (int, float))
 
 
-def allnum(lst: Sequence[Any]) -> bool:
-    """Check if all object types in the input sequence are either int or float.
-
-    Parameters
-    ----------
-    o: Sequence[Any]
-        Input object sequence to be checked.
-
-    Returns
-    -------
-    bool
-        If all object types in th sequence are either int or float.
-    """
-    return not [o for o in lst if not isnum(o)]
-
-
 def is_small(x, tolerance=SMALL) -> bool:
     """Check if input value is 0 within tolerance.
 
@@ -298,7 +282,7 @@ def normalised(vector: np.ndarray) -> np.ndarray:
     ndarray
         Normalised vector.
     """
-    return vector * (1.0 / norm(vector))
+    return vector * (1.0 / float(norm(vector)))
 
 
 def zero_round(num):

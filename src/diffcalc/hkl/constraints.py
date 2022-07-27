@@ -20,6 +20,7 @@ class _Constraint:
 
     @property
     def active(self) -> bool:
+        # in the below statement, how can self.value ever be False?
         return self.value is not False and self.value is not None
 
 
@@ -184,7 +185,11 @@ class Constraints:
         Dict[str, Union[float, bool]]
             Dictionary with all constrained angle names and values.
         """
-        return {con.name: getattr(self, con.name) for con in self._all if con.active}
+        con_dict = {
+            con.name: getattr(self, con.name) for con in self._all if con.active
+        }
+        con_dict["indegrees"] = self.indegrees
+        return con_dict
 
     @asdict.setter
     def asdict(self, constraints):

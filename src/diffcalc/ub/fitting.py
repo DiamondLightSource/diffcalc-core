@@ -4,7 +4,7 @@ A module implementing fitting routines for refining crystal lattice parameters
 and U matrix using reflection data.
 """
 from math import atan2, cos, pi, sin, sqrt
-from typing import List, Sequence, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
@@ -27,25 +27,28 @@ def _get_refl_hkl(
 
 
 def _func_crystal(
-    vals: Sequence[float], uc_system: str, refl_data: Tuple[np.ndarray, Position, float]
+    vals: List[float],
+    uc_system: str,
+    refl_data: List[Tuple[np.ndarray, Position, float]],
 ) -> float:
     try:
-        trial_cr = Crystal("trial", uc_system, *vals)
+
+        trial_cr = Crystal(name="trial", system=uc_system, lattice_params=vals)
     except Exception:
         return 1e6
 
-    res = 0
+    res: float = 0.0
     for (hkl_vals, pos_vals, en) in refl_data:
         wl = 12.3984 / en
         [_, DELTA, NU, _, _, _] = get_rotation_matrices(pos_vals)
         q_pos = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wl], [0]])
         q_hkl = trial_cr.B @ hkl_vals
-        res += (norm(q_pos) - norm(q_hkl)) ** 2
+        res += float((norm(q_pos) - norm(q_hkl)) ** 2)
     return res
 
 
 def _func_orient(
-    vals, crystal: Crystal, refl_data: Tuple[np.ndarray, Position, float]
+    vals, crystal: Crystal, refl_data: List[Tuple[np.ndarray, Position, float]]
 ) -> float:
     quat = _get_quat_from_u123(*vals)
     trial_u = _get_rot_matrix(*quat)
@@ -67,19 +70,19 @@ def _get_rot_matrix(q0: float, q1: float, q2: float, q3: float) -> np.ndarray:
     rot = np.array(
         [
             [
-                q0 ** 2 + q1 ** 2 - q2 ** 2 - q3 ** 2,
+                q0**2 + q1**2 - q2**2 - q3**2,
                 2.0 * (q1 * q2 - q0 * q3),
                 2.0 * (q1 * q3 + q0 * q2),
             ],
             [
                 2.0 * (q1 * q2 + q0 * q3),
-                q0 ** 2 - q1 ** 2 + q2 ** 2 - q3 ** 2,
+                q0**2 - q1**2 + q2**2 - q3**2,
                 2.0 * (q2 * q3 - q0 * q1),
             ],
             [
                 2.0 * (q1 * q3 - q0 * q2),
                 2.0 * (q2 * q3 + q0 * q1),
-                q0 ** 2 - q1 ** 2 - q2 ** 2 + q3 ** 2,
+                q0**2 - q1**2 - q2**2 + q3**2,
             ],
         ]
     )
@@ -166,7 +169,7 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
     """
     try:
         xtal_system, xtal_params = crystal.get_lattice_params()
-        start = xtal_params
+        start = list(xtal_params.values())
         lower = [
             0,
         ] * len(xtal_params)
@@ -189,7 +192,7 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
     )
     vals = res.x
 
-    res_cr = Crystal("trial", xtal_system, *vals)
+    res_cr = Crystal(name="trial", system=xtal_system, lattice_params=vals)
     # res_cr._set_cell_for_system(uc_system, *vals)
     return res_cr
 
@@ -248,3 +251,12 @@ def fit_u_matrix(
     # zr = q3 / sqrt(1. - q0 * q0)
     # print angle * TODEG, (xr, yr, zr), res
     return res_u
+
+
+# crystal = Crystal(
+#     name="test", system="Tetragonal", lattice_params={"a": 4.913, "c": 5.405}
+# )
+# list_of_reflections = [
+#     Reflection(0.0, 0.0, 1.0, Position(7.31, 0, 10.62, 0, 0, 0), 12.39842, "refl1")
+# ]
+# new_crystal = fit_crystal(crystal, list_of_reflections)
