@@ -7,7 +7,7 @@ diffcalc-core
         :target: https://pypi.python.org/pypi/diffcalc-core
 
 .. image:: https://dev.azure.com/DLS-tooling/diffcalc-core/_apis/build/status/DiamondLightSource.diffcalc-core?branchName=main
-        :target: https://dev.azure.com/DLS-tooling/diffcalc-core/_build/latest?definitionId=4&branchName=main
+        :target: https://dev.azure.com/DLS-tooling/diffcalc-core/_build/latest?branchName=main
 
 .. image:: https://codecov.io/gh/DiamondLightSource/diffcalc-core/branch/main/graph/badge.svg?token=I9LINSTT0N
         :target: https://codecov.io/gh/DiamondLightSource/diffcalc-core
