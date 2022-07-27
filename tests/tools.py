@@ -36,7 +36,7 @@ def assert_almost_equal(first, second, places=7, msg=None):
 
 
 def assert_array_almost_equal(first, second, places=7, msg=None, note=None):
-    err = "{!r} != {!r} as lengths differ{}".format(first, second, format_note(note))
+    err = f"{first!r} != {second!r} as lengths differ{format_note(note)}"
     assert len(first) == len(second), err
     for f, s in zip(first, second):
         # default_msg = "\n%r != \n%r within %i places%s" % (
@@ -73,10 +73,10 @@ aneq_ = arrayeq_ = assert_array_almost_equal
 
 
 def assert_2darray_almost_equal(first, second, places=7, msg=None, note=None):
-    err = "{!r} != {!r} as sizes differ{}".format(first, second, format_note(note))
+    err = f"{first!r} != {second!r} as sizes differ{format_note(note)}"
     assert len(first) == len(second), err
     for f2, s2 in zip(first, second):
-        err = "{!r} != {!r} as sizes differ{}".format(first, second, format_note(note))
+        err = f"{first!r} != {second!r} as sizes differ{format_note(note)}"
         assert len(f2) == len(s2), err
         for f, s in zip(f2, s2):
             message = "within %i places%s" % (places, format_note(note))
@@ -99,7 +99,7 @@ def assert_matrix_almost_equal(first, second, places=7, msg=None, note=None):
 
 
 def assert_dict_almost_equal(first, second, places=7, msg=None, note=None):
-    def_msg = "{!r} != {!r} as keys differ{}".format(first, second, format_note(note))
+    def_msg = f"{first!r} != {second!r} as keys differ{format_note(note)}"
     assert set(first.keys()) == set(second.keys()), msg or def_msg
     keys = list(first.keys())
     keys.sort()
@@ -157,7 +157,7 @@ def assert_iterable_almost_equal(first, second, places=7, msg=None, note=None):
             assert_almost_equal(f, s, places, msg)
         else:
             if f != s:
-                raise AssertionError("{!r} != {!r}{}".format(f, s, format_note(note)))
+                raise AssertionError(f"{f!r} != {s!r}{format_note(note)}")
 
 
 mneq_ = matrixeq_ = assert_matrix_almost_equal
