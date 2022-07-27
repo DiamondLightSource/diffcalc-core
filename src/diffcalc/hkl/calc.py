@@ -436,7 +436,7 @@ class HklCalculation:
                 enumerate([abs(Q[0, 0]), abs(Q[1, 0]), abs(Q[2, 0])]),
                 key=__key_func,
             )
-            idx_1, idx_2 = [idx for idx in range(3) if idx != idx_min]
+            idx_1, idx_2 = (idx for idx in range(3) if idx != idx_min)
             qval = sqrt(Q[idx_1, 0] * Q[idx_1, 0] + Q[idx_2, 0] * Q[idx_2, 0])
             n[idx_min, 0] = qval
             n[idx_1, 0] = -Q[idx_min, 0] * Q[idx_1, 0] / qval
@@ -508,8 +508,8 @@ class HklCalculation:
             else:
                 sin_psi = cos(alpha) * sin(qaz - naz)
                 sgn = sign(sin_tau)
-                eps = sin_psi ** 2 + cos_psi ** 2
-                sigma_ = eps / sin_tau ** 2 - 1
+                eps = sin_psi**2 + cos_psi**2
+                sigma_ = eps / sin_tau**2 - 1
                 if not is_small(sigma_):
                     print(
                         "WARNING: Diffcalc could not calculate a unique azimuth "
@@ -774,7 +774,7 @@ class HklCalculation:
             )  # Try to find a solution for each possible transformed xi
 
             logger.debug("")
-            msg = "---Trying psi={:.3f}, qaz={:.3f}".format(degrees(psi), degrees(qaz))
+            msg = f"---Trying psi={degrees(psi):.3f}, qaz={degrees(qaz):.3f}"
             logger.debug(msg)
 
             for delta, nu, _ in self._calc_remaining_detector_angles("qaz", qaz, theta):
@@ -937,7 +937,7 @@ class HklCalculation:
                     "Sample orientation cannot be chosen uniquely. Please choose a different set of constraints."
                 )
             ks = atan2(A, B)
-            acos_alp = acos(bound(C / sqrt(A ** 2 + B ** 2)))
+            acos_alp = acos(bound(C / sqrt(A**2 + B**2)))
             if is_small(acos_alp):
                 alp_list = [
                     ks,
@@ -1513,7 +1513,7 @@ class HklCalculation:
                 acos_phi = acos(
                     bound(
                         (N_phi[2, 0] * cos(chi) - V20)
-                        / (sin(chi) * sqrt(A ** 2 + B ** 2))
+                        / (sin(chi) * sqrt(A**2 + B**2))
                     )
                 )
             except AssertionError:
@@ -1562,7 +1562,7 @@ class HklCalculation:
             try:
                 acos_rhs = acos(
                     bound(
-                        (sin(qaz) * cos(theta) / cos(eta) - V) / sqrt(X ** 2 + Y ** 2)
+                        (sin(qaz) * cos(theta) / cos(eta) - V) / sqrt(X**2 + Y**2)
                     )
                 )
             except AssertionError:
@@ -1605,7 +1605,7 @@ class HklCalculation:
                 acos_V00 = acos(
                     bound(
                         (cos(theta) * sin(qaz) - N_phi[2, 0] * cos(eta) * sin(chi))
-                        / sqrt(A ** 2 + B ** 2)
+                        / sqrt(A**2 + B**2)
                     )
                 )
             except AssertionError:
