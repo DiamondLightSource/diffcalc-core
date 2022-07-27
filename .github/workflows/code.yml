@@ -16,3 +16,65 @@ jobs:
           use-mypy: true
           use-flake8: true
           extra-flake8-options: "--ignore=C901,W503,E741"
+
+  wheel:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python: ["3.9"]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Create Sdist and Wheel
+        # Set SOURCE_DATE_EPOCH from git commit for reproducible build
+        # https://reproducible-builds.org/
+        # Set group writable and umask to do the same to match inside DLS
+        run: |
+          chmod -R g+w .
+          umask 0002
+          SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) pipx run build --sdist --wheel
+      - name: Upload Wheel and Sdist as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/*
+
+      - name: Install minimum python version
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"] # can add windows-latest, macos-latest
+        python: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+
+
+        include:
+          # Add an extra Python3.9 runner to use the lockfile
+          - os: "ubuntu-latest"
+            python: "3.9"
+
+    runs-on: ${{ matrix.os }}
+    env:
+      # https://github.com/pytest-dev/pytest/issues/2042
+      PY_IGNORE_IMPORTMISMATCH: "1"
+
+    steps:
+      - name: Test with pytest
+        run: pytest --cov tests
+        with:
+          python-version: ${{ matrix.python }}
+
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          name: ${{ matrix.python }}/${{ matrix.os }}
