@@ -135,10 +135,6 @@ class ReferenceVector:
     def asdict(self) -> Dict[str, Any]:
         return self.__dict__.copy()
 
-    @classmethod
-    def fromdict(cls, data: Dict[str, Any]) -> "ReferenceVector":
-        return cls(**data)
-
 
 class UBCalculation:
     """Class containing information required for for UB matrix calculation.
@@ -1401,7 +1397,7 @@ class UBCalculation:
         # need to return exactly the same object.
         ubcalc = cls(data["name"])
         ubcalc.crystal = (
-            Crystal.fromdict(data["crystal"]) if data["crystal"] is not None else None
+            Crystal(**data["crystal"]) if data["crystal"] is not None else None
         )
         ubcalc.reflist = ReflectionList.fromdict(data["reflist"])
         ubcalc.orientlist = OrientationList.fromdict(data["orientlist"])

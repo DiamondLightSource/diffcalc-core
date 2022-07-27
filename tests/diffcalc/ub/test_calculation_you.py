@@ -18,6 +18,7 @@
 
 from math import pi
 
+from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from numpy import array
 
@@ -59,3 +60,25 @@ def testAgainstI16Results():
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1)
+
+
+def test_serialisation():
+    ubcalc = UBCalculation()
+    ubcalc.set_lattice(name="test", a=4.913, c=5.405)
+    ubcalc.add_reflection(
+        hkl=(0, 0, 1),
+        position=Position(7.31, 0, 10.62, 0, 0, 0),
+        energy=12.39842,
+        tag="refl1",
+    )
+    ubcalc.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
+    ubcalc.n_hkl = (1, 0, 0)
+
+    ubcalc_json = ubcalc.asdict
+    new_ubcalc = UBCalculation.fromdict(ubcalc_json)
+
+    ubcalc.calc_ub("refl1", "plane")
+    new_ubcalc.calc_ub("refl1", "plane")
+
+    assert (new_ubcalc.UB == ubcalc.UB).all()
+    assert (new_ubcalc.U == ubcalc.U).all()

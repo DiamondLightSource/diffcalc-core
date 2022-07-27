@@ -127,3 +127,10 @@ class TestOrientationList:
             pos.astuple,
             "orient1",
         )
+
+    def test_serialisation(self):
+        orig_orient_list = self.orientlist
+        orient_json = orig_orient_list.asdict
+        reformed_orient_list = OrientationList.fromdict(orient_json)
+
+        assert reformed_orient_list.asdict == orig_orient_list.asdict

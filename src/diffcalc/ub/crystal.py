@@ -16,7 +16,8 @@ class Crystal:
 
     Contains the lattice parameters and calculated B matrix for the crystal
     under test. Also Calculates the distance between planes at a given hkl
-    value.
+    value. All angles are assumed to be given in degrees, and are converted
+    to radians.
 
     Attributes
     ----------
@@ -390,18 +391,19 @@ class Crystal:
 
     @property
     def asdict(self) -> Dict[str, Any]:
-        """Serialise the crystal into a JSON compatible dictionary"""
+        """Serialise the crystal into a JSON compatible dictionary.
+
+        Note, because the class automatically assumes all angles are
+        in degrees, the returned angles alpha, beta and gamma are given
+        in degrees such that the dictionary can be directly unpacked as is.
+        """
         return {
             "name": self.name,
             "system": self.system,
             "a": self.a1,
             "b": self.a2,
             "c": self.a3,
-            "alpha": self.alpha1,
-            "beta": self.alpha2,
-            "gamma": self.alpha3,
+            "alpha": degrees(self.alpha1),
+            "beta": degrees(self.alpha2),
+            "gamma": degrees(self.alpha3),
         }
-
-    @classmethod
-    def fromdict(cls, data: Dict[str, Any]) -> "Crystal":
-        return Crystal(**data)

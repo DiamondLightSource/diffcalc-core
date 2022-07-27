@@ -121,3 +121,10 @@ class TestReflectionList:
             1000,
             "ref1",
         )
+
+    def test_serialisation(self):
+        orig_reflist = self.reflist
+        reflist_json = orig_reflist.asdict
+        reformed_reflist = ReflectionList.fromdict(reflist_json)
+
+        assert reformed_reflist.asdict == orig_reflist.asdict
