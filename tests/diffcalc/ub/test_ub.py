@@ -106,9 +106,9 @@ CRYSTAL ORIENTATIONS
 
     def test_set_lattice(self):
         ubcalc = UBCalculation("testing_set_lattice")
-        with pytest.raises(DiffcalcException):
+        with pytest.raises(TypeError):
             ubcalc.set_lattice(1)
-        with pytest.raises(DiffcalcException):
+        with pytest.raises(TypeError):
             ubcalc.set_lattice(1, 2)
         with pytest.raises(DiffcalcException):
             ubcalc.set_lattice("HCl")
@@ -120,7 +120,7 @@ CRYSTAL ORIENTATIONS
         eq_(("NaCl", 1.1, 2.2, 3.3, 90, 90, 90), ubcalc.crystal.get_lattice())
         ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91)
         eq_(("NaCl", 1.1, 2.2, 3.3, 90, 91, 90), ubcalc.crystal.get_lattice())
-        with pytest.raises(DiffcalcException):
+        with pytest.raises(TypeError):
             ubcalc.set_lattice(("NaCl", 1.1, 2.2, 3.3, 91, 92))
         ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91, 92, 93)
         assert_iterable_almost_equal(
