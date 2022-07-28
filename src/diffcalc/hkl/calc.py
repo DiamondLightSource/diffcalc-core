@@ -81,7 +81,7 @@ class HklCalculation:
         Parameters
         ----------
         pos: Position
-            Diffractometer position
+            Diffractometer position.
 
         Returns
         -------
@@ -106,9 +106,9 @@ class HklCalculation:
         Parameters
         ----------
         pos: Position
-            Diffractometer position
+            Diffractometer position.
         asdegrees: bool = True
-            If True, return angles in degrees
+            If True, return angles in degrees.
 
         Returns
         -------
@@ -177,15 +177,15 @@ class HklCalculation:
         Parameters
         ----------
             h: float
-                h miller index
+                h miller index.
             k: float
-                k miller index
+                k miller index.
             l: float
-                l miller index
+                l miller index.
             wavelength: float
-                wavelength in Angstroms
+                wavelength in Angstroms.
             asdegrees: bool
-                If True, return angles in degrees
+                If True, return angles in degrees.
 
         Returns
         -------
@@ -217,15 +217,12 @@ class HklCalculation:
         self, h: float, k: float, l: float, wavelength: float
     ) -> List[Tuple[Position, Dict[str, float]]]:
         if not self.constraints.is_fully_constrained():
-            raise DiffcalcException(
-                "Diffcalc is not fully constrained.\n"
-                "Type 'help con' for instructions"
-            )
+            raise DiffcalcException("Diffcalc is not fully constrained.")
 
         if not self.constraints.is_current_mode_implemented():
             raise DiffcalcException(
                 "Sorry, the selected constraint combination is valid but "
-                "is not implemented. Type 'help con' for implemented combinations"
+                "is not implemented."
             )
 
         # constraints are dictionaries
@@ -243,7 +240,7 @@ class HklCalculation:
 
         assert not (
             det_constraint and naz_constraint
-        ), "Two 'detector' constraints given"
+        ), "Two 'detector' constraints given."
 
         h_phi = self.ubcalc.UB @ np.array([[h], [k], [l]])
         theta = (
@@ -331,7 +328,7 @@ class HklCalculation:
 
                 else:
                     raise DiffcalcException(
-                        "No code yet to handle this combination of detector and sample constraints!"
+                        "No code yet to handle this combination of detector and sample constraints."
                     )
 
         elif len(samp_constraints) == 2:
@@ -470,9 +467,9 @@ class HklCalculation:
         bottom = cos(alpha) * cos(theta)
         if is_small(bottom):
             if is_small(cos(alpha)):
-                raise ValueError("cos(alpha) is too small")
+                raise ValueError("cos(alpha) is too small.")
             if is_small(cos(theta)):
-                raise ValueError("cos(theta) is too small")
+                raise ValueError("cos(theta) is too small.")
         if is_small(sin(tau)):
             return 0.0
         return acos(bound(top / bottom))
@@ -508,7 +505,7 @@ class HklCalculation:
                         for psi in [acos_psi, -acos_psi]:
                             yield psi
                 except AssertionError:
-                    print("WARNING: Diffcalc could not calculate an azimuth (psi)")
+                    print("WARNING: Diffcalc could not calculate an azimuth (psi).")
                     yield float("nan")
             else:
                 sin_psi = cos(alpha) * sin(qaz - naz)
@@ -518,7 +515,7 @@ class HklCalculation:
                 if not is_small(sigma_):
                     print(
                         "WARNING: Diffcalc could not calculate a unique azimuth "
-                        "(psi) because of loss of accuracy in numerical calculation"
+                        "(psi) because of loss of accuracy in numerical calculation."
                     )
                     yield float("nan")
                 else:
@@ -640,7 +637,7 @@ class HklCalculation:
                 print(
                     (
                         "DEGENERATE: with delta=90, %s is degenerate: choosing "
-                        "%s = 0 (allowed because %s is unconstrained)"
+                        "%s = 0 (allowed because %s is unconstrained)."
                     )
                     % ("nu", "nu", "nu")
                 )
@@ -717,7 +714,7 @@ class HklCalculation:
                     print(
                         (
                             "DEGENERATE: with delta=90, %s is degenerate: choosing "
-                            "%s = 0 (allowed because %s is unconstrained)"
+                            "%s = 0 (allowed because %s is unconstrained)."
                         )
                         % ("nu", "nu", "nu")
                     )
@@ -734,7 +731,7 @@ class HklCalculation:
         else:
             raise DiffcalcException(
                 constraint_name + " is not an explicit detector angle "
-                "(naz cannot be handled here)"
+                "(naz cannot be handled here)."
             )
 
     def _calc_sample_angles_from_one_sample_constraint(
@@ -880,7 +877,7 @@ class HklCalculation:
                     raise DiffcalcException(
                         "Eta and phi cannot be chosen uniquely with chi "
                         "constrained so close to 0. (Please contact developer "
-                        "if this case is useful for you)"
+                        "if this case is useful for you)."
                     )
                 try:
                     acos_eta = acos(bound(Z[0, 2] / sin_chi))
@@ -939,7 +936,8 @@ class HklCalculation:
         def __get_last_sample_angle(A: float, B: float, C: float) -> List[float]:
             if is_small(A) and is_small(B):
                 raise DiffcalcException(
-                    "Sample orientation cannot be chosen uniquely. Please choose a different set of constraints."
+                    "Sample orientation cannot be chosen uniquely.\n"
+                    "Please choose a different set of constraints."
                 )
             ks = atan2(A, B)
             acos_alp = acos(bound(C / sqrt(A**2 + B**2)))
@@ -1308,7 +1306,7 @@ class HklCalculation:
         else:
             raise DiffcalcException(
                 "No code yet to handle this combination of 2 sample "
-                "constraints and one reference!:" + str(samp_constraints)
+                "constraints and one reference:" + str(samp_constraints)
             )
 
     def _calc_sample_angles_given_two_sample_and_detector(
@@ -1506,7 +1504,8 @@ class HklCalculation:
             B = N_phi[0, 0]
             if is_small(sin(chi)):
                 raise DiffcalcException(
-                    "Degenerate configuration with phi || eta axes cannot be set uniquely. Please choose a different set of constraints."
+                    "Degenerate configuration with phi || eta axes cannot be set uniquely.\n"
+                    "Please choose a different set of constraints."
                 )
             if is_small(A) and is_small(B):
                 raise DiffcalcException(
@@ -1660,7 +1659,7 @@ class HklCalculation:
         else:
             raise DiffcalcException(
                 "No code yet to handle this combination of 2 sample "
-                "constraints and one detector!:" + str(samp_constraints)
+                "constraints and one detector:" + str(samp_constraints)
             )
 
     def _tidy_degenerate_solutions(
@@ -1798,7 +1797,7 @@ class HklCalculation:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of hkl class. Can
+            Dictionary containing properties of hkl class. Can
             be unpacked to recreate HklCalculation object using fromdict
             class method below.
 
@@ -1812,13 +1811,13 @@ class HklCalculation:
         Parameters
         ----------
         data: Dict[str, Any]
-            dictionary containing properties of hkl class, must have the equivalent
+            Dictionary containing properties of hkl class, must have the equivalent
             structure of asdict method above.
 
         Returns
         -------
         HklCalculation
-            instance of this class created from the dictionary.
+            Instance of this class created from the dictionary.
 
         """
         constraint_data = data["constraints"]

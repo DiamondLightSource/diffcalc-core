@@ -73,7 +73,7 @@ class Reflection:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of this class. Can
+            Dictionary containing properties of this class. Can
             be unpacked to recreate the object using fromdict
             class method.
 
@@ -89,13 +89,13 @@ class Reflection:
         Parameters
         ----------
         data: Dict[str, Any]
-            dictionary containing properties of reflection class, must have the
+            Dictionary containing properties of reflection class, must have the
             equivalent structure of asdict property above.
 
         Returns
         -------
         Reflection
-            instance of this class created from the dictionary.
+            Instance of this class created from the dictionary.
 
         """
         return cls(
@@ -128,7 +128,7 @@ class ReflectionList:
         Parameters
         ----------
         tag : str
-            identifying tag for the reflection
+            Identifying tag for the reflection.
 
         Returns
         -------
@@ -154,9 +154,9 @@ class ReflectionList:
         Parameters
         ----------
         hkl : Tuple[float, float, float]
-            Miller indices of the reflection
+            Miller indices of the reflection.
         pos: Position
-            Object representing diffractometer angles
+            Object representing diffractometer angles.
         energy : float
             Energy of the x-ray beam.
         tag : str
@@ -179,9 +179,9 @@ class ReflectionList:
         Parameters
         ----------
         idx : Union[str, int]
-            Index or tag of the reflection to be changed
+            Index or tag of the reflection to be changed.
         hkl : Tuple[float,float,float]
-            Miller indices of the reflection
+            Miller indices of the reflection.
         position: Position
             Object representing diffractometer angles.
         energy : float
@@ -208,7 +208,7 @@ class ReflectionList:
     def get_reflection(self, idx: Union[str, int]) -> Reflection:
         """Get a reference reflection.
 
-        Get aon object representing reference reflection.
+        Get an object representing reference reflection.
 
         Parameters
         ----------
@@ -218,7 +218,7 @@ class ReflectionList:
         Returns
         -------
         Reflection
-            Object representing reference reflection
+            Object representing reference reflection.
 
         Raises
         ------
@@ -338,7 +338,7 @@ class ReflectionList:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of this class. Can
+            Dictionary containing properties of this class. Can
             be unpacked to recreate this object using fromdict
             class method below.
 
@@ -352,13 +352,13 @@ class ReflectionList:
         Parameters
         ----------
         data: Dict[str, Any]
-            dictionary containing properties of this class, must have the
+            Dictionary containing properties of this class, must have the
             equivalent structure of asdict property above.
 
         Returns
         -------
         ReflectionList
-            instance of this class created from the dictionary.
+            Instance of this class created from the dictionary.
 
         """
         reflections = [Reflection.fromdict(each_ref) for each_ref in data]
@@ -439,7 +439,7 @@ class Orientation:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of this class. Can
+            Dictionary containing properties of this class. Can
             be unpacked to recreate this object using fromdict
             class method below.
 
@@ -455,13 +455,13 @@ class Orientation:
         Parameters
         ----------
         data: Dict[str, Any]
-            dictionary containing properties of this class, must have the
+            Dictionary containing properties of this class, must have the
             equivalent structure to the asdict property.
 
         Returns
         -------
         Orientation
-            instance of this class created from the dictionary.
+            Instance of this class created from the dictionary.
 
         """
         return cls(
@@ -496,7 +496,7 @@ class OrientationList:
         Parameters
         ----------
         tag : str
-            identifying tag for the orientation
+            Identifying tag for the orientation
 
         Returns
         -------
@@ -533,7 +533,7 @@ class OrientationList:
         position: Position
             Object representing diffractometer position.
         tag : str
-            identifying tag for the orientation.
+            Identifying tag for the orientation.
         """
         if isinstance(pos, Position):
             self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
@@ -616,7 +616,7 @@ class OrientationList:
         Parameters
         ----------
         idx : Union[str, int]
-            Index or tag of the deteled orientation.
+            Index or tag of the deleted orientation.
 
         Raises
         ------
@@ -666,7 +666,7 @@ class OrientationList:
         Returns
         -------
         int
-            Number of reference orientationss.
+            Number of reference orientations.
         """
         return len(self.orientations)
 
@@ -720,7 +720,7 @@ class OrientationList:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of this class. Can
+            Dictionary containing properties of this class. Can
             be unpacked to recreate this object using fromdict
             class method below.
 
@@ -734,13 +734,13 @@ class OrientationList:
         Parameters
         ----------
         data: Dict[str, Any]
-            dictionary containing properties of this class, must have the
+            Dictionary containing properties of this class, must have the
             equivalent structure to the asdict property.
 
         Returns
         -------
         OrientationList
-            instance of this class created from the dictionary.
+            Instance of this class created from the dictionary.
 
         """
         orientations = [Orientation.fromdict(each_orient) for each_orient in data]
