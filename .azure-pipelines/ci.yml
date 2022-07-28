@@ -27,9 +27,15 @@ steps:
   displayName: Install package
 
 - script: |
+    PYTHONDEVMODE=1 mypy src tests
+  displayName: Run mypy type checker
+  workingDirectory: $(Pipeline.Workspace)/src
+
+- script: |
     PYTHONDEVMODE=1 pytest -ra --cov=diffcalc --cov-report=xml --cov-branch
   displayName: Run tests
   workingDirectory: $(Pipeline.Workspace)/src
+
 
 - bash: bash <(curl -s https://codecov.io/bash) -n "Python $(PYTHON_VERSION) $(Agent.OS)"
   env:
