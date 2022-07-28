@@ -152,9 +152,9 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
     Parameters
     ----------
     crystal: Crystal
-        Object containing initial crysta lattice parameter estimates
+        Object containing initial crystal lattice parameter estimates.
     refl_list: List[Reflection]
-        List or reference reflection objects
+        List or reference reflection objects.
 
     Returns
     -------
@@ -204,11 +204,11 @@ def fit_u_matrix(
     Parameters
     ----------
     init_u: np.ndarray
-        Initial U matrix as (3, 3) NumPy array
+        Initial U matrix as (3, 3) NumPy array.
     crystal: Crystal
-        Object containing initial crystal lattice parameter estimates
+        Object containing initial crystal lattice parameter estimates.
     refl_list: List[Reflection]
-        List or reference reflection objects
+        List or reference reflection objects.
 
     Returns
     -------

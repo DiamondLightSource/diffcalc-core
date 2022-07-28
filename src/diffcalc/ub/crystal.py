@@ -56,7 +56,7 @@ class Crystal:
         Parameters
         ----------
         name: str
-            Crystal name
+            Crystal name.
         system: Optional[float], default = None
             Crystal lattice type.
         a: Optional[float], default = None
@@ -103,7 +103,7 @@ class Crystal:
     def __str__(self) -> str:
         """Represent the crystal lattice information as a string.
 
-        Retruns
+        Returns
         -------
         str
             Crystal lattice information string.
@@ -192,7 +192,7 @@ class Crystal:
         b2 = 2 * pi * a1 * a3 * sin(alpha2) / volume
         b3 = 2 * pi * a1 * a2 * sin(alpha3) / volume
 
-        # Calculate the BMatrix from the direct and reciprical parameters.
+        # Calculate the BMatrix from the direct and reciprocal parameters.
         # Reference: Busang and Levy (1967)
         self.B = np.array(
             [
@@ -368,9 +368,9 @@ class Crystal:
         Parameters
         ----------
         hkl1: Tuple[float, float, float]
-            Miller indices of the first lattice plane
+            Miller indices of the first lattice plane.
         hkl2: Tuple[float, float, float]
-            Miller indices of the second lattice plane
+            Miller indices of the second lattice plane.
 
         Returns
         -------
@@ -395,9 +395,9 @@ class Crystal:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of crystal class. Can
+            Dictionary containing properties of crystal class. Can
             be directly unpacked to recreate Crystal object, i.e.
-            Crystal(**returned_dict)
+            Crystal(**returned_dict).
 
         """
         return {

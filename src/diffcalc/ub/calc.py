@@ -42,7 +42,7 @@ class ReferenceVector:
     Attributes
     ----------
     n_ref: Tuple[float, float, float]
-        tuple with vector coordinates
+        Tuple with vector coordinates.
     rlv: bool
         Flag indicating if coordinates are in reciprocal or
         laboratory coordinate system.
@@ -52,9 +52,9 @@ class ReferenceVector:
     Methods
     -------
     get_array(UB: Optional[np.ndarray] = None) -> np.ndarray
-        Return reference vector as 3x1 NumPy array
+        Return reference vector as 3x1 NumPy array.
     set_array(n_ref: np.ndarray) -> Tuple[float, float, float]
-        Set reference vector coordinates from 3x1 NumPy array
+        Set reference vector coordinates from 3x1 NumPy array.
     """
 
     n_ref: Tuple[float, float, float]
@@ -71,8 +71,8 @@ class ReferenceVector:
         ----------
         UB: np.ndarray, optional
             UB matrix as (3, 3) NumPy array object. Use UB matrix to convert
-            coordinates between reciprocal and laboratory coordinate systems
-            (default: None, do not convert coordinates into the alternative system)
+            coordinates between reciprocal and laboratory coordinate systems.
+            (default: None, do not convert coordinates into the alternative system).
 
         Returns
         -------
@@ -89,7 +89,7 @@ class ReferenceVector:
             return n_ref_array
         if not isinstance(UB, np.ndarray):
             raise DiffcalcException(
-                "Invalid input parameter. UB must be a NumPy array object"
+                "Invalid input parameter. UB must be a NumPy array object."
             )
         elif UB.shape != (3, 3):
             raise DiffcalcException(
@@ -117,7 +117,7 @@ class ReferenceVector:
         Raises
         ------
         DiffcalcException
-            If input parameter is not (3, 1) NumPy array
+            If input parameter is not (3, 1) NumPy array.
 
         """
         if not isinstance(n_ref, np.ndarray):
@@ -138,8 +138,8 @@ class ReferenceVector:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of this class. Can
-            be unpacked directly by calling ReferenceVector(**resulting_dict)
+            Dictionary containing properties of this class. Can
+            be unpacked directly by calling ReferenceVector(**resulting_dict).
 
         """
         return self.__dict__.copy()
@@ -163,9 +163,9 @@ class UBCalculation:
     surface: ReferenceVector
         Object representing surface normal vector.
     U: np.ndarray
-        U matrix as a NumPy array
+        U matrix as a NumPy array.
     UB: np.ndarray
-        UB matrix as a NumPy array
+        UB matrix as a NumPy array.
     """
 
     def __init__(self, name: Optional[str] = None) -> None:
@@ -421,7 +421,7 @@ class UBCalculation:
         Parameters
         ----------
         name: str
-            Crystal name
+            Crystal name.
         system: Optional[float], default = None
             Crystal lattice type.
         a: Optional[float], default = None
@@ -472,7 +472,7 @@ class UBCalculation:
         if self.name is None:
             raise DiffcalcException(
                 "Cannot set lattice until a UBCalcaluation has been started "
-                "with newubcalc"
+                "with newub."
             )
 
     ### Reference vector ###
@@ -558,13 +558,13 @@ class UBCalculation:
         Parameters
         ----------
         hkl : Tuple[float, float, float]
-            hkl index of the reflection
+            hkl index of the reflection.
         position: Position
-            list of diffractometer angles in internal representation in degrees
+            List of diffractometer angles in internal representation in degrees.
         energy : float
-            energy of the x-ray beam
+            Energy of the x-ray beam.
         tag : Optional[str], default = None
-            identifying tag for the reflection
+            Identifying tag for the reflection.
         """
         if self.reflist is None:
             raise DiffcalcException("No UBCalculation loaded")
@@ -586,15 +586,15 @@ class UBCalculation:
         Parameters
         ----------
         idx : Union[str, int]
-            index or tag of the reflection to be changed
+            Index or tag of the reflection to be changed.
         hkl : Tuple[float, float, float]
-            hkl index of the reflection
+            hkl index of the reflection.
         position: Position
-            list of diffractometer angles in internal representation in degrees
+            List of diffractometer angles in internal representation in degrees.
         energy : float
-            energy of the x-ray beam
+            Energy of the x-ray beam.
         tag : Optional[str], default = None
-            identifying tag for the reflection
+            Identifying tag for the reflection.
         """
         if self.reflist is None:
             raise DiffcalcException("No UBCalculation loaded")
@@ -609,7 +609,7 @@ class UBCalculation:
         Parameters
         ----------
         idx : Union[str, int]
-            index or tag of the reflection
+            Index or tag of the reflection.
         """
         return self.reflist.get_reflection(idx)
 
@@ -635,7 +635,8 @@ class UBCalculation:
         Parameters
         ----------
         tag : str
-            identifying tag for the reflection
+            Identifying tag for the reflection.
+
         Returns
         -------
         int:
@@ -651,7 +652,7 @@ class UBCalculation:
         Parameters
         ----------
         idx : str or int
-            index or tag of the deleted reflection
+            Index or tag of the deleted reflection.
         """
         self.reflist.remove_reflection(idx)
 
@@ -661,9 +662,9 @@ class UBCalculation:
         Parameters
         ----------
         idx1 : str or int
-            index or tag of the first reflection to be swapped
+            Index or tag of the first reflection to be swapped.
         idx2 : str or int
-            index or tag of the second reflection to be swapped
+            Index or tag of the second reflection to be swapped.
         """
         self.reflist.swap_reflections(idx1, idx2)
 
@@ -678,13 +679,13 @@ class UBCalculation:
         Parameters
         ----------
         hkl : :obj:`tuple` of numbers
-            hkl index of the reference orientation
+            hkl index of the reference orientation.
         xyz : :obj:`tuple` of numbers
-            xyz coordinate of the reference orientation
+            xyz coordinate of the reference orientation.
         position: :obj:`list` or :obj:`tuple` of numbers
-            list of diffractometer angles in internal representation in degrees
+            List of diffractometer angles in internal representation in degrees.
         tag : str
-            identifying tag for the reflection
+            Identifying tag for the reflection.
         """
         if self.orientlist is None:
             raise DiffcalcException("No UBCalculation loaded")
@@ -701,15 +702,15 @@ class UBCalculation:
         Parameters
         ----------
         idx : str or int
-            index or tag of the orientation to be changed
+            Index or tag of the orientation to be changed.
         hkl : :obj:`tuple` of numbers
-            h index of the reference orientation
+            h index of the reference orientation.
         xyz : :obj:`tuple` of numbers
-            x coordinate of the reference orientation
+            x coordinate of the reference orientation.
         position: :obj:`list` or :obj:`tuple` of numbers
-            list of diffractometer angles in internal representation in degrees
+            List of diffractometer angles in internal representation in degrees.
         tag : str
-            identifying tag for the reflection
+            Identifying tag for the reflection.
         """
         if self.orientlist is None:
             raise DiffcalcException("No UBCalculation loaded")
@@ -726,7 +727,7 @@ class UBCalculation:
         Parameters
         ----------
         idx : str or int
-            index or tag of the reference orientation
+            Index or tag of the reference orientation.
         """
         return self.orientlist.get_orientation(idx)
 
@@ -752,11 +753,12 @@ class UBCalculation:
         Parameters
         ----------
         tag : str
-            identifying tag for the orientation
+            Identifying tag for the orientation.
+
         Returns
         -------
         int:
-            Reference orientation index
+            Reference orientation index.
         """
         if tag is None:
             raise IndexError("Orientations tag is None")
@@ -768,7 +770,7 @@ class UBCalculation:
         Parameters
         ----------
         idx : str or int
-            index or tag of the deleted orientation
+            Index or tag of the deleted orientation.
         """
         self.orientlist.remove_orientation(idx)
 
@@ -778,9 +780,9 @@ class UBCalculation:
         Parameters
         ----------
         idx1 : str or int
-            index or tag of the first orientation to be swapped
+            Index or tag of the first orientation to be swapped.
         idx2 : str or int
-            index or tag of the second orientation to be swapped
+            Index or tag of the second orientation to be swapped.
         """
         self.orientlist.swap_orientations(idx1, idx2)
 
@@ -815,7 +817,7 @@ class UBCalculation:
         Raises
         ------
         ValueError
-            if collection isn't (3, 3) shape.
+            If collection isn't (3, 3) shape.
         """
         m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
@@ -856,7 +858,7 @@ class UBCalculation:
         Raises
         ------
         ValueError
-            if collection isn't (3, 3) shape.
+            If collection isn't (3, 3) shape.
         """
         m = np.array(matrix, dtype=float)
         if len(m.shape) != 2 or m.shape[0] != 3 or m.shape[1] != 3:
@@ -926,7 +928,7 @@ class UBCalculation:
                 ref1 = self.get_orientation(idx1)
             except Exception:
                 raise DiffcalcException(
-                    "Cannot find first reflection or orientation with index %s"
+                    "Cannot find first reflection or orientation with index %s."
                     % str(idx1)
                 )
         try:
@@ -936,7 +938,7 @@ class UBCalculation:
                 ref2 = self.get_orientation(idx2)
             except Exception:
                 raise DiffcalcException(
-                    "Cannot find second reflection or orientation with index %s"
+                    "Cannot find second reflection or orientation with index %s."
                     % str(idx2)
                 )
         return ref1, ref2
@@ -1020,7 +1022,7 @@ class UBCalculation:
             refl = self.get_reflection(idx)
         except IndexError:
             raise DiffcalcException(
-                "One reflection is required to calculate a u matrix"
+                "One reflection is required to calculate a u matrix."
             )
 
         h = np.array([[refl.h], [refl.k], [refl.l]])
@@ -1038,9 +1040,9 @@ class UBCalculation:
         rotation_angle = acos(cos_rotation_angle)
 
         uvw = rotation_axis.T.tolist()[0]  # TODO: cleanup
-        print(f"resulting U angle: {degrees(rotation_angle):.5f} deg")
+        print(f"Resulting U angle: {degrees(rotation_angle):.5f} deg.")
         u_repr = ", ".join(["% .5f" % el for el in uvw])
-        print("resulting U axis direction: [%s]" % u_repr)
+        print("Resulting U axis direction: [%s]." % u_repr)
 
         u, v, w = uvw
         rcos = cos(rotation_angle)
@@ -1099,9 +1101,6 @@ class UBCalculation:
         -------
         Tuple[np.ndarray, Tuple[str, float, float, float, float, float, float]]
             Refined U matrix as NumPy array and refined crystal lattice parameters.
-        """
-        """
-        refineub {[h k l]} {pos} -- refine unit cell dimensions and U matrix to match diffractometer angles for a given hkl value
         """
         scale, lat = self._rescale_unit_cell(hkl, position, wavelength)
         if scale and refine_lattice:
@@ -1363,7 +1362,7 @@ class UBCalculation:
         Parameters
         ----------
         hkl: Tuple[float, float, float]
-            Reflection mille indices.
+            Reflection miller indices.
         pos: Position
             Diffractometer position object.
 
@@ -1401,7 +1400,7 @@ class UBCalculation:
         Returns
         -------
         Dict[str, Any]
-            dictionary containing properties of this class. Can
+            Dictionary containing properties of this class. Can
             be unpacked to recreate this object using fromdict
             class method below.
 
@@ -1424,13 +1423,13 @@ class UBCalculation:
         Parameters
         ----------
         data: Dict[str, Any]
-            dictionary containing properties of this class, must have the
+            Dictionary containing properties of this class, must have the
             equivalent structure to the asdict property.
 
         Returns
         -------
         UBCalculation
-            instance of this class created from the dictionary.
+            Instance of this class created from the dictionary.
 
         """
         ubcalc = cls(data["name"])
