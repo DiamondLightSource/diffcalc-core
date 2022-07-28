@@ -387,9 +387,18 @@ class Crystal:
     @property
     def asdict(self) -> Dict[str, Any]:
         """Serialise the crystal into a JSON compatible dictionary.
+
         Note, because the class automatically assumes all angles are
         in degrees, the returned angles alpha, beta and gamma are given
         in degrees such that the dictionary can be directly unpacked as is.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of crystal class. Can
+            be directly unpacked to recreate Crystal object, i.e.
+            Crystal(**returned_dict)
+
         """
         return {
             "name": self.name,
