@@ -79,3 +79,13 @@ class TestCrystalUnderTest:
     def test__str__(self):
         cut = Crystal("HCl", 1, 2, 3, 4, 5, 6)
         print(cut.__str__())
+
+    def test_serialisation(self):
+        for sess in scenarios.sessions():
+            if sess.bmatrix is None:
+                continue
+            crystal = Crystal("tc", *sess.lattice)
+            cut_json = crystal.asdict
+            reformed_crystal = Crystal(**cut_json)
+
+            assert (reformed_crystal.B == crystal.B).all()

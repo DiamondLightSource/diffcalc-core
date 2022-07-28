@@ -1,6 +1,6 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
 
@@ -65,6 +65,23 @@ class Reflection:
         """
         h, k, l, pos, en, tag = dataclasses.astuple(self)
         return (h, k, l), pos.astuple, en, tag
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        class_info = self.__dict__.copy()
+        class_info["pos"] = self.pos.asdict
+        return class_info
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Reflection":
+        return cls(
+            data["h"],
+            data["k"],
+            data["l"],
+            Position(**data["pos"]),
+            data["energy"],
+            data["tag"],
+        )
 
 
 class ReflectionList:
@@ -290,6 +307,15 @@ class ReflectionList:
             lines.append(fmt % values)
         return lines
 
+    @property
+    def asdict(self) -> List[Dict[str, Any]]:
+        return [ref.asdict for ref in self.reflections]
+
+    @classmethod
+    def fromdict(cls, data: List[Dict[str, Any]]) -> "ReflectionList":
+        reflections = [Reflection.fromdict(each_ref) for each_ref in data]
+        return cls(reflections)
+
 
 @dataclasses.dataclass
 class Orientation:
@@ -357,6 +383,25 @@ class Orientation:
         """
         h, k, l, x, y, z, pos, tag = dataclasses.astuple(self)
         return (h, k, l), (x, y, z), pos.astuple, tag
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        class_info = self.__dict__.copy()
+        class_info["pos"] = self.pos.asdict
+        return class_info
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "Orientation":
+        return cls(
+            data["h"],
+            data["k"],
+            data["l"],
+            data["x"],
+            data["y"],
+            data["z"],
+            Position(**data["pos"]),
+            data["tag"],
+        )
 
 
 class OrientationList:
@@ -595,3 +640,12 @@ class OrientationList:
             values = (n, h, k, l, x, y, z) + angles + (tag,)
             lines.append(str_format % values)
         return lines
+
+    @property
+    def asdict(self) -> List[Dict[str, Any]]:
+        return [orient.asdict for orient in self.orientations]
+
+    @classmethod
+    def fromdict(cls, data: List[Dict[str, Any]]) -> "OrientationList":
+        orientations = [Orientation.fromdict(each_orient) for each_orient in data]
+        return cls(orientations)

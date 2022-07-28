@@ -6,9 +6,10 @@ constraints.
 from copy import copy
 from itertools import product
 from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, tan
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
+from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import (
     Position,
     get_rotation_matrices,
@@ -18,6 +19,7 @@ from diffcalc.hkl.geometry import (
     rot_PHI,
 )
 from diffcalc.log import logging
+from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
@@ -235,6 +237,9 @@ class HklCalculation:
         det_constraint = self.constraints._detector
         naz_constraint = {"naz": self.constraints.naz} if self.constraints.naz else None
         samp_constraints = self.constraints._sample
+
+        if "naz" in det_constraint:
+            det_constraint.pop("naz")
 
         assert not (
             det_constraint and naz_constraint
@@ -1785,3 +1790,15 @@ class HklCalculation:
                         "anglesToVirtualAngles of %f" % virtual_angles_readback[key]
                     )
                     raise DiffcalcException(s)
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        return {"ubcalc": self.ubcalc.asdict, "constraints": self.constraints.asdict}
+
+    @classmethod
+    def fromdict(cls, data: Dict[str, Any]) -> "HklCalculation":
+        constraint_data = data["constraints"]
+        return HklCalculation(
+            UBCalculation.fromdict(data["ubcalc"]),
+            Constraints(constraint_data),
+        )

@@ -723,3 +723,9 @@ def test_set_fails(cm):
             e.args[0],
             f"Constraint a_eq_b requires boolean value. Found {int} instead.",
         )
+
+
+def test_serialisation(cm):
+    cm.asdict = {"alpha": 1, "mu": 2, "phi": 1, "beta": 2}
+    cm_json = cm.asdict
+    assert Constraints(cm_json).asdict == cm.asdict
