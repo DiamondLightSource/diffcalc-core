@@ -21,6 +21,7 @@ from math import degrees
 from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
+from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import I
@@ -220,3 +221,13 @@ class Test_position_to_virtual_angles:
 
     def test_psi8(self):
         self.check_angle("psi", 88, mu=0, delta=0.001, nu=0, eta=90, chi=-2, phi=0)
+
+    def test_serialisation(self):
+        hklCalc = HklCalculation(
+            self.ubcalc, Constraints({"delta": 1, "alpha": 2, "mu": 3})
+        )
+        hklCalc_json = hklCalc.asdict
+
+        new_hklCalc = HklCalculation.fromdict(hklCalc_json)
+
+        assert new_hklCalc.asdict == hklCalc.asdict
