@@ -46,7 +46,7 @@ def VliegPos(alpha=None, delta=None, gamma=None, omega=None, chi=None, phi=None)
     asin_delta = degrees(asin(sin_delta * cos_gamma))  # Eq.(83)
     vals_delta = [asin_delta, 180.0 - asin_delta]
     idx, _ = min(
-        [(i, abs(delta - d)) for i, d in enumerate(vals_delta)], key=lambda x: x[1]
+        ((i, abs(delta - d)) for i, d in enumerate(vals_delta)), key=lambda x: x[1]
     )
     pos_delta = vals_delta[idx]
     sgn = sign(cos(radians(pos_delta)))

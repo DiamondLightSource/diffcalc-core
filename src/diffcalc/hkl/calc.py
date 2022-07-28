@@ -397,7 +397,7 @@ class HklCalculation:
                 enumerate([abs(Q[0, 0]), abs(Q[1, 0]), abs(Q[2, 0])]),
                 key=__key_func,
             )
-            idx_1, idx_2 = [idx for idx in range(3) if idx != idx_min]
+            idx_1, idx_2 = (idx for idx in range(3) if idx != idx_min)
             qval = sqrt(Q[idx_1, 0] * Q[idx_1, 0] + Q[idx_2, 0] * Q[idx_2, 0])
             n[idx_min, 0] = qval
             n[idx_1, 0] = -Q[idx_min, 0] * Q[idx_1, 0] / qval
@@ -767,7 +767,7 @@ class HklCalculation:
             )
 
             logger.debug("")
-            msg = "---Trying psi={:.3f}, qaz={:.3f}".format(degrees(psi), degrees(qaz))
+            msg = f"---Trying psi={degrees(psi):.3f}, qaz={degrees(qaz):.3f}"
             logger.debug(msg)
 
             for delta, nu, _ in self._calc_remaining_detector_angles("qaz", qaz, theta):

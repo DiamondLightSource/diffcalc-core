@@ -12,6 +12,7 @@ from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
 from diffcalc.ub.crystal import Crystal
@@ -429,7 +430,8 @@ class UBCalculation:
             Crystal lattice angle.
         """
         if not isinstance(name, str):
-            raise DiffcalcException("Invalid crystal name.")
+            raise TypeError("Invalid crystal name.")
+
         shortform: Tuple[Any, ...] = tuple(
             val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
         )

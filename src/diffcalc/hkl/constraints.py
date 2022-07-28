@@ -563,7 +563,7 @@ class Constraints:
             ),
             (self._mu, self._eta, self._chi, self._phi, self._bisect, self._omega),
         ]
-        max_name_width = max([len(con.name) for con in self._all])
+        max_name_width = max(len(con.name) for con in self._all)
 
         cells = []
 
