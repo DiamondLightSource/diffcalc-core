@@ -68,12 +68,36 @@ class Reflection:
 
     @property
     def asdict(self) -> Dict[str, Any]:
+        """Serialise the object into a JSON compatible dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of this class. Can
+            be unpacked to recreate the object using fromdict
+            class method.
+
+        """
         class_info = self.__dict__.copy()
         class_info["pos"] = self.pos.asdict
         return class_info
 
     @classmethod
     def fromdict(cls, data: Dict[str, Any]) -> "Reflection":
+        """Construct Reflection instance from a JSON compatible dictionary.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            dictionary containing properties of reflection class, must have the
+            equivalent structure of asdict property above.
+
+        Returns
+        -------
+        Reflection
+            instance of this class created from the dictionary.
+
+        """
         return cls(
             data["h"],
             data["k"],
@@ -309,10 +333,34 @@ class ReflectionList:
 
     @property
     def asdict(self) -> List[Dict[str, Any]]:
+        """Serialise the object into a JSON compatible dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of this class. Can
+            be unpacked to recreate this object using fromdict
+            class method below.
+
+        """
         return [ref.asdict for ref in self.reflections]
 
     @classmethod
     def fromdict(cls, data: List[Dict[str, Any]]) -> "ReflectionList":
+        """Construct ReflectionList instance from a JSON compatible dictionary.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            dictionary containing properties of this class, must have the
+            equivalent structure of asdict property above.
+
+        Returns
+        -------
+        ReflectionList
+            instance of this class created from the dictionary.
+
+        """
         reflections = [Reflection.fromdict(each_ref) for each_ref in data]
         return cls(reflections)
 
@@ -386,12 +434,36 @@ class Orientation:
 
     @property
     def asdict(self) -> Dict[str, Any]:
+        """Serialise the object into a JSON compatible dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of this class. Can
+            be unpacked to recreate this object using fromdict
+            class method below.
+
+        """
         class_info = self.__dict__.copy()
         class_info["pos"] = self.pos.asdict
         return class_info
 
     @classmethod
     def fromdict(cls, data: Dict[str, Any]) -> "Orientation":
+        """Construct Orientation instance from a JSON compatible dictionary.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            dictionary containing properties of this class, must have the
+            equivalent structure to the asdict property.
+
+        Returns
+        -------
+        Orientation
+            instance of this class created from the dictionary.
+
+        """
         return cls(
             data["h"],
             data["k"],
@@ -643,9 +715,33 @@ class OrientationList:
 
     @property
     def asdict(self) -> List[Dict[str, Any]]:
+        """Serialise the object into a JSON compatible dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of this class. Can
+            be unpacked to recreate this object using fromdict
+            class method below.
+
+        """
         return [orient.asdict for orient in self.orientations]
 
     @classmethod
     def fromdict(cls, data: List[Dict[str, Any]]) -> "OrientationList":
+        """Construct OrientationList instance from a JSON compatible dictionary.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            dictionary containing properties of this class, must have the
+            equivalent structure to the asdict property.
+
+        Returns
+        -------
+        OrientationList
+            instance of this class created from the dictionary.
+
+        """
         orientations = [Orientation.fromdict(each_orient) for each_orient in data]
         return cls(orientations)

@@ -133,6 +133,15 @@ class ReferenceVector:
 
     @property
     def asdict(self) -> Dict[str, Any]:
+        """Serialise the object into a JSON compatible dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of this class. Can
+            be unpacked directly by calling ReferenceVector(**resulting_dict)
+
+        """
         return self.__dict__.copy()
 
 
@@ -1387,6 +1396,16 @@ class UBCalculation:
 
     @property
     def asdict(self) -> Dict[str, Any]:
+        """Serialise the object into a JSON compatible dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            dictionary containing properties of this class. Can
+            be unpacked to recreate this object using fromdict
+            class method below.
+
+        """
         return {
             "name": self.name,
             "crystal": self.crystal.asdict if self.crystal is not None else None,
@@ -1400,6 +1419,20 @@ class UBCalculation:
 
     @classmethod
     def fromdict(cls, data: Dict[str, Any]) -> "UBCalculation":
+        """Construct UBCalculation instance from a JSON compatible dictionary.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            dictionary containing properties of this class, must have the
+            equivalent structure to the asdict property.
+
+        Returns
+        -------
+        UBCalculation
+            instance of this class created from the dictionary.
+
+        """
         ubcalc = cls(data["name"])
         ubcalc.crystal = (
             Crystal(**data["crystal"]) if data["crystal"] is not None else None
