@@ -19,7 +19,7 @@ logger = logging.getLogger("diffcalc.hkl.calc_reference")
 
 
 def __get_phi_and_qaz(
-    chi: float, eta: float, mu: float, V: np.numarray
+    chi: float, eta: float, mu: float, V: np.ndarray
 ) -> Tuple[float, float]:
     a = sin(chi) * cos(eta)
     b = sin(chi) * sin(eta) * sin(mu) - cos(chi) * cos(mu)
@@ -42,7 +42,7 @@ def __get_phi_and_qaz(
     return qaz, phi
 
 
-def __get_chi_and_qaz(mu: float, eta: float, V: np.numarray) -> Tuple[float, float]:
+def __get_chi_and_qaz(mu: float, eta: float, V: np.ndarray) -> Tuple[float, float]:
     A = sin(mu)
     B = -cos(mu) * sin(eta)
     sin_chi = A * V[1, 0] + B * V[1, 2]
