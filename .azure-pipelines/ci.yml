@@ -20,30 +20,30 @@ steps:
     archiveFilePatterns: $(System.ArtifactsDirectory)/package/repo-source.tar.gz
     destinationFolder: $(Pipeline.Workspace)/src
 
-- script: |
+- bash: |
     pip install -U pip
     pip install -r "$(Pipeline.Workspace)/src/requirements_dev.txt"
     pip install "$(Pipeline.Workspace)/src"
   displayName: Install package
 
-- script: |
+- bash: |
     PYTHONDEVMODE=1 mypy src tests
   displayName: Run mypy type checker
   workingDirectory: $(Pipeline.Workspace)/src
 
-- script: |
-    PYTHONDEVMODE=1 pytest -ra --cov=diffcalc --cov-report=xml --cov-branch
+- bash: |
+    PYTHONDEVMODE=1 pytest -ra --cov=$(pwd) --cov=diffcalc --cov-report=xml --cov-branch
   displayName: Run tests
-  workingDirectory: $(Pipeline.Workspace)/src
+  workingDirectory: $(Pipeline.Workspace)
 
 
 - bash: |
     curl -Os https://uploader.codecov.io/latest/linux/codecov
     chmod +x codecov
-    ./codecov -t "$CODECOV_TOKEN"
+    ./codecov -t $(CODECOV_TOKEN)
   env:
     CODECOV_TOKEN: $(CODECOV_TOKEN)
   displayName: Publish coverage stats
   continueOnError: true
-  workingDirectory: $(Pipeline.Workspace)/src
+  workingDirectory: $(Pipeline.Workspace)
   timeoutInMinutes: 2
