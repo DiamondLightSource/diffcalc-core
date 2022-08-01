@@ -5,7 +5,7 @@ constraints.
 """
 from copy import copy
 from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl import calc_func
@@ -101,7 +101,7 @@ class HklCalculation:
             ttheta angles.
         """
         pos_in_rad = Position.asradians(pos)
-        theta, qaz = self._theta_and_qaz_from_detector_angles(
+        theta, qaz = self.__theta_and_qaz_from_detector_angles(
             pos_in_rad.delta, pos_in_rad.nu
         )  # (19)
 
@@ -132,7 +132,7 @@ class HklCalculation:
         sin_beta = 2 * sin(theta) * cos(tau) - sin(alpha)
         beta = asin(bound(sin_beta))  # (24)
 
-        psi = next(calc_func._calc_psi(alpha, theta, tau, qaz, naz))
+        psi = next(self.__calc_psi(alpha, theta, tau, qaz, naz))
 
         result = {
             "theta": theta,
@@ -178,13 +178,13 @@ class HklCalculation:
                 consists of pairs of diffractometer position object and virtual
                 angles dictionary.
         """
-        pos_virtual_angles_pairs = self._calc_hkl_to_position(h, k, l, wavelength)
+        pos_virtual_angles_pairs = self.__calc_hkl_to_position(h, k, l, wavelength)
         assert pos_virtual_angles_pairs
         results = []
 
         for pos, virtual_angles in pos_virtual_angles_pairs:
-            self._verify_pos_map_to_hkl(h, k, l, wavelength, pos)
-            self._verify_virtual_angles(h, k, l, pos, virtual_angles)
+            self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
+            self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
             if asdegrees:
                 res_pos = Position.asdegrees(pos)
                 res_virtual_angles = {
@@ -197,7 +197,66 @@ class HklCalculation:
 
         return results
 
-    def _calc_nphi_alpha_tau(
+    @staticmethod
+    def __theta_and_qaz_from_detector_angles(
+        delta: float, nu: float
+    ) -> Tuple[float, float]:
+        # Equation 19:
+        cos_2theta = cos(delta) * cos(nu)
+        theta = acos(cos_2theta) / 2.0
+        sgn = sign(sin(2.0 * theta))
+        qaz = atan2(sgn * sin(delta), sgn * cos(delta) * sin(nu))
+        return theta, qaz
+
+    @staticmethod
+    def __calc_psi(
+        alpha: float,
+        theta: float,
+        tau: float,
+        qaz: Optional[float] = None,
+        naz: Optional[float] = None,
+    ) -> Iterator[float]:
+        """Calculate psi from Eq. (18), (25) and (28)."""
+        sin_tau = sin(tau)
+        cos_theta = cos(theta)
+        if is_small(sin_tau):
+            # The reference vector is parallel to the scattering vector
+            yield float("nan")
+        elif is_small(cos_theta):
+            # Reflection is unreachable as theta angle is too close to 90 deg
+            yield float("nan")
+        elif is_small(sin(theta)):
+            # Reflection is unreachable as |Q| is too small
+            yield float("nan")
+        else:
+            cos_psi = (cos(tau) * sin(theta) - sin(alpha)) / cos_theta  # (28)
+            if qaz is None or naz is None:
+                try:
+                    acos_psi = acos(bound(cos_psi / sin_tau))
+                    if is_small(acos_psi):
+                        yield 0.0
+                    else:
+                        for psi in [acos_psi, -acos_psi]:
+                            yield psi
+                except AssertionError:
+                    print("WARNING: Diffcalc could not calculate an azimuth (psi).")
+                    yield float("nan")
+            else:
+                sin_psi = cos(alpha) * sin(qaz - naz)
+                sgn = sign(sin_tau)
+                eps = sin_psi**2 + cos_psi**2
+                sigma_ = eps / sin_tau**2 - 1
+                if not is_small(sigma_):
+                    print(
+                        "WARNING: Diffcalc could not calculate a unique azimuth "
+                        "(psi) because of loss of accuracy in numerical calculation."
+                    )
+                    yield float("nan")
+                else:
+                    psi = atan2(sgn * sin_psi, sgn * cos_psi)
+                    yield psi
+
+    def __calc_nphi_alpha_tau(
         self,
         ref_constraint: Dict[str, Optional[float]],
         h_phi: np.ndarray,
@@ -240,7 +299,7 @@ class HklCalculation:
             n_phi = self.ubcalc.surf_nphi
         return n_phi, alpha, tau
 
-    def _calc_hkl_to_position(
+    def __calc_hkl_to_position(
         self, h: float, k: float, l: float, wavelength: float
     ) -> List[Tuple[Position, Dict[str, float]]]:
         if not self.constraints.is_fully_constrained():
@@ -274,15 +333,15 @@ class HklCalculation:
         tau = None
 
         if ref_constraint:
-            n_phi, alpha, tau = self._calc_nphi_alpha_tau(
+            n_phi, alpha, tau = self.__calc_nphi_alpha_tau(
                 ref_constraint, h_phi, n_phi, theta
             )
 
         solution_tuples: List[Tuple[float, float, float, float, float, float]] = []
-        if det_constraint or naz_constraint:
 
+        if det_constraint or naz_constraint:
             solution_tuples.extend(
-                calc_func._calc_given_det_sample_reference(
+                calc_func._calc_det_sample_reference(
                     det_constraint,
                     naz_constraint,
                     samp_constraints,
@@ -295,21 +354,27 @@ class HklCalculation:
             )
 
         elif len(samp_constraints) == 2:
-            solution_tuples.extend(
-                calc_func._calc_sample_given_two_sample_and_reference(
-                    ref_constraint,
-                    samp_constraints,
-                    h_phi,
-                    n_phi,
-                    theta,
-                    alpha,
-                    tau,
-                )
+            ref_constraint_name, ref_constraint_value = next(
+                iter(ref_constraint.items())
             )
+            if ref_constraint_name == "psi":
+                psi_vals = iter((float(ref_constraint_value),))
+            else:
+                psi_vals = self.__calc_psi(alpha, theta, tau)
+            for psi in psi_vals:
+                solution_tuples.extend(
+                    calc_func._calc_two_sample_and_reference(
+                        samp_constraints,
+                        h_phi,
+                        n_phi,
+                        theta,
+                        psi,
+                    )
+                )
 
         elif len(samp_constraints) == 3:
             solution_tuples.extend(
-                calc_func._calc_angles_given_three_sample_constraints(
+                calc_func._calc_three_sample(
                     samp_constraints,
                     h_phi,
                     theta,
@@ -323,7 +388,7 @@ class HklCalculation:
             )
 
         tidy_solutions = [
-            self._tidy_degenerate_solutions(Position(*pos, False))
+            self.__tidy_degenerate_solutions(Position(*pos, False))
             for pos in solution_tuples
         ]
 
@@ -334,7 +399,7 @@ class HklCalculation:
         #            return False
         #    return True
         # merged_solution_tuples = filter(_find_duplicate_angles, enumerate(filtered_solutions, 1))
-        position_pseudo_angles_pairs = self._create_position_pseudo_angles_pairs(
+        position_pseudo_angles_pairs = self.__create_position_pseudo_angles_pairs(
             tidy_solutions
         )
         if not position_pseudo_angles_pairs:
@@ -345,7 +410,7 @@ class HklCalculation:
 
         return position_pseudo_angles_pairs
 
-    def _create_position_pseudo_angles_pairs(
+    def __create_position_pseudo_angles_pairs(
         self, merged_solution_tuples: List[Position]
     ) -> List[Tuple[Position, Dict[str, float]]]:
 
@@ -385,7 +450,7 @@ class HklCalculation:
                 continue
         return position_pseudo_angles_pairs
 
-    def _tidy_degenerate_solutions(
+    def __tidy_degenerate_solutions(
         self, pos: Position, print_degenerate: bool = False
     ) -> Position:
 
@@ -453,17 +518,7 @@ class HklCalculation:
             newpos = pos
         return newpos
 
-    def _theta_and_qaz_from_detector_angles(
-        self, delta: float, nu: float
-    ) -> Tuple[float, float]:
-        # Equation 19:
-        cos_2theta = cos(delta) * cos(nu)
-        theta = acos(cos_2theta) / 2.0
-        sgn = sign(sin(2.0 * theta))
-        qaz = atan2(sgn * sin(delta), sgn * cos(delta) * sin(nu))
-        return theta, qaz
-
-    def _verify_pos_map_to_hkl(
+    def __verify_pos_map_to_hkl(
         self, h: float, k: float, l: float, wavelength: float, pos: Position
     ) -> None:
         hkl = self.get_hkl(pos, wavelength)
@@ -482,7 +537,7 @@ class HklCalculation:
             )
             raise DiffcalcException(s)
 
-    def _verify_virtual_angles(
+    def __verify_virtual_angles(
         self,
         h: float,
         k: float,
