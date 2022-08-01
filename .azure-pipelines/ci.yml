@@ -23,7 +23,7 @@ steps:
 - bash: |
     pip install -U pip
     pip install -r "$(Pipeline.Workspace)/src/requirements_dev.txt"
-    pip install "$(Pipeline.Workspace)/src"
+    pip install -e "$(Pipeline.Workspace)/src"
   displayName: Install package
 
 - bash: |
