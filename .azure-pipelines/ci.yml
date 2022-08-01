@@ -32,9 +32,9 @@ steps:
   workingDirectory: $(Pipeline.Workspace)/src
 
 - bash: |
-    PYTHONDEVMODE=1 pytest -ra --cov=$(pwd) --cov=diffcalc --cov-report=xml --cov-branch
+    PYTHONDEVMODE=1 pytest -ra --cov=diffcalc --cov-report=xml --cov-branch
   displayName: Run tests
-  workingDirectory: $(Pipeline.Workspace)
+  workingDirectory: $(Pipeline.Workspace)/src
 
 
 - bash: |
@@ -45,5 +45,5 @@ steps:
     CODECOV_TOKEN: $(CODECOV_TOKEN)
   displayName: Publish coverage stats
   continueOnError: true
-  workingDirectory: $(Pipeline.Workspace)
+  workingDirectory: $(Pipeline.Workspace)/src
   timeoutInMinutes: 2
