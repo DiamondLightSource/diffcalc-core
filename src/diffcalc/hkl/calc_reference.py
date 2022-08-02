@@ -80,14 +80,27 @@ def __calc_sample_ref_con_chi_phi(
         asin_mu = asin(bound(-V[2, 1]))
     except AssertionError:
         return
-    for mu in [asin_mu, pi - asin_mu]:
+    if is_small(cos(asin_mu)):
+        mu_vals = [asin_mu]
+    else:
+        mu_vals = [asin_mu, pi - asin_mu]
+    for mu in mu_vals:
         sgn_cosmu = sign(cos(mu))
+        sin_qaz = sgn_cosmu * V[2, 2]
+        cos_qaz = sgn_cosmu * V[2, 0]
+        sin_eta = -sgn_cosmu * V[0, 1]
+        cos_eta = sgn_cosmu * V[1, 1]
+        if is_small(sin_eta) and is_small(cos_eta):
+            raise DiffcalcException(
+                "Position eta cannot be chosen uniquely. Please choose a different set of constraints."
+            )
+        if is_small(sin_qaz) and is_small(cos_qaz):
+            raise DiffcalcException(
+                "Scattering plane orientation qaz cannot be chosen uniquely. Please choose a different set of constraints."
+            )
         # xi = atan2(-sgn_cosmu * V[2, 0], sgn_cosmu * V[2, 2])
-        qaz = atan2(
-            sgn_cosmu * V[2, 2],
-            sgn_cosmu * V[2, 0],
-        )
-        eta = atan2(-sgn_cosmu * V[0, 1], sgn_cosmu * V[1, 1])
+        qaz = atan2(sin_qaz, cos_qaz)
+        eta = atan2(sin_eta, cos_eta)
         yield qaz, psi, mu, eta, chi, phi
 
 

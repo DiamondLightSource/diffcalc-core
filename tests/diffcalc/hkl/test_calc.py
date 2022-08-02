@@ -2566,258 +2566,184 @@ class TestFixedChiPhiPsiMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
-    # def testHkl001(self):
-    #    self._check((0, 0, 1),  # betaout=30
-    #                Position(mu=30, delta=0, nu=60, eta=90, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl010(self):
-    #    self._check((0, 1, 0),  # betaout=0
-    #                Position(mu=0, delta=60, nu=0, eta=120, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl011(self):
-    #    self._check((0, 1, 1),  # betaout=30
-    #                Position(mu=30, delta=54.7356, nu=90, eta=125.2644, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl100(self):
-    #    self._check((1, 0, 0),  # betaout=0
-    #                Position(mu=0, delta=60, nu=0, eta=30, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl101(self):
-    #    self._check((1, 0, 1),  # betaout=30
-    #                Position(mu=30, delta=54.7356, nu=90, eta=35.2644, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl110(self):
-    #    self._check((1, 1, 0),  # betaout=0
-    #                Position(mu=0, delta=90, nu=0, eta=90, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl11nearly0(self):
-    #    self.places = 3
-    #    self._check((1, 1, .0001),  # betaout=0
-    #                Position(mu=0.0029, delta=89.9971, nu=90.0058, eta=90, chi=0,
-    #                  phi=0, unit='DEG'))
-    #
-    # def testHkl111(self):
-    #    self._check((1, 1, 1),  # betaout=30
-    #                Position(mu=30, delta=54.7356, nu=150, eta=99.7356, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHklover100(self):
-    #    self._check((1.1, 0, 0),  # betaout=0
-    #                Position(mu=0, delta=66.7340, nu=0, eta=33.3670, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHklunder100(self):
-    #    self._check((.9, 0, 0),  # betaout=0
-    #                Position(mu=0, delta=53.4874, nu=0, eta=26.7437, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl788(self):
-    #    self._check((.7, .8, .8),  # betaout=23.5782
-    #                Position(mu=23.5782, delta=59.9980, nu=76.7037, eta=84.2591,
-    #                  chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl789(self):
-    #    self._check((.7, .8, .9),  # betaout=26.7437
-    #                Position(mu=26.74368, delta=58.6754, nu=86.6919, eta=85.3391,
-    #                  chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl7810(self):
-    #    self._check((.7, .8, 1),  # betaout=30
-    #                Position(mu=30, delta=57.0626, nu=96.86590, eta=86.6739, chi=0,
-    #                  phi=0, unit='DEG'))
 
-
-class SkipTestFixedChiPhiPsiModeSurfaceNormalVertical(_TestCubic):
+class TestFixedChiPhiPsiModeSurfaceNormalVertical(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
         self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
         self.wavelength = 1
-        self.UB = I * 2 * pi
         self.places = 4
 
     def _configure_ub(self):
-        self.mock_ubcalc.UB = self.UB
+        self.ubcalc.set_u(I)
 
-    def _check(self, hkl, pos, virtual_expected={}, fails=False):
-        self._check_angles_to_hkl(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
-        )
-        if fails:
-            self._check_hkl_to_angles_fails(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
-            )
-        else:
-            self._check_hkl_to_angles(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
-            )
-
-    def testHkl001(self):
-        self._check(
-            (0, 0, 1),  # betaout=30
-            Position(
-                mu=30,
-                delta=0,
-                nu=60,
-                eta=90,
-                chi=0,
-                phi=0,
+    @pytest.mark.parametrize(
+        ("hkl", "pos", "places"),
+        [
+            pytest.param(
+                (0, 0, 1),
+                Position(
+                    mu=30,
+                    delta=0,
+                    nu=60,
+                    eta=90,
+                    chi=0,
+                    phi=0,
+                ),
+                4,
+                marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
-            fails=True,
-        )
-
-    def testHkl010(self):
-        self._check(
-            (0, 1, 0),  # betaout=0
-            Position(
-                mu=120,
-                delta=0,
-                nu=60,
-                eta=0,
-                chi=90,
-                phi=0,
+            (
+                (0, 1, 0),  # betaout=0
+                Position(
+                    mu=120,
+                    delta=0,
+                    nu=60,
+                    eta=0,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl011(self):
-        self._check(
-            (0, 1, 1),  # betaout=30
-            Position(
-                mu=30,
-                delta=54.7356,
-                nu=90,
-                eta=125.2644,
-                chi=0,
-                phi=0,
+            (
+                (0, 1, 1),  # betaout=30
+                Position(
+                    mu=45,
+                    delta=0,
+                    nu=-90,
+                    eta=135,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl100(self):
-        self._check(
-            (1, 0, 0),  # betaout=0
-            Position(
-                mu=0,
-                delta=60,
-                nu=0,
-                eta=30,
-                chi=0,
-                phi=0,
+            (
+                (1, 0, 0),  # betaout=0
+                Position(
+                    mu=-30,
+                    delta=0,
+                    nu=-60,
+                    eta=0,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl101(self):
-        self._check(
-            (1, 0, 1),  # betaout=30
-            Position(
-                mu=30,
-                delta=54.7356,
-                nu=90,
-                eta=35.2644,
-                chi=0,
-                phi=0,
+            (
+                (1, 0, 1),  # betaout=30
+                Position(
+                    mu=-30,
+                    delta=54.7356,
+                    nu=-90,
+                    eta=35.2644,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl110(self):
-        self._check(
-            (1, 1, 0),  # betaout=0
-            Position(
-                mu=0,
-                delta=90,
-                nu=0,
-                eta=90,
-                chi=0,
-                phi=0,
+            pytest.param(
+                (1, -1, 0),  # betaout=0
+                Position(
+                    mu=-90,
+                    delta=0,
+                    nu=90,
+                    eta=0,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
+                marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
-        )
-
-    def testHkl11nearly0(self):
-        self.places = 3
-        self._check(
-            (1, 1, 0.0001),  # betaout=0
-            Position(
-                mu=0.0029,
-                delta=89.9971,
-                nu=90.0058,
-                eta=90,
-                chi=0,
-                phi=0,
+            (
+                (1, 1, 0.0001),  # betaout=0
+                Position(
+                    mu=0,
+                    delta=-0.00286,
+                    nu=-90,
+                    eta=179.997,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl111(self):
-        self._check(
-            (1, 1, 1),  # betaout=30
-            Position(
-                mu=30,
-                delta=54.7356,
-                nu=150,
-                eta=99.7356,
-                chi=0,
-                phi=0,
+            (
+                (1, 1, 1),  # betaout=30
+                Position(
+                    mu=-171.5789,
+                    delta=20.9410,
+                    nu=122.3684,
+                    eta=-30.3612,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHklover100(self):
-        self._check(
-            (1.1, 0, 0),  # betaout=0
-            Position(
-                mu=0,
-                delta=66.7340,
-                nu=0,
-                eta=33.3670,
-                chi=0,
-                phi=0,
+            (
+                (1.1, 0, 0),  # betaout=0
+                Position(
+                    mu=-146.6330,
+                    delta=0,
+                    nu=66.7340,
+                    eta=0,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHklunder100(self):
-        self._check(
-            (0.9, 0, 0),  # betaout=0
-            Position(
-                mu=0,
-                delta=53.4874,
-                nu=0,
-                eta=26.7437,
-                chi=0,
-                phi=0,
+            (
+                (0.9, 0, 0),  # betaout=0
+                Position(
+                    mu=-153.2563,
+                    delta=0,
+                    nu=53.4874,
+                    eta=0,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl788(self):
-        self._check(
-            (0.7, 0.8, 0.8),  # betaout=23.5782
-            Position(
-                mu=23.5782,
-                delta=59.9980,
-                nu=76.7037,
-                eta=84.2591,
-                chi=0,
-                phi=0,
+            (
+                (0.7, 0.8, 0.8),  # betaout=23.5782
+                Position(
+                    mu=167.7652,
+                    delta=23.7336,
+                    nu=82.7832,
+                    eta=-24.1606,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl789(self):
-        self._check(
-            (0.7, 0.8, 0.9),  # betaout=26.7437
-            Position(
-                mu=26.74368,
-                delta=58.6754,
-                nu=86.6919,
-                eta=85.3391,
-                chi=0,
-                phi=0,
+            (
+                (0.7, 0.8, 0.9),  # betaout=26.7437
+                Position(
+                    mu=169.0428,
+                    delta=25.6713,
+                    nu=88.0926,
+                    eta=-27.2811,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-
-    def testHkl7810(self):
-        self._check(
-            (0.7, 0.8, 1),  # betaout=30
-            Position(
-                mu=30,
-                delta=57.0626,
-                nu=96.86590,
-                eta=86.6739,
-                chi=0,
-                phi=0,
+            (
+                (0.7, 0.8, 1),  # betaout=30
+                Position(
+                    mu=170.5280,
+                    delta=27.1595,
+                    nu=94.1895,
+                    eta=-30.4583,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
+        ],
+    )
+    def testHKL(self, hkl, pos, places):
+        self.places = places
+        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
 
 class SkipTestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
