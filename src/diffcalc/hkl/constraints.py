@@ -141,7 +141,7 @@ class Constraints:
         return tuple(con for con in self._all if con.active)
 
     @property
-    def _detector(self):
+    def _detector(self) -> Dict[str, Union[float, bool, None]]:
         return {
             con.name: con.value
             for con in self._all
@@ -149,7 +149,7 @@ class Constraints:
         }
 
     @property
-    def _reference(self):
+    def _reference(self) -> Dict[str, Union[float, bool, None]]:
         return {
             con.name: con.value
             for con in self._all
@@ -157,7 +157,7 @@ class Constraints:
         }
 
     @property
-    def _sample(self):
+    def _sample(self) -> Dict[str, Union[float, bool, None]]:
         return {
             con.name: con.value
             for con in self._all
