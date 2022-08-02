@@ -3879,12 +3879,17 @@ class Test_I21ExamplesUB(_BaseTest):
         self.case_generator(case[name])
 
 
-class SkipTest_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
+class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
     """NOTE: copied from test.diffcalc.scenarios.session3"""
 
     def setup_method(self):
         _BaseTest.setup_method(self)
 
+        self.constraints.asdict = {"alpha": 12.0, "mu": 0, "chi": 90.0}
+        self.places = 4
+
+    def _configure_ub(self):
+        self.ubcalc.set_lattice("GaAs", 5.65325)
         U = array(
             (
                 (-0.71022, 0.70390, 0.01071),
@@ -3893,16 +3898,8 @@ class SkipTest_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
             )
         )
 
-        B = array(((1.11143, 0.0, 0.0), (0.0, 1.11143, 0.0), (0.0, 0.0, 1.11143)))
-
-        self.UB = U @ B
-
-        self.constraints.asdict = {"alpha": 12.0, "mu": 0, "chi": 0}
-        self.places = 5
-
-    def _configure_ub(self):
-        self.mock_ubcalc.UB = self.UB
-        self.mock_ubcalc.n_phi = array([[0], [0], [1]])
+        self.ubcalc.set_u(U)
+        self.ubcalc.n_hkl = (0, 0, 1)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -3910,23 +3907,35 @@ class SkipTest_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
             wavelength = 1.0
             cases = (
                 Pair(
-                    "0_0_0.25",
-                    (2.0, 2.0, 0.0),
+                    "2_2_2",
+                    (2.0, 2.0, 2.0),
                     Position(
                         mu=0,
-                        delta=79.85393,
-                        nu=0,
-                        eta=39.92540,
+                        delta=35.6825,
+                        nu=0.0657,
+                        eta=17.9822,
                         chi=90.0,
-                        phi=0.0,
+                        phi=-92.9648,
                     ),
                     zrot,
                     yrot,
                     wavelength,
                 ),
-                # Pair('0.25_0.25_0', (0.25, 0.25, 0.0),
-                #     Position(mu=0, delta=27.352179, nu=0, eta=13.676090,
-                #         chi=37.774500, phi=53.965500, unit='DEG')),
+                Pair(
+                    "2_2_0",
+                    (2.0, 2.0, 0.0),
+                    Position(
+                        mu=0,
+                        delta=22.9143,
+                        nu=18.2336,
+                        eta=18.7764,
+                        chi=90.0,
+                        phi=90.9119,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
             )
             case_dict = {}
             for case in cases:
@@ -3938,7 +3947,8 @@ class SkipTest_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
     @pytest.mark.parametrize(
         ("name"),
         [
-            "0_0_0.25",
+            "2_2_2",
+            "2_2_0",
         ],
     )
     def test_hkl_to_angles_given_UB(self, name, make_cases):
