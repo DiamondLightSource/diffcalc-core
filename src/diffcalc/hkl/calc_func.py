@@ -1,13 +1,11 @@
 """Module implementing intermediate calculations used in HKLCalculation class."""
+import logging
 from math import acos, asin, atan2, cos, degrees, sin, sqrt
 from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl import calc_detector, calc_reference, calc_sample
-from diffcalc.log import logging
 from diffcalc.util import SMALL, DiffcalcException, bound, is_small, normalised, sign
-
-logger = logging.getLogger("diffcalc.hkl.calc_func")
 
 
 def _calc_remaining_reference_angles(
@@ -113,19 +111,19 @@ def _calc_two_sample_and_reference(
     ):
         qaz, psi, mu, eta, chi, phi = angles
         values_in_deg = tuple(degrees(v) for v in angles)
-        logger.debug(
+        logging.debug(
             "Initial angles: xi=%.3f, psi=%.3f, mu=%.3f, "
             "eta=%.3f, chi=%.3f, phi=%.3f" % values_in_deg
         )  # Try to find a solution for each possible transformed xi
 
-        logger.debug("")
+        logging.debug("")
         msg = f"---Trying psi={degrees(psi):.3f}, qaz={degrees(qaz):.3f}"
-        logger.debug(msg)
+        logging.debug(msg)
 
         for delta, nu, _ in calc_detector._calc_remaining_detector_angles_qaz(
             qaz, theta
         ):
-            logger.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
+            logging.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
             # for mu, eta, chi, phi in self._generate_sample_solutions(
             #    mu, eta, chi, phi, samp_constraints.keys(), delta,
             #    nu, wavelength, (h, k, l), ref_constraint_name,
@@ -265,11 +263,11 @@ def __calc_eta_chi_phi(
         return
     for mu in mu_vals:
         qaz = __get_qaz_value(mu, eta, chi, phi, h_phi, theta)
-        logger.debug("--- Trying mu:%.f qaz_%.f", degrees(mu), degrees(qaz))
+        logging.debug("--- Trying mu:%.f qaz_%.f", degrees(mu), degrees(qaz))
         for delta, nu, _ in calc_detector._calc_remaining_detector_angles_qaz(
             qaz, theta
         ):
-            logger.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
+            logging.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
             yield mu, delta, nu, eta, chi, phi
 
 
@@ -288,11 +286,11 @@ def __calc_mu_chi_phi(
         return
     for eta in eta_vals:
         qaz = __get_qaz_value(mu, eta, chi, phi, h_phi, theta)
-        logger.debug("--- Trying eta:%.f qaz_%.f", degrees(eta), degrees(qaz))
+        logging.debug("--- Trying eta:%.f qaz_%.f", degrees(eta), degrees(qaz))
         for delta, nu, _ in calc_detector._calc_remaining_detector_angles_qaz(
             qaz, theta
         ):
-            logger.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
+            logging.debug("delta=%.3f, %s=%.3f", degrees(delta), "nu", degrees(nu))
             yield mu, delta, nu, eta, chi, phi
 
 
@@ -311,11 +309,11 @@ def __calc_mu_eta_phi(
         return
     for chi in chi_vals:
         qaz = __get_qaz_value(mu, eta, chi, phi, h_phi, theta)
-        logger.debug("--- Trying chi:%.f qaz_%.f", degrees(chi), degrees(qaz))
+        logging.debug("--- Trying chi:%.f qaz_%.f", degrees(chi), degrees(qaz))
         for delta, nu, _ in calc_detector._calc_remaining_detector_angles_qaz(
             qaz, theta
         ):
-            logger.debug("delta=%.3f, nu=%.3f", degrees(delta), degrees(nu))
+            logging.debug("delta=%.3f, nu=%.3f", degrees(delta), degrees(nu))
             yield mu, delta, nu, eta, chi, phi
 
 
@@ -334,11 +332,11 @@ def __calc_mu_eta_chi(
         return
     for phi in phi_vals:
         qaz = __get_qaz_value(mu, eta, chi, phi, h_phi, theta)
-        logger.debug("--- Trying phi:%.f qaz_%.f", degrees(phi), degrees(qaz))
+        logging.debug("--- Trying phi:%.f qaz_%.f", degrees(phi), degrees(qaz))
         for delta, nu, _ in calc_detector._calc_remaining_detector_angles_qaz(
             qaz, theta
         ):
-            logger.debug("delta=%.3f, nu=%.3f", degrees(delta), degrees(nu))
+            logging.debug("delta=%.3f, nu=%.3f", degrees(delta), degrees(nu))
             yield mu, delta, nu, eta, chi, phi
 
 

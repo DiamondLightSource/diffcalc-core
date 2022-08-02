@@ -3,10 +3,7 @@ from itertools import product
 from math import acos, asin, atan2, cos, degrees, pi, sin
 from typing import Dict, Iterator, Optional, Tuple
 
-from diffcalc.log import logging
 from diffcalc.util import DiffcalcException, bound, is_small, sign
-
-logger = logging.getLogger("diffcalc.hkl.calc_detector")
 
 
 def _calc_angle_between_naz_and_qaz(theta: float, alpha: float, tau: float) -> float:

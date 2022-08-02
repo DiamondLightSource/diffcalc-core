@@ -4,7 +4,6 @@ from typing import Dict, Iterator, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl.geometry import rot_CHI, rot_PHI
-from diffcalc.log import logging
 from diffcalc.util import (
     DiffcalcException,
     bound,
@@ -14,8 +13,6 @@ from diffcalc.util import (
     z_rotation,
 )
 from numpy.linalg import inv
-
-logger = logging.getLogger("diffcalc.hkl.calc_reference")
 
 
 def __get_phi_and_qaz(

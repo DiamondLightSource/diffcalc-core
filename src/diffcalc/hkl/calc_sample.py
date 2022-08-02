@@ -1,11 +1,11 @@
 """Module implementing intermediate calculations in constrained sample geometry."""
+import logging
 from itertools import product
 from math import acos, asin, atan, atan2, cos, degrees, pi, sin, sqrt, tan
 from typing import Dict, Iterator, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl.geometry import rot_CHI, rot_ETA, rot_MU, rot_PHI
-from diffcalc.log import logging
 from diffcalc.util import (
     DiffcalcException,
     angle_between_vectors,
@@ -18,8 +18,6 @@ from diffcalc.util import (
     z_rotation,
 )
 from numpy.linalg import inv, norm
-
-logger = logging.getLogger("diffcalc.hkl.calc_sample")
 
 
 def _calc_N(Q: np.ndarray, n: np.ndarray) -> np.ndarray:
@@ -77,7 +75,7 @@ def __calc_sample_con_mu(
         chi = acos_chi
         eta = 0.0
         phi = atan2(-V[1, 0], V[1, 1])
-        logger.debug(
+        logging.debug(
             "Eta and phi cannot be chosen uniquely with chi so close "
             "to 0 or 180. Returning phi=%.3f and eta=%.3f",
             degrees(phi),
