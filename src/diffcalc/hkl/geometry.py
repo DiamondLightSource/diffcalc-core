@@ -69,6 +69,18 @@ class Position:
         self._phi: float = radians(phi) if indegrees else phi
         self.indegrees: bool = indegrees
 
+    def __str__(self):
+        """Represent Position object information as a string.
+
+        Returns
+        -------
+        str
+            Position object string representation.
+        """
+        if self.indegrees:
+            return f"Position({', '.join((f'{k}: {v:.4f}' for k, v in self.asdict.items()))})"
+        return f"Position({', '.join((f'{k}: {degrees(v):.4f}' for k, v in self.asdict.items()))})"
+
     @classmethod
     def asdegrees(cls, pos: "Position") -> "Position":
         """Create new Position object with angles in degrees.

@@ -40,3 +40,9 @@ class TestPosition:
 
         assert pos1 == pos1
         assert pos1 != pos2
+
+        pos3 = Position(1.1234, 2.3456, 3.4567, 4.5678, 5.6789, 6.7891)
+        assert (
+            str(pos3)
+            == "Position(mu: 1.1234, delta: 2.3456, nu: 3.4567, eta: 4.5678, chi: 5.6789, phi: 6.7891)"
+        )
