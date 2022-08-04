@@ -314,11 +314,11 @@ class HklCalculation:
         # constraints are dictionaries
         ref_constraint = self.constraints._reference
         det_constraint = self.constraints._detector
-        naz_constraint = {"naz": self.constraints.naz} if self.constraints.naz else None
+        naz_constraint = None
         samp_constraints = self.constraints._sample
 
         if "naz" in det_constraint:
-            det_constraint.pop("naz")
+            naz_constraint = {"naz": det_constraint.pop("naz")}
 
         assert not (
             det_constraint and naz_constraint

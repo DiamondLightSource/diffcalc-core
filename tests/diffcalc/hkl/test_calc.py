@@ -2382,6 +2382,91 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
         self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
 
 
+class TestFixedNazPsiEtaMode(_TestCubic):
+    def setup_method(self):
+        _TestCubic.setup_method(self)
+        self.constraints.asdict = {"naz": 90, "psi": 0, "eta": 0}
+        self.wavelength = 1
+
+    def _configure_ub(self):
+        self.ubcalc.set_u(I)
+        # Set some random reference vector orientation
+        # that won't coincide with the scattering vector direction.
+        # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
+        # self.mock_ubcalc.n_phi = np.array([[0.], [1.], [0.]])
+
+    @pytest.mark.parametrize(
+        ("hkl", "pos", "places"),
+        [
+            (
+                (1, 0, 0),
+                Position(
+                    mu=-90,
+                    delta=60,
+                    nu=0,
+                    eta=0,
+                    chi=30,
+                    phi=0,
+                ),
+                4,
+            ),
+            (
+                (0, 1, 0),
+                Position(
+                    mu=90,
+                    delta=60,
+                    nu=0,
+                    eta=0,
+                    chi=150,
+                    phi=-90,
+                ),
+                4,
+            ),
+            (
+                (1, 1, 0),
+                Position(
+                    mu=-90,
+                    delta=90,
+                    nu=0,
+                    eta=0,
+                    chi=45,
+                    phi=45,
+                ),
+                4,
+            ),
+            (
+                (1, 1, 1),
+                Position(
+                    mu=90,
+                    delta=120,
+                    nu=0,
+                    eta=0,
+                    chi=84.7356,
+                    phi=-135,
+                ),
+                4,
+            ),
+            pytest.param(
+                (0, 0, 1),
+                Position(
+                    mu=30,
+                    delta=0,
+                    nu=60,
+                    eta=90,
+                    chi=0,
+                    phi=0,
+                ),
+                4,
+                marks=pytest.mark.xfail(raises=DiffcalcException),
+            ),
+        ],
+    )
+    def testHKL(self, hkl, pos, places):
+        self.places = places
+        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+
+
 class TestFixedChiPhiPsiMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
     """
     The data here is taken from an experiment performed on Diamonds I07
@@ -3882,11 +3967,19 @@ class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
         self.case_generator(case[name])
 
 
-class TestConstrainDetRefSamp(_BaseTest):
+class TestConstrainNazAlphaEta(_BaseTest):
     def setup_method(self):
-        self.ubcalc = UBCalculation()
-        self.ubcalc.n_hkl = (1.0, 0.0, 0.0)
+        _BaseTest.setup_method(self)
 
+        self.constraints.asdict = {
+            "naz": 3.0,
+            "alpha": 2.0,
+            "eta": 1.0,
+        }
+        self.wavelength = 1
+        self.places = 4
+
+    def _configure_ub(self):
         self.ubcalc.set_lattice(name="test", a=4.913, c=5.405)
         self.ubcalc.add_reflection(
             hkl=(0, 0, 1),
@@ -3895,17 +3988,32 @@ class TestConstrainDetRefSamp(_BaseTest):
             tag="refl1",
         )
         self.ubcalc.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
-        self.constraints = Constraints({"naz": 3, "alpha": 2, "eta": 1})
-        self.hklcalc = HklCalculation(self.ubcalc, self.constraints)
-
-    def _configure_ub(self):
         self.ubcalc.calc_ub("refl1", "plane")
 
-    def test_get_position_runs_for_naz_correctly(self):
-        self.setup_method()
-        self._configure_ub()
+        self.ubcalc.n_hkl = (1.0, 0.0, 0.0)
 
-        # this fails because I don't know the science behind how to configure the setup
-        # for there to be any solutions.
-        with pytest.raises(DiffcalcException):
-            self.hklcalc.get_position(1, 2, 3, 1)
+    def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
+        if not skip_test_pair_verification:
+            self._check_angles_to_hkl(
+                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            )
+        self._check_hkl_to_angles(
+            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+        )
+
+    def test_hkl_to_angles_given_UB(self):
+        self._check(
+            [1.0, 1.0, 1.0],
+            Position(90.8684, -15.0274, 12.8921, 1.0, -29.5499, -87.7027),
+        )
+        self._check(
+            [1.0, 2.0, 3.0],
+            Position(90.8265, -39.0497, 17.0693, 1.0, -30.4506, -87.6817),
+        )
+
+    @pytest.mark.xfail(raises=DiffcalcException)
+    def test_hkl_to_angles_no_solution(self):
+        self._check(
+            [1.0, 0.0, 0.0],
+            Position(5.8412, 0.0, 11.6823, 0.0, -90.0, 0),
+        )
