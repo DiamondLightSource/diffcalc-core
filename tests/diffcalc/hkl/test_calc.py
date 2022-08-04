@@ -1585,6 +1585,124 @@ class TestCubicHorizontal(_TestCubic):
 #        self.constraints.asdict = {"a_eq_b": True, "delta": 0, "eta": 0}
 
 
+class TestCubic_FixedDetRefChiMode(_TestCubic):
+    def setup_method(self):
+        _TestCubic.setup_method(self)
+
+    @pytest.fixture(scope="class")
+    def make_cases(self):
+        def __make_cases_fixture(zrot, yrot):
+            wavelength = 1
+            cases = (
+                Pair(
+                    "100",
+                    (1, 0, 0),
+                    Position(
+                        mu=-90,
+                        delta=60,
+                        nu=0,
+                        eta=90,
+                        chi=90,
+                        phi=-60,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "100-->001",
+                    (cos(radians(4)), sin(radians(4)), 0),
+                    Position(
+                        mu=-90,
+                        delta=60,
+                        nu=0,
+                        eta=90,
+                        chi=90,
+                        phi=-56,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "010",
+                    (0, 1, 0),
+                    Position(
+                        mu=90,
+                        delta=60,
+                        nu=0,
+                        eta=-90,
+                        chi=90,
+                        phi=-150,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "001",
+                    (0, 0, 1),
+                    Position(
+                        mu=0,
+                        delta=60,
+                        nu=0,
+                        eta=30,
+                        chi=90,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "001-->100",
+                    (cos(radians(86)), sin(radians(86)), 0),
+                    Position(
+                        mu=90,
+                        delta=60,
+                        nu=0,
+                        eta=90,
+                        chi=90,
+                        phi=-34,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+            )
+            case_dict = {}
+            for case in cases:
+                case_dict[case.name] = case
+            return case_dict
+
+        return __make_cases_fixture
+
+    @pytest.mark.parametrize(
+        ("name, constraint"),
+        itertools.product(
+            [
+                "100",
+                "100-->001",
+                "010",
+                "001",
+                "001-->100",
+            ],
+            [
+                {"a_eq_b": True, "qaz": 90, "chi": 90},
+                {"a_eq_b": True, "nu": 0, "chi": 90},
+            ],
+        ),
+    )
+    def test_pairs_zrot0_yrot0(self, name, constraint, make_cases):
+        self.constraints.asdict = constraint
+        case = make_cases(0, 0)
+        if name == "001":
+            with pytest.raises(DiffcalcException):
+                self.case_generator(case[name])
+        else:
+            self.case_generator(case[name])
+
+
 class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
