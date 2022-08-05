@@ -1703,6 +1703,125 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
             self.case_generator(case[name])
 
 
+class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
+    def setup_method(self):
+        _TestCubic.setup_method(self)
+
+    @pytest.fixture(scope="class")
+    def make_cases(self):
+        def __make_cases_fixture(zrot, yrot):
+            wavelength = 1
+            cases = (
+                Pair(
+                    "100",
+                    (1, 0, 0),
+                    Position(
+                        mu=120 - yrot,
+                        delta=0,
+                        nu=60,
+                        eta=90 - zrot,
+                        chi=180,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "100-->001",
+                    (cos(radians(4)), 0, sin(radians(4))),
+                    Position(
+                        mu=120 + 4 - yrot,
+                        delta=0,
+                        nu=60,
+                        eta=90 - zrot,
+                        chi=180,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "010",
+                    (0, 1, 0),
+                    Position(
+                        mu=120,
+                        delta=0,
+                        nu=60,
+                        eta=-zrot,
+                        chi=180,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "001",
+                    (0, 0, 1),
+                    Position(
+                        mu=30 - yrot,
+                        delta=0,
+                        nu=60,
+                        eta=90 + zrot,
+                        chi=0,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "001-->100",
+                    (cos(radians(86)), 0, sin(radians(86))),
+                    Position(
+                        mu=30 - 4 - yrot,
+                        delta=0,
+                        nu=60,
+                        eta=90 + zrot,
+                        chi=0,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+            )
+            case_dict = {}
+            for case in cases:
+                case_dict[case.name] = case
+            return case_dict
+
+        return __make_cases_fixture
+
+    @pytest.mark.parametrize(
+        ("name, zrot, yrot, constraint"),
+        itertools.product(
+            [
+                "100",
+                "100-->001",
+                "010",
+                "001",
+                "001-->100",
+            ],
+            [
+                -1,
+                1,
+            ],
+            [2],
+            [
+                {"delta": 0, "psi": 0, "phi": 0},
+                {"nu": 60, "psi": 0, "phi": 0},
+            ],
+        ),
+    )
+    def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
+        self.constraints.asdict = constraint
+        case = make_cases(zrot, yrot)
+        self.case_generator(case[name])
+
+
 class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
