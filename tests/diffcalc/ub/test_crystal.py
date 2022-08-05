@@ -23,7 +23,7 @@ from diffcalc.ub.crystal import Crystal
 from numpy import array
 
 from tests.diffcalc import scenarios
-from tests.tools import mneq_
+from tests.tools import assert_iterable_almost_equal, mneq_
 
 
 class TestCrystalUnderTest:
@@ -53,6 +53,35 @@ class TestCrystalUnderTest:
             print(answer.tolist())
             note = "Incorrect B matrix calculation for scenario " + sess.name
             mneq_(answer, desired, 4, note=note)
+
+    @pytest.mark.parametrize(
+        ("xtal_system", "unit_cell", "full_unit_cell"),
+        [
+            ("Triclinic", (1, 2, 3, 10, 20, 30), (1, 2, 3, 10, 20, 30)),
+            ("Monoclinic", (1, 2, 3, 20), (1, 2, 3, 90, 20, 90)),
+            ("Orthorhombic", (1, 2, 3), (1, 2, 3, 90, 90, 90)),
+            ("Tetragonal", (1, 3), (1, 1, 3, 90, 90, 90)),
+            ("Rhombohedral", (1, 10), (1, 1, 1, 10, 10, 10)),
+            ("Cubic", (1,), (1, 1, 1, 90, 90, 90)),
+            pytest.param(
+                "Orthorombic",
+                (1, 2, 3),
+                (1, 2, 3, 90, 90, 90),
+                marks=pytest.mark.xfail(raises=TypeError),
+            ),
+        ],
+    )
+    def test_get_lattice_params(self, xtal_system, unit_cell, full_unit_cell):
+        xtal = Crystal("xtal", xtal_system, *unit_cell)
+        test_xtal_system, test_unit_cell = xtal.get_lattice_params()
+        assert test_xtal_system == xtal_system
+        assert_iterable_almost_equal(test_unit_cell, unit_cell)
+
+        xtal_name, a1, a2, a3, alpha1, alpha2, alpha3 = xtal.get_lattice()
+        assert xtal_name == "xtal"
+        assert_iterable_almost_equal(
+            (a1, a2, a3, alpha1, alpha2, alpha3), full_unit_cell
+        )
 
     def test_get_hkl_plane_angle(self):
         xtal = Crystal("cube", 1, 1, 1, 90, 90, 90)
