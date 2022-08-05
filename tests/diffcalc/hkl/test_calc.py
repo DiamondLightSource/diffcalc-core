@@ -3531,9 +3531,7 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
 class TestConstrain3Sample_MuEtaChi(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "eta": 0, "a_eq_b": True}
         self.wavelength = 1
-        self.UB = I * 2 * pi
         self.places = 4
 
     def _configure_ub(self):
@@ -3633,7 +3631,7 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
             ),
         ],
     )
-    def _check(self, hkl, pos, constraint):
+    def testHKL(self, hkl, pos, constraint):
         self.constraints.asdict = constraint
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
