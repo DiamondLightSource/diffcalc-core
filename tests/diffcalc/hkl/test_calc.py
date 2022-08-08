@@ -282,6 +282,28 @@ class TestCubicVertical(_TestCubic):
         return __make_cases_fixture
 
     @pytest.mark.parametrize(
+        ("name", "zrot"),
+        itertools.product(
+            [
+                "100",
+                "100-->001",
+                "010",
+                "001",
+                "001-->100",
+            ],
+            [0, 2, -2, 45, -45, 90, -90],
+        ),
+    )
+    def test_delta_aeqb_mu_zrot_and_yrot0(self, name, zrot, make_cases):
+        self.constraints.asdict = {"delta": 60, "a_eq_b": True, "mu": 0}
+        case = make_cases(name, zrot, 0)
+        if name == "001":
+            with pytest.raises(DiffcalcException):
+                self.case_generator(case)
+        else:
+            self.case_generator(case)
+
+    @pytest.mark.parametrize(
         ("name, zrot, constraint"),
         itertools.product(
             [
@@ -1404,18 +1426,6 @@ class TestCubicHorizontal_Bisect_qaz(TestCubicHorizontal_Bisect):
     def setup_method(self):
         TestCubicHorizontal_Bisect.setup_method(self)
         self.constraints.asdict = {"qaz": 0, "bisect": True, "eta": 0}
-
-
-class SkipTestHklCalculatorWithCubicMode_aeqb_delta_60(TestCubicVertical):
-    """
-    Works to 4-5 decimal places but chooses different solutions when phi||eta .
-    Skip all tests.
-    """
-
-    def setup_method(self):
-        TestCubicVertical.setup_method(self)
-        self.constraints.asdict = {"a_eq_b": True, "mu": 0, "delta": 60}
-        self.places = 5
 
 
 class TestCubicHorizontal(_TestCubic):
