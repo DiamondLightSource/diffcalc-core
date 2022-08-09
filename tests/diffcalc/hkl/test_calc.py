@@ -18,7 +18,7 @@
 
 import itertools
 from itertools import chain
-from math import cos, pi, radians, sin
+from math import cos, radians, sin
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
@@ -2714,7 +2714,7 @@ class TestFixedNazPsiEtaMode(_TestCubic):
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
 
-class TestFixedChiPhiPsiMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
+class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
     """
     The data here is taken from an experiment performed on Diamonds I07
     beamline, obtained using Vlieg's DIF software"""
@@ -2899,7 +2899,7 @@ class TestFixedChiPhiPsiMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
 
-class TestFixedChiPhiPsiModeSurfaceNormalVertical(_TestCubic):
+class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
         self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
@@ -3078,84 +3078,76 @@ class TestFixedChiPhiPsiModeSurfaceNormalVertical(_TestCubic):
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
 
-class SkipTestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
+class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
     # testing with Chris N. for pre christmas 2012 i16 experiment
 
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.constraints.asdict = {"chi": 90, "psi": 90, "phi": 0}
         self.wavelength = 1
-        self.UB = I * 2 * pi
         self.places = 4
 
     def _configure_ub(self):
-        self.mock_ubcalc.UB = self.UB
+        self.ubcalc.set_u(I)
 
-    def _check(self, hkl, pos, virtual_expected={}, fails=False):
-        #        self._check_angles_to_hkl(
-        #            '', 999, 999, hkl, pos, self.wavelength, virtual_expected)
-        if fails:
-            self._check_hkl_to_angles_fails(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
-            )
-        else:
-            self._check_hkl_to_angles(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
-            )
-
-    def testHkl_1_1_0(self):
-        self._check(
-            (1, 1, 0.001),  # betaout=0
-            Position(
-                mu=0,
-                delta=60,
-                nu=0,
-                eta=30,
-                chi=0,
-                phi=0,
+    @pytest.mark.parametrize(
+        ("hkl", "pos", "places"),
+        [
+            pytest.param(
+                (1, 1, 0),  # Any qaz can be set in [0, 90] with eta and delta
+                Position(
+                    mu=90,
+                    delta=0,
+                    nu=90,
+                    eta=0,
+                    chi=-90,
+                    phi=0,
+                ),
+                4,
+                marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
-        )
-        # (-89.9714,  89.9570,  90.0382,  90.0143,  90.0000,  0.0000)
-
-    def testHkl_1_1_05(self):
-        self._check(
-            (1, 1, 0.5),  # betaout=0
-            Position(
-                mu=0,
-                delta=60,
-                nu=0,
-                eta=30,
-                chi=0,
-                phi=0,
+            (
+                (1, 1, 0.1),  # Reduced test accuracy as delta/nu/eta combined
+                Position(  # rotation can result in small variations in l index
+                    mu=-87.133,
+                    delta=85.699,
+                    nu=93.823,
+                    eta=91.434,
+                    chi=90,
+                    phi=0,
+                ),
+                3,
             ),
-        )
-
-    def testHkl_1_1_1(self):
-        self._check(
-            (1, 1, 1),  # betaout=0
-            Position(
-                mu=0,
-                delta=60,
-                nu=0,
-                eta=30,
-                chi=0,
-                phi=0,
+            (
+                (1, 1, 0.5),
+                Position(
+                    mu=-75.3995,
+                    delta=68.0801,
+                    nu=109.5630,
+                    eta=97.3603,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
-        #    (-58.6003,  42.7342,  132.9004,  106.3249,  90.0000,  0.0000
-
-    def testHkl_1_1_15(self):
-        self._check(
-            (1, 1, 1.5),  # betaout=0
-            Position(
-                mu=0,
-                delta=60,
-                nu=0,
-                eta=30,
-                chi=0,
-                phi=0,
+            (
+                (1, 1, 1),
+                Position(
+                    mu=-58.6003,
+                    delta=42.7342,
+                    nu=132.9005,
+                    eta=106.3250,
+                    chi=90,
+                    phi=0,
+                ),
+                4,
             ),
-        )
+        ],
+    )
+    def testHKL(self, hkl, pos, places):
+        self.places = places
+        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
 
 class TestConstrain3Sample_ChiPhiEta(_TestCubic):
