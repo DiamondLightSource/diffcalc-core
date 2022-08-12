@@ -16,8 +16,6 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from diffcalc.hkl.geometry import Position
-
 from tests.tools import degrees_equivalent
 
 
@@ -30,19 +28,3 @@ class TestUtils:
         assert not degrees_equivalent(1.1, 1, tol)
         assert not degrees_equivalent(1.1, -359, tol)
         assert not degrees_equivalent(359.1, -1, tol)
-
-
-class TestPosition:
-    def testCompare(self):
-        # Test the compare method
-        pos1 = Position(1, 2, 3, 4, 5, 6)
-        pos2 = Position(1.1, 2.1, 3.1, 4.1, 5.1, 6.1)
-
-        assert pos1 == pos1
-        assert pos1 != pos2
-
-        pos3 = Position(1.1234, 2.3456, 3.4567, 4.5678, 5.6789, 6.7891)
-        assert (
-            str(pos3)
-            == "Position(mu: 1.1234, delta: 2.3456, nu: 3.4567, eta: 4.5678, chi: 5.6789, phi: 6.7891)"
-        )

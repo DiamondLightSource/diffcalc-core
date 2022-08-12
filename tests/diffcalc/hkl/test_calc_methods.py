@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import degrees, isnan
+from math import degrees, isnan, pi
 from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
@@ -31,6 +31,41 @@ from tests.tools import assert_almost_equal, assert_matrix_almost_equal
 x = array([[1], [0], [0]])
 y = array([[0], [1], [0]])
 z = array([[0], [0], [1]])
+
+
+class TestPosition:
+    def test_compare_str(self):
+        # Test the compare method
+        pos1 = Position(1, 2, 3, 4, 5, 6)
+        pos2 = Position(1.1, 2.1, 3.1, 4.1, 5.1, 6.1)
+
+        assert pos1 == pos1
+        assert pos1 != pos2
+
+        pos3 = Position(1.1234, 2.3456, 3.4567, 4.5678, 5.6789, 6.7891)
+        assert (
+            str(pos3)
+            == "Position(mu: 1.1234, delta: 2.3456, nu: 3.4567, eta: 4.5678, chi: 5.6789, phi: 6.7891)"
+        )
+
+        pos4 = Position(
+            pi / 1.0, pi / 2.0, pi / 3.0, pi / 4.0, pi / 5.0, pi / 6.0, indegrees=False
+        )
+        assert (
+            str(pos4)
+            == f"Position(mu: {degrees(pi / 1.0):.4f}, delta: {degrees(pi / 2.0):.4f}, nu: {degrees(pi / 3.0):.4f}, eta: {degrees(pi / 4.0):.4f}, chi: {degrees(pi / 5.0):.4f}, phi: {degrees(pi / 6.0):.4f})"
+        )
+
+    def test_getter_setter(self):
+        pos_deg = Position()
+        pos_rad = Position(indegrees=False)
+        for i, field in enumerate(pos_deg.fields, 1):
+            setattr(pos_deg, field, float(i))
+            setattr(pos_rad, field, pi / float(i))
+
+        for i, field in enumerate(pos_deg.fields, 1):
+            assert_almost_equal(getattr(pos_deg, field), float(i))
+            assert_almost_equal(getattr(pos_rad, field), pi / float(i))
 
 
 class Test_position_to_virtual_angles:
