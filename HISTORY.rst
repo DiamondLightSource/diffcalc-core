@@ -2,6 +2,16 @@
 History
 =======
 
+0.4.0 (2022-08-12)
+------------------
+
+* Add fromdict/asdict to support serialisation of HKLCalculation object. (`#52 <https://github.com/DiamondLightSource/diffcalc-core/pull/52>`_)
+* Add support for Python 3.10 and drop support for Python 3.6 EOL. (`#48 <https://github.com/DiamondLightSource/diffcalc-core/pull/48>`_)
+* Fix hkl calculation when reference vector is parallel to incident x-ray beam.
+* Raise exception if azimuthal orientation of scattering plane is degenerate in
+a geometry with a reference vector constraint.
+* Find solutions for 180 degree backscattering geometry.
+
 0.3.0 (2021-05-04)
 ------------------
 
