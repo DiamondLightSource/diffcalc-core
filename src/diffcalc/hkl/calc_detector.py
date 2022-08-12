@@ -40,7 +40,7 @@ def _calc_remaining_detector_angles_delta(
             )
             % ("nu", "nu", "nu")
         )
-        acos_nu = 1.0
+        acos_nu = 0.0
     else:
         try:
             acos_nu = acos(bound(cos(2.0 * theta) / cos_delta))

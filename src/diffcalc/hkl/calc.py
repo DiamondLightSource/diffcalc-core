@@ -480,7 +480,7 @@ class HklCalculation:
             eta_diff = desired_eta - pos.eta
             if print_degenerate:
                 print(
-                    "DEGENERATE: with chi=0, phi and eta are colinear:"
+                    "DEGENERATE: with chi=0, phi and eta are collinear:"
                     "choosing eta = delta/2 by adding % 7.3f to eta and "
                     "removing it from phi. (mu=nu=0 only)" % degrees(eta_diff)
                 )
@@ -507,7 +507,7 @@ class HklCalculation:
             mu_diff = desired_mu - pos.mu
             if print_degenerate:
                 print(
-                    "DEGENERATE: with chi=90, phi and mu are colinear: choosing"
+                    "DEGENERATE: with chi=90, phi and mu are collinear: choosing"
                     " mu = nu/2 by adding % 7.3f to mu and to phi. "
                     "(delta=eta=0 only)" % degrees(mu_diff)
                 )

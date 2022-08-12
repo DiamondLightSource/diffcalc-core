@@ -384,7 +384,6 @@ class TestCubicVertical(_TestCubic):
 class TestCubicVertical_alpha90(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"qaz": 90, "alpha": 90, "phi": 0}
         self.ubcalc.n_hkl = (1, -1, 0)
 
     @pytest.fixture(scope="class")
@@ -430,7 +429,7 @@ class TestCubicVertical_alpha90(_TestCubic):
         return __make_cases_fixture
 
     @pytest.mark.parametrize(
-        ("name", "zrot"),
+        ("name", "zrot", "constraint"),
         itertools.product(
             [
                 "sqrt(2)00",
@@ -438,9 +437,15 @@ class TestCubicVertical_alpha90(_TestCubic):
             [
                 0,
             ],
+            [
+                {"qaz": 90, "alpha": 90, "phi": 0},
+                {"delta": 90, "beta": 0, "phi": 0},
+                {"delta": 90, "betain": 0, "phi": 0},
+            ],
         ),
     )
-    def test_delta_alpha_mu_zrot_and_yrot0(self, name, zrot, make_cases):
+    def test_delta_alpha_mu_zrot_and_yrot0(self, name, zrot, constraint, make_cases):
+        self.constraints.asdict = constraint
         case = make_cases(name, zrot, 0)
         self.case_generator(case)
 

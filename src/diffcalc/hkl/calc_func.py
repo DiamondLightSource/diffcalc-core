@@ -5,7 +5,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl import calc_detector, calc_reference, calc_sample
-from diffcalc.util import SMALL, DiffcalcException, bound, is_small, normalised, sign
+from diffcalc.util import DiffcalcException, bound, is_small, normalised, sign
 
 
 def _calc_remaining_reference_angles(
@@ -16,39 +16,33 @@ def _calc_remaining_reference_angles(
         "The current combination of constraints with %s = %.4f\n"
         "prohibits a solution for the specified reflection."
     )
-    if name == "psi":
-        psi = value
-        # Equation 26 for alpha
-        sin_alpha = cos(tau) * sin(theta) - cos(theta) * sin(tau) * cos(psi)
-        if abs(sin_alpha) > 1 + SMALL:
-            raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
-        alpha = asin(bound(sin_alpha))
-        # Equation 27 for beta
-        sin_beta = cos(tau) * sin(theta) + cos(theta) * sin(tau) * cos(psi)
-        if abs(sin_beta) > 1 + SMALL:
-            raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
-
-        beta = asin(bound(sin_beta))
-
-    elif name == "a_eq_b" or name == "bin_eq_bout":
-        alpha = beta = asin(cos(tau) * sin(theta))  # (24)
-
-    elif name == "alpha" or name == "betain":
-        alpha = value  # (24)
-        sin_beta = 2 * sin(theta) * cos(tau) - sin(alpha)
-        if abs(sin_beta) > 1 + SMALL:
-            raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
-        beta = asin(sin_beta)
-
-    elif name == "beta" or name == "betaout":
-        beta = value
-        sin_alpha = 2 * sin(theta) * cos(tau) - sin(beta)  # (24)
-        if abs(sin_alpha) > 1 + SMALL:
-            raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
-
-        alpha = asin(sin_alpha)
-
-    return alpha, beta
+    try:
+        if name == "psi":
+            psi = value
+            # Equation 26 for alpha
+            sin_alpha = cos(tau) * sin(theta) - cos(theta) * sin(tau) * cos(psi)
+            alpha = asin(bound(sin_alpha))
+            # Equation 27 for beta
+            sin_beta = cos(tau) * sin(theta) + cos(theta) * sin(tau) * cos(psi)
+            beta = asin(bound(sin_beta))
+        elif name == "a_eq_b" or name == "bin_eq_bout":
+            alpha = beta = asin(bound(cos(tau) * sin(theta)))  # (24)
+        elif name == "alpha" or name == "betain":
+            alpha = value  # (24)
+            sin_beta = 2 * sin(theta) * cos(tau) - sin(alpha)
+            beta = asin(bound(sin_beta))
+        elif name == "beta" or name == "betaout":
+            beta = value
+            sin_alpha = 2 * sin(theta) * cos(tau) - sin(beta)  # (24)
+            alpha = asin(bound(sin_alpha))
+        else:
+            raise DiffcalcException(
+                "Cannot calculate alpha and beta reference angles "
+                f"using {name} constraint."
+            )
+        return alpha, beta
+    except AssertionError:
+        raise DiffcalcException(UNREACHABLE_MSG % (name, degrees(value)))
 
 
 def _calc_det_sample_reference(
