@@ -16,8 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-import math
-from math import degrees
+from math import degrees, isnan
 from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
@@ -32,14 +31,6 @@ from tests.tools import assert_almost_equal, assert_matrix_almost_equal
 x = array([[1], [0], [0]])
 y = array([[0], [1], [0]])
 z = array([[0], [0], [1]])
-
-
-def isnan(n):
-    # math.isnan was introduced only in python 2.6 and is not in Jython (2.5.2)
-    try:
-        return math.isnan(n)
-    except AttributeError:
-        return n != n  # for Jython
 
 
 class Test_position_to_virtual_angles:
@@ -58,7 +49,10 @@ class Test_position_to_virtual_angles:
         """All in degrees"""
         pos = Position(mu=mu, delta=delta, nu=nu, eta=eta, chi=chi, phi=phi)
         calculated = self.calc.get_virtual_angles(pos, False)[name]
-        assert_almost_equal(degrees(calculated), expected)
+        if isnan(expected):
+            assert isnan(calculated)
+        else:
+            assert_almost_equal(degrees(calculated), expected)
 
     # theta
 
@@ -128,7 +122,7 @@ class Test_position_to_virtual_angles:
     # beta
 
     def test_beta0(self):
-        self.check_angle("beta", 0, delta=0, nu=0, mu=0, eta=0, chi=0, phi=0)
+        self.check_angle("beta", float("nan"), delta=0, nu=0, mu=0, eta=0, chi=0, phi=0)
 
     def test_beta1(self):
         self.check_angle("beta", 0, delta=10, nu=0, mu=0, eta=6, chi=0, phi=5)
@@ -160,7 +154,7 @@ class Test_position_to_virtual_angles:
 
     # tau
     def test_tau0(self):
-        self.check_angle("tau", 0, mu=0, delta=0, nu=0, eta=0, chi=0, phi=0)
+        self.check_angle("tau", float("nan"), mu=0, delta=0, nu=0, eta=0, chi=0, phi=0)
         # self.check_angle('tau_from_dot_product', 90, mu=0, delta=0,
         # nu=0, eta=0, chi=0, phi=0)
 

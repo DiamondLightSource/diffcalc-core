@@ -149,7 +149,10 @@ def angle_between_vectors(x: np.ndarray, y: np.ndarray) -> float:
     float
         Angle between the vectors.
     """
-    costheta = dot3(x * (1 / norm(x)), y * (1 / norm(y)))
+    try:
+        costheta = dot3(x * (1 / norm(x)), y * (1 / norm(y)))
+    except ZeroDivisionError:
+        return float("nan")
     return acos(bound(costheta))
 
 
@@ -300,7 +303,10 @@ def normalised(vector: np.ndarray) -> np.ndarray:
         Normalised vector.
     """
     vector_norm: float = float(norm(vector))
-    return vector * (1.0 / vector_norm)
+    try:
+        return vector * (1.0 / vector_norm)
+    except ZeroDivisionError:
+        return vector
 
 
 def zero_round(num):
