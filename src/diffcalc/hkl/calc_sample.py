@@ -1,7 +1,7 @@
 """Module implementing intermediate calculations in constrained sample geometry."""
 import logging
 from itertools import product
-from math import acos, asin, atan, atan2, cos, degrees, pi, sin, sqrt, tan
+from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, tan
 from typing import Dict, Iterator, Optional, Tuple
 
 import numpy as np
@@ -212,9 +212,12 @@ def _calc_remaining_sample_angles(
     q_lab = np.array(
         [[cos(theta) * sin(qaz)], [-sin(theta)], [cos(theta) * cos(qaz)]]
     )  # (18)
-    n_lab = np.array(
-        [[cos(alpha) * sin(naz)], [-sin(alpha)], [cos(alpha) * cos(naz)]]
-    )  # (20)
+    if isnan(naz):
+        n_lab = np.array([[0.0], [-sin(alpha)], [0.0]])
+    else:
+        n_lab = np.array(
+            [[cos(alpha) * sin(naz)], [-sin(alpha)], [cos(alpha) * cos(naz)]]
+        )  # (20)
 
     N_lab = _calc_N(q_lab, n_lab)
 

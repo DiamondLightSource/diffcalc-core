@@ -18,7 +18,7 @@
 
 import itertools
 from itertools import chain
-from math import cos, radians, sin
+from math import cos, radians, sin, sqrt
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
@@ -379,6 +379,119 @@ class TestCubicVertical(_TestCubic):
             phi=0,
         )
         self._check_hkl_to_angles("", 0, 0, hkl, pos, wavelength)
+
+
+class TestCubicVertical_alpha90(_TestCubic):
+    def setup_method(self):
+        _TestCubic.setup_method(self)
+        self.constraints.asdict = {"qaz": 90, "alpha": 90, "phi": 0}
+        self.ubcalc.n_hkl = (1, -1, 0)
+
+    @pytest.fixture(scope="class")
+    def make_cases(self):
+        def __make_cases_fixture(name, zrot, yrot):
+            wavelength = 1
+            cases = (
+                Pair(
+                    "sqrt(2)00",
+                    (sqrt(2), 0, 0),
+                    Position(
+                        mu=0,
+                        delta=90,
+                        nu=0,
+                        eta=45,
+                        chi=0,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+                Pair(
+                    "00sqrt(2)",
+                    (0, 0, sqrt(2)),
+                    Position(
+                        mu=90,
+                        delta=90,
+                        nu=0,
+                        eta=0,
+                        chi=45,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+            )
+            for case in cases:
+                if case.name == name:
+                    return case
+
+        return __make_cases_fixture
+
+    @pytest.mark.parametrize(
+        ("name", "zrot"),
+        itertools.product(
+            [
+                "sqrt(2)00",
+            ],
+            [
+                0,
+            ],
+        ),
+    )
+    def test_delta_alpha_mu_zrot_and_yrot0(self, name, zrot, make_cases):
+        case = make_cases(name, zrot, 0)
+        self.case_generator(case)
+
+
+class TestCubicVertical_ttheta180(_TestCubic):
+    def setup_method(self):
+        _TestCubic.setup_method(self)
+        self.constraints.asdict = {"nu": 0, "chi": 0, "phi": 0}
+        self.ubcalc.n_hkl = (1, -1, 0)
+
+    @pytest.fixture(scope="class")
+    def make_cases(self):
+        def __make_cases_fixture(name, zrot, yrot):
+            wavelength = 1
+            cases = (
+                Pair(
+                    "200",
+                    (2, 0, 0),
+                    Position(
+                        mu=0,
+                        delta=180,
+                        nu=0,
+                        eta=90,
+                        chi=0,
+                        phi=0,
+                    ),
+                    zrot,
+                    yrot,
+                    wavelength,
+                ),
+            )
+            for case in cases:
+                if case.name == name:
+                    return case
+
+        return __make_cases_fixture
+
+    @pytest.mark.parametrize(
+        ("name", "zrot"),
+        itertools.product(
+            [
+                "200",
+            ],
+            [
+                0,
+            ],
+        ),
+    )
+    def test_nu_chi_phi_0(self, name, zrot, make_cases):
+        case = make_cases(name, zrot, 0)
+        self.case_generator(case)
 
 
 class TestCubicVertical_ChiPhiMode(_TestCubic):
@@ -3091,7 +3204,7 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
         self.ubcalc.set_u(I)
 
     @pytest.mark.parametrize(
-        ("hkl", "pos", "places"),
+        ("hkl", "pos"),
         [
             pytest.param(
                 (1, 1, 0),  # Any qaz can be set in [0, 90] with eta and delta
@@ -3103,20 +3216,29 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
                     chi=-90,
                     phi=0,
                 ),
-                4,
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
-                (1, 1, 0.1),  # Reduced test accuracy as delta/nu/eta combined
-                Position(  # rotation can result in small variations in l index
-                    mu=-87.133,
-                    delta=85.699,
-                    nu=93.823,
-                    eta=91.434,
+                (1, 1, 0.001),
+                Position(
+                    mu=-89.9714,
+                    delta=90.0430,
+                    nu=-89.9618,
+                    eta=90.0143,
                     chi=90,
                     phi=0,
                 ),
-                3,
+            ),
+            (
+                (1, 1, 0.1),
+                Position(
+                    mu=-87.1331,
+                    delta=85.6995,
+                    nu=93.8232,
+                    eta=91.4339,
+                    chi=90,
+                    phi=0,
+                ),
             ),
             (
                 (1, 1, 0.5),
@@ -3128,7 +3250,6 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
                     chi=90,
                     phi=0,
                 ),
-                4,
             ),
             (
                 (1, 1, 1),
@@ -3140,12 +3261,10 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
                     chi=90,
                     phi=0,
                 ),
-                4,
             ),
         ],
     )
-    def testHKL(self, hkl, pos, places):
-        self.places = places
+    def testHKL(self, hkl, pos):
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 

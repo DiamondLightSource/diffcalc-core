@@ -1,6 +1,6 @@
 """Module implementing intermediate calculations in constrained detector geometry."""
 from itertools import product
-from math import acos, asin, atan2, cos, degrees, pi, sin
+from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
 from typing import Dict, Iterator, Optional, Tuple
 
 from diffcalc.util import DiffcalcException, bound, is_small, sign
@@ -12,10 +12,8 @@ def _calc_angle_between_naz_and_qaz(theta: float, alpha: float, tau: float) -> f
     bottom = cos(alpha) * cos(theta)
     if is_small(bottom):
         if is_small(cos(alpha)):
-            raise ValueError("cos(alpha) is too small.")
-        if is_small(cos(theta)):
-            raise ValueError("cos(theta) is too small.")
-    if is_small(sin(tau)):
+            return float("nan")
+    if isnan(tau) or is_small(sin(tau)):
         return 0.0
     return acos(bound(top / bottom))
 
@@ -26,15 +24,8 @@ def _calc_remaining_detector_angles_delta(
     """Return delta, nu and qaz given delta detector angle."""
     #                                                         (section 5.1)
     # Find qaz using various derivations of 17 and 18
-    sin_2theta = sin(2 * theta)
-    cos_2theta = cos(2 * theta)
-    if is_small(sin_2theta):
-        raise DiffcalcException(
-            "No meaningful scattering vector (Q) can be found when "
-            f"theta is so small {degrees(theta):.4f}."
-        )
     try:
-        asin_qaz = asin(bound(sin(delta) / sin_2theta))  # (17 & 18)
+        asin_qaz = asin(bound(sin(delta) / sin(2.0 * theta)))  # (17 & 18)
     except AssertionError:
         return
     cos_delta = cos(delta)
@@ -52,7 +43,7 @@ def _calc_remaining_detector_angles_delta(
         acos_nu = 1.0
     else:
         try:
-            acos_nu = acos(bound(cos_2theta / cos_delta))
+            acos_nu = acos(bound(cos(2.0 * theta) / cos_delta))
         except AssertionError:
             return
     if is_small(cos(asin_qaz)):
@@ -68,7 +59,7 @@ def _calc_remaining_detector_angles_delta(
     else:
         nu_angles = [acos_nu, -acos_nu]
     for qaz, nu in product(qaz_angles, nu_angles):
-        sgn_ref = sign(sin_2theta) * sign(cos(qaz))
+        sgn_ref = sign(sin(2.0 * theta)) * sign(cos(qaz))
         sgn_ratio = sign(sin(nu)) * sign(cos_delta)
         if sgn_ref == sgn_ratio:
             yield delta, nu, qaz
@@ -82,11 +73,6 @@ def _calc_remaining_detector_angles_nu(
     # Find qaz using various derivations of 17 and 18
     sin_2theta = sin(2 * theta)
     cos_2theta = cos(2 * theta)
-    if is_small(sin_2theta):
-        raise DiffcalcException(
-            "No meaningful scattering vector (Q) can be found when "
-            f"theta is so small {degrees(theta):.4f}."
-        )
     cos_nu = cos(nu)
     if is_small(cos_nu):
         raise DiffcalcException(
@@ -127,11 +113,6 @@ def _calc_remaining_detector_angles_qaz(
     # Find qaz using various derivations of 17 and 18
     sin_2theta = sin(2 * theta)
     cos_2theta = cos(2 * theta)
-    if is_small(sin_2theta):
-        raise DiffcalcException(
-            "No meaningful scattering vector (Q) can be found when "
-            f"theta is so small {degrees(theta):.4f}."
-        )
     asin_delta = asin(sin(qaz) * sin_2theta)
     if is_small(cos(asin_delta)):
         delta_angles = [
@@ -187,6 +168,8 @@ def _calc_detector_con_det_or_naz(
                 naz_angles = [
                     qaz,
                 ]
+            elif isnan(naz_qaz_angle):
+                naz_angles = [float("nan")]
             else:
                 naz_angles = [qaz - naz_qaz_angle, qaz + naz_qaz_angle]
             for naz in naz_angles:

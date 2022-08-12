@@ -17,11 +17,13 @@ from diffcalc.util import (
     I,
     angle_between_vectors,
     bound,
+    dot3,
     is_small,
+    normalised,
     radians_equivalent,
     sign,
 )
-from numpy.linalg import inv
+from numpy.linalg import inv, norm
 
 
 class HklCalculation:
@@ -111,23 +113,27 @@ class HklCalculation:
 
         # Compute incidence and outgoing angles bin and betaout
         surf_nphi = Z @ self.ubcalc.surf_nphi
-        kin = np.array([[0], [1], [0]])
-        kout = D @ np.array([[0], [1], [0]])
+        kin = np.array([[0.0], [1.0], [0.0]])
+        kout = D @ np.array([[0.0], [1.0], [0.0]])
         betain = angle_between_vectors(kin, surf_nphi) - pi / 2.0
         betaout = pi / 2.0 - angle_between_vectors(kout, surf_nphi)
 
         n_lab = Z @ self.ubcalc.n_phi
         alpha = asin(bound(-n_lab[1, 0]))
-        naz = atan2(n_lab[0, 0], n_lab[2, 0])  # (20)
+        if is_small(cos(alpha)):
+            naz = float("nan")
+        else:
+            naz = atan2(n_lab[0, 0], n_lab[2, 0])  # (20)
 
-        cos_tau = cos(alpha) * cos(theta) * cos(naz - qaz) + sin(alpha) * sin(theta)
-        tau = acos(bound(cos_tau))  # (23)
+        # cos_tau = cos(alpha) * cos(theta) * cos(naz - qaz) + sin(alpha) * sin(theta)
+        # tau = acos(bound(cos_tau))  # (23)
 
-        # Compute Tau using the dot product directly (THIS ALSO WORKS)
-        # q_lab = ( (NU @ DELTA - I ) @ np.array([[0],[1],[0]])
-        # norm = norm(q_lab)
-        # q_lab = np.array([[1],[0],[0]]) if norm == 0 else q_lab * (1/norm)
-        # tau_from_dot_product = acos(bound(dot3(q_lab, n_lab)))
+        # Compute Tau using the dot product directly. Works also if naz is NaN.
+        q_lab = normalised((NU @ DELTA - I) @ np.array([[0], [1], [0]]))
+        if is_small(norm(q_lab), 1e-12) or is_small(norm(n_lab), 1e-12):
+            tau = float("nan")
+        else:
+            tau = acos(bound(dot3(q_lab, n_lab)))
 
         sin_beta = 2 * sin(theta) * cos(tau) - sin(alpha)
         beta = asin(bound(sin_beta))  # (24)
@@ -223,14 +229,15 @@ class HklCalculation:
             # The reference vector is parallel to the scattering vector
             yield float("nan")
         elif is_small(cos_theta):
-            # Reflection is unreachable as theta angle is too close to 90 deg
+            # Scattering vector is parallel to the x-ray beam.
+            # Azimuthal angle cannot be defined.
             yield float("nan")
         elif is_small(sin(theta)):
             # Reflection is unreachable as |Q| is too small
             yield float("nan")
         else:
             cos_psi = (cos(tau) * sin(theta) - sin(alpha)) / cos_theta  # (28)
-            if qaz is None or naz is None:
+            if qaz is None or naz is None or isnan(naz):
                 try:
                     acos_psi = acos(bound(cos_psi / sin_tau))
                     if is_small(acos_psi):
@@ -326,9 +333,9 @@ class HklCalculation:
 
         h_phi = self.ubcalc.UB @ np.array([[h], [k], [l]])
         n_phi = self.ubcalc.n_phi
-        theta = (
-            self.ubcalc.get_ttheta_from_hkl((h, k, l), 12.39842 / wavelength) / 2.0
-        )  # __calc_theta(h_phi, wavelength)
+
+        theta = self.ubcalc.get_ttheta_from_hkl((h, k, l), 12.39842 / wavelength) / 2.0
+
         alpha = None
         tau = None
 

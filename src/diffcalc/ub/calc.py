@@ -1339,17 +1339,14 @@ class UBCalculation:
             )
         wl = 12.39842 / en
         d = self.crystal.get_hkl_plane_distance(hkl)
-        if wl > (2 * d):
-            raise ValueError(
-                "Reflection un-reachable as wavelength (%f) is more than twice\n"
-                "the plane distance (%f)" % (wl, d)
-            )
         try:
-            return 2.0 * asin(wl / (d * 2))
-        except ValueError as e:
-            raise ValueError(
-                f"asin(wl / (d * 2) with wl={wl:f} and d={d:f}: " + e.args[0]
+            sin_theta = bound(wl / (d * 2))
+        except AssertionError:
+            raise DiffcalcException(
+                f"Reflection unreachable as wavelength {wl} is more than twice\n"
+                f"the plane distance {d}."
             )
+        return 2.0 * asin(sin_theta)
 
     def _rescale_unit_cell(
         self, hkl: Tuple[float, float, float], pos: Position, wavelength: float
