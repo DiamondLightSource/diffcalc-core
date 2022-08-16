@@ -20,6 +20,7 @@ import pytest
 from diffcalc.ub.calc import ReferenceVector
 from diffcalc.util import DiffcalcException
 from numpy import array
+from numpy.linalg import inv
 
 from tests.tools import assert_2darray_almost_equal
 
@@ -44,6 +45,33 @@ def test_from_as_array(reference, vector):
     assert reference.n_ref == tuple(vector.T[0])
     result = reference.get_array()
     assert_2darray_almost_equal(vector, result)
+
+
+@pytest.mark.parametrize(
+    ("vector", "UB"),
+    [
+        (array([[1], [0], [0]]), array([[1, 0, 0], [0, 0, 1], [0, 1, 0]])),
+        pytest.param(
+            array([[1], [0], [0]]),
+            array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]]),
+            marks=pytest.mark.xfail(raises=DiffcalcException),
+        ),
+        pytest.param(
+            array([[1], [0], [0]]),
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]],
+            marks=pytest.mark.xfail(raises=DiffcalcException),
+        ),
+    ],
+)
+def test_from_as_array_UB(vector, UB):
+    for rlv in (False, True):
+        reference = ReferenceVector((0, 0, 1), rlv)
+        reference.set_array(vector)
+        result = reference.get_array(UB)
+        if rlv:
+            assert_2darray_almost_equal(inv(UB) @ vector, result)
+        else:
+            assert_2darray_almost_equal(UB @ vector, result)
 
 
 def test_default_n_phi(reference):

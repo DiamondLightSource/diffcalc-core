@@ -41,7 +41,138 @@ class TestUBCalculation:
             ]
         )
 
-    def test_str(self):
+    def test_str_none_nhkl(self):
+        ubcalc = UBCalculation("test_str_none")
+        ubcalc.n_phi = (0, 0, 1)
+        ubcalc.surf_nphi = (0, 0, 1)
+
+        assert (
+            str(ubcalc)
+            == """UBCALC
+
+   name:     test_str_none
+
+REFERNCE
+
+   n_hkl:    None
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+SURFACE NORMAL
+
+   n_hkl:    None
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+CRYSTAL
+
+   <<< none specified >>>
+
+UB MATRIX
+
+   <<< none calculated >>>
+
+REFLECTIONS
+
+   <<< none specified >>>
+
+CRYSTAL ORIENTATIONS
+
+   <<< none specified >>>"""
+        )
+
+    def test_str_none_nphi(self):
+        ubcalc = UBCalculation("test_str_none")
+        ubcalc.n_hkl = (0, 0, 1)
+        ubcalc.surf_nhkl = (0, 0, 1)
+
+        assert (
+            str(ubcalc)
+            == """UBCALC
+
+   name:     test_str_none
+
+REFERNCE
+
+   n_hkl:      0.00000   0.00000   1.00000 <- set
+   n_phi:    None
+
+SURFACE NORMAL
+
+   n_hkl:      0.00000   0.00000   1.00000 <- set
+   n_phi:    None
+
+CRYSTAL
+
+   <<< none specified >>>
+
+UB MATRIX
+
+   <<< none calculated >>>
+
+REFLECTIONS
+
+   <<< none specified >>>
+
+CRYSTAL ORIENTATIONS
+
+   <<< none specified >>>"""
+        )
+
+    def test_str_UB_unity(self):
+        ubcalc = UBCalculation("test_str_UB_unity")
+        ubcalc.n_phi = (0, 0, 1)
+        ubcalc.surf_nphi = (0, 0, 1)
+        ubcalc.set_lattice("xtal", "Cubic", 1)
+        ubcalc.set_miscut(None, 0.0)
+
+        assert (
+            str(ubcalc)
+            == """UBCALC
+
+   name:     test_str_UB_unity
+
+REFERNCE
+
+   n_hkl:      0.00000   0.00000   1.00000
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+SURFACE NORMAL
+
+   n_hkl:      0.00000   0.00000   1.00000
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+CRYSTAL
+
+   name:          xtal
+
+   a, b, c:    1.00000   1.00000   1.00000
+              90.00000  90.00000  90.00000  Cubic
+
+   B matrix:   6.28319   0.00000   0.00000
+               0.00000   6.28319   0.00000
+               0.00000   0.00000   6.28319
+
+UB MATRIX
+
+   U matrix:   1.00000   0.00000   0.00000
+               0.00000   1.00000   0.00000
+               0.00000   0.00000   1.00000
+
+   miscut angle:  0
+
+   UB matrix:  6.28319   0.00000   0.00000
+               0.00000   6.28319   0.00000
+               0.00000   0.00000   6.28319
+
+REFLECTIONS
+
+   <<< none specified >>>
+
+CRYSTAL ORIENTATIONS
+
+   <<< none specified >>>"""
+        )
+
+    def test_str_refl_orient_UB(self):
         ubcalc = UBCalculation("test_str")
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)

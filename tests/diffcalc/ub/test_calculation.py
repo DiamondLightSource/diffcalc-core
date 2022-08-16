@@ -16,10 +16,13 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
+import pickle
 from math import pi
 
+import pytest
 from diffcalc.ub.calc import UBCalculation
-from numpy import array
+from diffcalc.util import DiffcalcException
+from numpy import array, save
 
 from tests.diffcalc.scenarios import PosFromI16sEuler
 from tests.test_tools import eq_
@@ -152,3 +155,20 @@ def test_save_and_restore_ubcalc_with_manual_u(tmpdir):
     ubcalc2 = UBCalculation.load(filename)
 
     matrixeq_(ubcalc2.UB, ubcalc.UB)
+
+
+def test_save_and_restore_ubcalc_with_invalid_UB(tmpdir):
+    U = array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    filename = tmpdir / "test_file.pkl"
+
+    # Save using pickle.dump
+    with open(filename, "wb") as fp:
+        pickle.dump(obj=U, file=fp)
+    with pytest.raises(DiffcalcException):
+        UBCalculation.load(filename)
+
+    # Save using numpy.save
+    with open(filename, "wb") as fp:
+        save(fp, U)
+    with pytest.raises(DiffcalcException):
+        UBCalculation.load(filename)

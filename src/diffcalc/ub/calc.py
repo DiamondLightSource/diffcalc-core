@@ -10,6 +10,7 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
+from pickle import UnpicklingError
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -201,7 +202,10 @@ class UBCalculation:
             If object in pickle file isn't UBcalculation class instance.
         """
         with open(filename, "rb") as fp:
-            obj = pickle.load(fp)
+            try:
+                obj = pickle.load(fp)
+            except UnpicklingError as e:
+                raise DiffcalcException(e)
             if isinstance(obj, UBCalculation):
                 return obj
             else:
@@ -279,8 +283,6 @@ class UBCalculation:
 
     def __str_lines_u(self) -> List[str]:
         lines: List[str] = []
-        if self.U is None:
-            return lines
         fmt = "% 9.5f % 9.5f % 9.5f"
         lines.append(
             "   U matrix:".ljust(self._WIDTH)
@@ -520,6 +522,8 @@ class UBCalculation:
         np.ndarray:
             Surface normal vector represented as (3,1) NumPy array.
         """
+        if self.UB is None and not self.reference.rlv:
+            return None
         return self.surface.get_array(None if self.surface.rlv else self.UB)
 
     @surf_nhkl.setter
@@ -535,6 +539,8 @@ class UBCalculation:
         np.ndarray:
             Reference vector represented as (3,1) NumPy array.
         """
+        if self.UB is None and self.surface.rlv:
+            return None
         return self.surface.get_array(self.UB if self.surface.rlv else None)
 
     @surf_nphi.setter
