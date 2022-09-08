@@ -555,6 +555,7 @@ class UBCalculation:
         position: Position,
         energy: float,
         tag: Optional[str] = None,
+        indegrees: bool = True,
     ):
         """Add a reference reflection.
 
@@ -571,9 +572,17 @@ class UBCalculation:
             Energy of the x-ray beam.
         tag : Optional[str], default = None
             Identifying tag for the reflection.
+        indegrees: bool = True
+            Defines if the diffractometer angles are in degrees or not.
         """
         if self.reflist is None:
             raise DiffcalcException("No UBCalculation loaded")
+
+        if indegrees:
+            position_dict = dataclasses.asdict(position)
+            axes = [f.name for f in dataclasses.fields(Position)]
+            position = Position(*[radians(position_dict[axis]) for axis in axes])
+
         self.reflist.add_reflection(hkl, position, energy, tag)
 
     def edit_reflection(
@@ -583,6 +592,7 @@ class UBCalculation:
         position: Position,
         energy: float,
         tag: Optional[str] = None,
+        indegrees: bool = True,
     ):
         """Change a reference reflection.
 
@@ -604,6 +614,12 @@ class UBCalculation:
         """
         if self.reflist is None:
             raise DiffcalcException("No UBCalculation loaded")
+
+        if indegrees:
+            position_dict = dataclasses.asdict(position)
+            axes = [f.name for f in dataclasses.fields(Position)]
+            position = Position(*[radians(position_dict[axis]) for axis in axes])
+
         self.reflist.edit_reflection(idx, hkl, position, energy, tag)
 
     def get_reflection(self, idx: Union[str, int]) -> Reflection:
@@ -676,7 +692,14 @@ class UBCalculation:
 
     ### Orientations ###
 
-    def add_orientation(self, hkl, xyz, position=None, tag=None):
+    def add_orientation(
+        self,
+        hkl: Tuple[float, float, float],
+        xyz: Tuple[float, float, float],
+        position: Optional[Position] = None,
+        tag: Optional[str] = None,
+        indegrees: bool = True,
+    ):
         """Add a reference orientation.
 
         Adds a reference orientation in the diffractometer
@@ -692,14 +715,29 @@ class UBCalculation:
             List of diffractometer angles in internal representation in degrees.
         tag : str
             Identifying tag for the reflection.
+        indegrees: bool = True
+            Defines if position is in degrees or not. defaults to true.
         """
         if self.orientlist is None:
             raise DiffcalcException("No UBCalculation loaded")
         if position is None:
             position = Position()
+        elif (position is not None) and indegrees:
+            position_dict = dataclasses.asdict(position)
+            axes = [f.name for f in dataclasses.fields(Position)]
+            position = Position(*[radians(position_dict[axis]) for axis in axes])
+
         self.orientlist.add_orientation(hkl, xyz, position, tag)
 
-    def edit_orientation(self, idx, hkl, xyz, position=None, tag=None):
+    def edit_orientation(
+        self,
+        idx: Union[str, int],
+        hkl: Tuple[float, float, float],
+        xyz: Tuple[float, float, float],
+        position: Optional[Position] = None,
+        tag: Optional[str] = None,
+        indegrees: bool = True,
+    ):
         """Change a reference orientation.
 
         Changes a reference orientation in the diffractometer
@@ -720,6 +758,14 @@ class UBCalculation:
         """
         if self.orientlist is None:
             raise DiffcalcException("No UBCalculation loaded")
+
+        if position is None:
+            position = Position()
+        elif (position is not None) and indegrees:
+            position_dict = dataclasses.asdict(position)
+            axes = [f.name for f in dataclasses.fields(Position)]
+            position = Position(*[radians(position_dict[axis]) for axis in axes])
+
         self.orientlist.edit_orientation(
             idx, hkl, xyz, position if position is not None else Position(), tag
         )

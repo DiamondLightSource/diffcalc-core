@@ -5,6 +5,7 @@ to calculate diffractometer position for different miller indices with
 different constraints, e.g. scattering plane and reference vector orientations.
 """
 
+from dataclasses import asdict
 from itertools import product
 from pprint import pprint
 
@@ -68,7 +69,7 @@ def get_hkl_positions():
         print(f"\n{'hkl':<8s}: [{h:1.0f} {k:1.0f} {l:1.0f}]")
         for pos_001, virtual_angles in all_pos:
             if in_range_mu_nu_phi(pos_001):
-                for angle, val in pos_001.asdict.items():
+                for angle, val in asdict(pos_001).items():
                     print(f"{angle:<8s}:{val:>8.2f}")
                 print("-" * 18)
                 for angle, val in virtual_angles.items():
@@ -77,7 +78,7 @@ def get_hkl_positions():
     pos1 = Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
-    for angle, val in pos1.asdict.items():
+    for angle, val in asdict(pos1).items():
         print(f"{angle:<8s}:{val:>8.2f}")
     print("-" * 18)
     print(f"\n{'hkl':<8s}: [{hkl1[0]:1.1f} {hkl1[1]:1.1f} {hkl1[2]:1.1f}]")

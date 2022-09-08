@@ -3,8 +3,9 @@
 Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
+import dataclasses
 from copy import copy
-from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
+from math import acos, asin, atan2, cos, degrees, isnan, pi, radians, sin
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -61,7 +62,9 @@ class HklCalculation:
     def __repr_mode(self):
         return repr(self.constraints.asdict)
 
-    def get_hkl(self, pos: Position, wavelength: float) -> Tuple[float, float, float]:
+    def get_hkl(
+        self, pos: Position, wavelength: float, indegrees: bool = True
+    ) -> Tuple[float, float, float]:
         """Calculate miller indices corresponding to a diffractometer positions.
 
         Parameters
@@ -75,9 +78,15 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(
-            pos
-        )  # Change 1: Position is by default in radians.
+
+        if indegrees:
+            position_dict = dataclasses.asdict(pos)
+            axes = [f.name for f in dataclasses.fields(Position)]
+            position = Position(*[radians(position_dict[axis]) for axis in axes])
+        else:
+            position = pos
+
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(position)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -196,6 +205,7 @@ class HklCalculation:
                 res_pos = Position(
                     degrees(pos.mu),
                     degrees(pos.delta),
+                    degrees(pos.nu),
                     degrees(pos.eta),
                     degrees(pos.chi),
                     degrees(pos.phi),
@@ -527,7 +537,7 @@ class HklCalculation:
     def __verify_pos_map_to_hkl(
         self, h: float, k: float, l: float, wavelength: float, pos: Position
     ) -> None:
-        hkl = self.get_hkl(pos, wavelength)
+        hkl = self.get_hkl(pos, wavelength, indegrees=False)
         e = 0.001
         if (abs(hkl[0] - h) > e) or (abs(hkl[1] - k) > e) or (abs(hkl[2] - l) > e):
             s = "ERROR: The angles calculated for hkl=({:f},{:f},{:f}) were {}.\n".format(
