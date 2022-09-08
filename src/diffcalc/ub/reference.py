@@ -1,5 +1,6 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
+from dataclasses import asdict, fields
 from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
@@ -64,7 +65,7 @@ class Reflection:
             reflection tag.
         """
         h, k, l, pos, en, tag = dataclasses.astuple(self)
-        return (h, k, l), pos.astuple, en, tag
+        return (h, k, l), pos, en, tag
 
     @property
     def asdict(self) -> Dict[str, Any]:
@@ -79,7 +80,7 @@ class Reflection:
 
         """
         class_info = self.__dict__.copy()
-        class_info["pos"] = self.pos.asdict
+        class_info["pos"] = asdict(self.pos)
         return class_info
 
     @classmethod
@@ -311,7 +312,8 @@ class ReflectionList:
         List[str]
             List containing reference reflection table rows.
         """
-        axes = tuple(fd.upper() for fd in Position.fields)
+        position_fields = [field.name for field in fields(Position)]
+        axes = tuple(fd.upper() for fd in position_fields)
         if not self.reflections:
             return ["   <<< none specified >>>"]
 
@@ -430,7 +432,7 @@ class Orientation:
             position object and orientation tag.
         """
         h, k, l, x, y, z, pos, tag = dataclasses.astuple(self)
-        return (h, k, l), (x, y, z), pos.astuple, tag
+        return (h, k, l), (x, y, z), pos, tag
 
     @property
     def asdict(self) -> Dict[str, Any]:
@@ -445,7 +447,7 @@ class Orientation:
 
         """
         class_info = self.__dict__.copy()
-        class_info["pos"] = self.pos.asdict
+        class_info["pos"] = asdict(self.pos)
         return class_info
 
     @classmethod
@@ -688,7 +690,8 @@ class OrientationList:
         List[str]
             List containing reference orientations table rows.
         """
-        axes = tuple(fd.upper() for fd in Position.fields)
+        position_fields = [field.name for field in fields(Position)]
+        axes = tuple(fd.upper() for fd in position_fields)
         if not self.orientations:
             return ["   <<< none specified >>>"]
 

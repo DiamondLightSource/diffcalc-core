@@ -67,7 +67,7 @@ class HklCalculation:
         Parameters
         ----------
         pos: Position
-            Diffractometer position.
+            Diffractometer position. In radians by default.
 
         Returns
         -------
@@ -75,8 +75,9 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-        pos_in_rad = Position.asradians(pos)
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(
+            pos
+        )  # Change 1: Position is by default in radians.
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -84,17 +85,13 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(
-        self, pos: Position, asdegrees: bool = True
-    ) -> Dict[str, float]:
+    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
 
         Parameters
         ----------
         pos: Position
             Diffractometer position.
-        asdegrees: bool = True
-            If True, return angles in degrees.
 
         Returns
         -------
@@ -102,12 +99,14 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
-        pos_in_rad = Position.asradians(pos)
+        # pos_in_rad = Position.asradians(pos) #Change 3: Position is by default in radians.
         theta, qaz = self.__theta_and_qaz_from_detector_angles(
-            pos_in_rad.delta, pos_in_rad.nu
+            pos.delta, pos.nu  # Change 4: changed from pos_in_rad to just pos.
         )  # (19)
 
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(
+            pos
+        )  # Change 5: changed from pos_in_rad to just pos.
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
 
@@ -152,8 +151,9 @@ class HklCalculation:
             "betain": betain,
             "betaout": betaout,
         }
-        if asdegrees:
-            result = {key: degrees(val) for key, val in result.items()}
+
+        # Change ?: removed conversion to degrees of the resulting angles if
+        # 'asdegrees' parameter is set.
         return result
 
     def get_position(
@@ -192,12 +192,19 @@ class HklCalculation:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
             if asdegrees:
-                res_pos = Position.asdegrees(pos)
+                # res_pos = Position.asdegrees(pos) #Change 6: Convert to degrees here, not within Position object.
+                res_pos = Position(
+                    degrees(pos.mu),
+                    degrees(pos.delta),
+                    degrees(pos.eta),
+                    degrees(pos.chi),
+                    degrees(pos.phi),
+                )
                 res_virtual_angles = {
                     key: degrees(val) for key, val in virtual_angles.items()
                 }
             else:
-                res_pos = Position.asradians(pos)
+                res_pos = copy(pos)
                 res_virtual_angles = copy(virtual_angles)
             results.append((res_pos, res_virtual_angles))
 
@@ -395,7 +402,9 @@ class HklCalculation:
             )
 
         tidy_solutions = [
-            self.__tidy_degenerate_solutions(Position(*pos, False))
+            self.__tidy_degenerate_solutions(
+                Position(*pos)
+            )  # Change 7: Position by default in rad, no need for 'False' arg.
             for pos in solution_tuples
         ]
 
@@ -431,7 +440,9 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-            pseudo_angles = self.get_virtual_angles(position, False)
+            pseudo_angles = self.get_virtual_angles(
+                position
+            )  # Change ?: removed redundant boolean arg for 'asdegrees'
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -486,13 +497,7 @@ class HklCalculation:
                 )
                 print("            original:", pos)
             newpos = Position(
-                pos.mu,
-                pos.delta,
-                pos.nu,
-                desired_eta,
-                pos.chi,
-                pos.phi - eta_diff,
-                False,
+                pos.mu, pos.delta, pos.nu, desired_eta, pos.chi, pos.phi - eta_diff
             )
 
         elif (
@@ -513,13 +518,7 @@ class HklCalculation:
                 )
                 print("            original:", pos)
             newpos = Position(
-                desired_mu,
-                pos.delta,
-                pos.nu,
-                pos.eta,
-                pos.chi,
-                pos.phi + mu_diff,
-                False,
+                desired_mu, pos.delta, pos.nu, pos.eta, pos.chi, pos.phi + mu_diff
             )
         else:
             newpos = pos
@@ -554,7 +553,9 @@ class HklCalculation:
     ) -> None:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
-        virtual_angles_readback = self.get_virtual_angles(pos, False)
+        virtual_angles_readback = self.get_virtual_angles(
+            pos
+        )  # Change ?: removed redundant boolean arg for 'asdegrees'
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
                 r = virtual_angles_readback[key]
