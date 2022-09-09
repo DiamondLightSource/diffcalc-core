@@ -94,8 +94,12 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
+    def get_virtual_angles(self, pos: Position, indegrees=True) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
+
+        If indegrees is set to true, position will be treated as if it is in degrees.
+        However, the result will still be in radians. It is up to the caller to make
+        sure to convert the result.
 
         Parameters
         ----------
@@ -108,13 +112,25 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
+        if indegrees:
+            pos_in_rad = Position(
+                radians(pos.mu),
+                radians(pos.delta),
+                radians(pos.nu),
+                radians(pos.eta),
+                radians(pos.chi),
+                radians(pos.phi),
+            )
+        else:
+            pos_in_rad = pos
         # pos_in_rad = Position.asradians(pos) #Change 3: Position is by default in radians.
         theta, qaz = self.__theta_and_qaz_from_detector_angles(
-            pos.delta, pos.nu  # Change 4: changed from pos_in_rad to just pos.
+            pos_in_rad.delta,
+            pos_in_rad.nu,  # Change 4: changed from pos_in_rad to just pos.
         )  # (19)
 
         [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(
-            pos
+            pos_in_rad
         )  # Change 5: changed from pos_in_rad to just pos.
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
@@ -166,7 +182,7 @@ class HklCalculation:
         return result
 
     def get_position(
-        self, h: float, k: float, l: float, wavelength: float, asdegrees: bool = True
+        self, h: float, k: float, l: float, wavelength: float, indegrees: bool = True
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
@@ -183,7 +199,7 @@ class HklCalculation:
                 l miller index.
             wavelength: float
                 wavelength in Angstroms.
-            asdegrees: bool
+            indegrees: bool
                 If True, return angles in degrees.
 
         Returns
@@ -200,7 +216,7 @@ class HklCalculation:
         for pos, virtual_angles in pos_virtual_angles_pairs:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
-            if asdegrees:
+            if indegrees:
                 # res_pos = Position.asdegrees(pos) #Change 6: Convert to degrees here, not within Position object.
                 res_pos = Position(
                     degrees(pos.mu),
@@ -450,9 +466,7 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-            pseudo_angles = self.get_virtual_angles(
-                position
-            )  # Change ?: removed redundant boolean arg for 'asdegrees'
+            pseudo_angles = self.get_virtual_angles(position, indegrees=False)
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -564,7 +578,7 @@ class HklCalculation:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
         virtual_angles_readback = self.get_virtual_angles(
-            pos
+            pos, indegrees=False
         )  # Change ?: removed redundant boolean arg for 'asdegrees'
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector

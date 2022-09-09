@@ -115,11 +115,11 @@ class _BaseTest:
         self.zrot, self.yrot = zrot, yrot
         self._configure_ub()
 
-        pos_virtual_angles_pairs_in_degrees = self.hklcalc.get_position(
-            hkl[0], hkl[1], hkl[2], wavelength
+        pos_virtual_angles_pairs = self.hklcalc.get_position(
+            hkl[0], hkl[1], hkl[2], wavelength, indegrees=False
         )
-        pos = list(chain(*pos_virtual_angles_pairs_in_degrees))[::2]
-        virtual = list(chain(*pos_virtual_angles_pairs_in_degrees))[1::2]
+        pos = list(chain(*pos_virtual_angles_pairs))[::2]
+        virtual = list(chain(*pos_virtual_angles_pairs))[1::2]
         assert_array_almost_equal_in_list(
             pos_expected.astuple,
             [p.astuple for p in pos],
@@ -137,8 +137,8 @@ class _BaseTest:
         )
         self.zrot, self.yrot = zrot, yrot
         self._configure_ub()
-        hkl = self.hklcalc.get_hkl(pos, wavelength)
-        virtual = self.hklcalc.get_virtual_angles(pos)
+        hkl = self.hklcalc.get_hkl(pos, wavelength, indegrees=False)
+        virtual = self.hklcalc.get_virtual_angles(pos, indegrees=False)
         assert_array_almost_equal(
             hkl,
             hkl_expected,
