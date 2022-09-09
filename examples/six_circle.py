@@ -198,7 +198,7 @@ def demo_scan_psi():
 if __name__ == "__main__":
     ubcalc = UBCalculation("sixcircle")
 
-    ubcalc.set_lattice("SiO2", 4.913, 5.405)
+    ubcalc.set_lattice("SiO2", [4.913, 5.405])
 
     ubcalc.n_hkl = (1, 0, 0)
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     pprint(ubcalc.UB)
 
     cons = Constraints({"qaz": 0, "alpha": 0, "eta": 0})
-    hklcalc = HklCalculation(ubcalc, cons)
+    hklcalc = HklCalculation(ubcalc=ubcalc, constraints=cons)
 
     wavelength = 1.0
 

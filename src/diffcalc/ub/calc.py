@@ -11,17 +11,21 @@ from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
 from pickle import UnpicklingError
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal
+from diffcalc.ub.crystal import Crystal, CrystalHandler
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
-from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
+from diffcalc.ub.reference import (
+    Orientation,
+    OrientationList,
+    Reflection,
+    ReflectionList,
+)
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
-    allnum,
     bound,
     cross3,
     dot3,
@@ -30,6 +34,7 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
+from typing_extensions import TypedDict
 
 
 @dataclasses.dataclass
@@ -132,18 +137,16 @@ class ReferenceVector:
         (r1, r2, r3) = tuple(n_ref.T[0].tolist())
         self.n_ref = (r1, r2, r3)
 
-    @property
-    def asdict(self) -> Dict[str, Any]:
-        """Serialise the object into a JSON compatible dictionary.
 
-        Returns
-        -------
-        Dict[str, Any]
-            Dictionary containing properties of this class. Can
-            be unpacked directly by calling ReferenceVector(**resulting_dict).
-
-        """
-        return self.__dict__.copy()
+class UbCalcType(TypedDict):
+    name: str
+    crystal: Optional[Crystal]
+    reflist: List[Reflection]
+    orientlist: List[Orientation]
+    reference: ReferenceVector
+    surface: ReferenceVector
+    u_matrix: Optional[List[List[float]]]
+    ub_matrix: Optional[List[List[float]]]
 
 
 class UBCalculation:
@@ -169,16 +172,16 @@ class UBCalculation:
         UB matrix as a NumPy array.
     """
 
-    def __init__(self, name: Optional[str] = None) -> None:
+    def __init__(self, name: Optional[str] = None, indegrees: bool = True) -> None:
         self.name: str = name if name is not None else str(uuid.uuid4())
-        self.crystal: Crystal = None
-        self.reflist: ReflectionList = ReflectionList()
-        self.orientlist: OrientationList = OrientationList()
+        self.crystal: CrystalHandler = None
+        self.reflist: ReflectionList = ReflectionList(indegrees=indegrees)
+        self.orientlist: OrientationList = OrientationList(indegrees=indegrees)
         self.reference: ReferenceVector = ReferenceVector((1, 0, 0), True)
         self.surface: ReferenceVector = ReferenceVector((0, 0, 1), False)
         self.U: np.ndarray = None
         self.UB: np.ndarray = None
-
+        self.indegrees = indegrees
         self._WIDTH: int = 13
 
     ### State ###
@@ -388,15 +391,8 @@ class UBCalculation:
     def set_lattice(
         self,
         name: str,
-        system: Optional[
-            Union[str, float]
-        ] = None,  # FIXME: Cannot set Union type for  positional arguments
-        a: Optional[float] = None,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
+        params: List[float],
+        system: Optional[str] = None,
     ) -> None:
         """Set crystal lattice parameters using shortform notation.
 
@@ -424,57 +420,44 @@ class UBCalculation:
         ----------
         name: str
             Crystal name.
+        params: List[float]
+            List of lattice parameters. Can be any size as long as it is not empty.
         system: Optional[float], default = None
             Crystal lattice type.
-        a: Optional[float], default = None
-            Crystal lattice parameter.
-        b: Optional[float], default = None
-            Crystal lattice parameter.
-        c: Optional[float], default = None
-            Crystal lattice parameter.
-        alpha: Optional[float], default = None
-            Crystal lattice angle.
-        beta: Optional[float], default = None
-            Crystal lattice angle.
-        gamma: Optional[float], default = None
-            Crystal lattice angle.
         """
-        if not isinstance(name, str):
-            raise TypeError("Invalid crystal name.")
-        shortform: Tuple[Any, ...] = tuple(
-            val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
-        )
-        if not shortform:
-            raise TypeError("Please specify unit cell parameters.")
-        elif allnum(shortform):
-            sf = shortform
-            if len(sf) == 1:
-                system = "Cubic"
-            elif len(sf) == 2:
-                system = "Tetragonal"
-            elif len(sf) == 3:
-                system = "Orthorhombic"
-            elif len(sf) == 4:
-                if is_small(float(sf[0]) - float(sf[1])) and sf[3] == 120:
-                    system = "Hexagonal"
-                else:
-                    system = "Monoclinic"
-            elif len(sf) == 6:
-                system = "Triclinic"
+        if len(params) == 0:
+            raise DiffcalcException("Please provide at least some crystal parameters.")
+
+        def params_fit_hexagon(params):
+            if (
+                len(params) == 4
+                and is_small(params[0] - params[1])
+                and params[3] == 120.0
+            ):
+                return True
+            return False
+
+        guess_system_by_length: Dict[int, str] = {
+            1: "Cubic",
+            2: "Tetragonal",
+            3: "Orthorhombic",
+            4: "Hexagonal" if params_fit_hexagon(params) else "Monoclinic",
+            6: "Triclinic",
+        }
+
+        if system is None:
+            if len(params) in guess_system_by_length.keys():
+                use_system: str = guess_system_by_length.get(len(params))
+                self.crystal = CrystalHandler(
+                    name, params, use_system, indegrees=self.indegrees
+                )
             else:
-                raise TypeError(
+                raise DiffcalcException(
                     "Invalid number of input parameters to set unit lattice."
                 )
-            fullform: Tuple[Any, ...] = (system,) + shortform
-            self.crystal = Crystal(name, *fullform)
         else:
-            if not isinstance(shortform[0], str):
-                raise TypeError("Invalid unit cell parameters specified.")
-            self.crystal = Crystal(name, *shortform)
-        if self.name is None:
-            raise DiffcalcException(
-                "Cannot set lattice until a UBCalcaluation has been started "
-                "with newub."
+            self.crystal = CrystalHandler(
+                name, params, system, indegrees=self.indegrees
             )
 
     ### Reference vector ###
@@ -555,7 +538,6 @@ class UBCalculation:
         position: Position,
         energy: float,
         tag: Optional[str] = None,
-        indegrees: bool = True,
     ):
         """Add a reference reflection.
 
@@ -572,16 +554,9 @@ class UBCalculation:
             Energy of the x-ray beam.
         tag : Optional[str], default = None
             Identifying tag for the reflection.
-        indegrees: bool = True
-            Defines if the diffractometer angles are in degrees or not.
         """
         if self.reflist is None:
             raise DiffcalcException("No UBCalculation loaded")
-
-        if indegrees:
-            position_dict = dataclasses.asdict(position)
-            axes = [f.name for f in dataclasses.fields(Position)]
-            position = Position(*[radians(position_dict[axis]) for axis in axes])
 
         self.reflist.add_reflection(hkl, position, energy, tag)
 
@@ -592,7 +567,6 @@ class UBCalculation:
         position: Position,
         energy: float,
         tag: Optional[str] = None,
-        indegrees: bool = True,
     ):
         """Change a reference reflection.
 
@@ -614,11 +588,6 @@ class UBCalculation:
         """
         if self.reflist is None:
             raise DiffcalcException("No UBCalculation loaded")
-
-        if indegrees:
-            position_dict = dataclasses.asdict(position)
-            axes = [f.name for f in dataclasses.fields(Position)]
-            position = Position(*[radians(position_dict[axis]) for axis in axes])
 
         self.reflist.edit_reflection(idx, hkl, position, energy, tag)
 
@@ -698,7 +667,6 @@ class UBCalculation:
         xyz: Tuple[float, float, float],
         position: Optional[Position] = None,
         tag: Optional[str] = None,
-        indegrees: bool = True,
     ):
         """Add a reference orientation.
 
@@ -714,18 +682,12 @@ class UBCalculation:
         position: :obj:`list` or :obj:`tuple` of numbers
             List of diffractometer angles in internal representation in degrees.
         tag : str
-            Identifying tag for the reflection.
-        indegrees: bool = True
-            Defines if position is in degrees or not. defaults to true.
+            Identifying tag for the reflection
         """
         if self.orientlist is None:
             raise DiffcalcException("No UBCalculation loaded")
         if position is None:
             position = Position()
-        elif (position is not None) and indegrees:
-            position_dict = dataclasses.asdict(position)
-            axes = [f.name for f in dataclasses.fields(Position)]
-            position = Position(*[radians(position_dict[axis]) for axis in axes])
 
         self.orientlist.add_orientation(hkl, xyz, position, tag)
 
@@ -736,7 +698,6 @@ class UBCalculation:
         xyz: Tuple[float, float, float],
         position: Optional[Position] = None,
         tag: Optional[str] = None,
-        indegrees: bool = True,
     ):
         """Change a reference orientation.
 
@@ -758,13 +719,6 @@ class UBCalculation:
         """
         if self.orientlist is None:
             raise DiffcalcException("No UBCalculation loaded")
-
-        if position is None:
-            position = Position()
-        elif (position is not None) and indegrees:
-            position_dict = dataclasses.asdict(position)
-            axes = [f.name for f in dataclasses.fields(Position)]
-            position = Position(*[radians(position_dict[axis]) for axis in axes])
 
         self.orientlist.edit_orientation(
             idx, hkl, xyz, position if position is not None else Position(), tag
@@ -1205,17 +1159,17 @@ class UBCalculation:
                         "Cannot read reflection data for index %s" % str(idx)
                     )
             print("Fitting crystal lattice parameters...")
-            new_crystal = fit_crystal(self.crystal, refl_list)
+            new_crystal: CrystalHandler = fit_crystal(self.crystal, refl_list)
             print("Fitting orientation matrix...")
             new_u = fit_u_matrix(self.U, new_crystal, refl_list)
             new_lattice = (self.crystal.get_lattice()[0],) + new_crystal.get_lattice()[
-                1:
+                2:
             ]
 
         crystal_system = self.crystal.system
 
         if refine_lattice:
-            self.set_lattice(new_lattice[0], crystal_system, *new_lattice[1:])
+            self.set_lattice(new_lattice[0], [*new_lattice[1:]], crystal_system)
 
         if refine_umatrix:
             self.set_u(new_u)
@@ -1402,7 +1356,7 @@ class UBCalculation:
 
     def _rescale_unit_cell(
         self, hkl: Tuple[float, float, float], pos: Position, wavelength: float
-    ) -> Tuple[float, Tuple[str, str, float, float, float, float, float, float]]:
+    ) -> Tuple[float, Tuple[str, List[float], str]]:
         """Calculate unit cell scaling factor.
 
         Match lattice spacing corresponding to a given miller indices to the
@@ -1424,7 +1378,7 @@ class UBCalculation:
         q_hkl = norm(q_vec) / wavelength
         d_hkl = self.crystal.get_hkl_plane_distance(hkl)
         sc = float(1 / (q_hkl * d_hkl))
-        name, a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
+        name, system, a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
         if abs(sc - 1.0) < SMALL:
             return None, None
         h, k, l = hkl
@@ -1433,19 +1387,15 @@ class UBCalculation:
         ref_a3 = sc * a3 if abs(l) > SMALL else a3
         return sc, (
             name,
-            self.crystal.system,
-            ref_a1,
-            ref_a2,
-            ref_a3,
-            alpha1,
-            alpha2,
-            alpha3,
+            [ref_a1, ref_a2, ref_a3, alpha1, alpha2, alpha3],
+            system,
         )
 
     @property
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> UbCalcType:
         """Serialise the object into a JSON compatible dictionary.
 
+        TODO: update this.
         Returns
         -------
         Dict[str, Any]
@@ -1454,19 +1404,19 @@ class UBCalculation:
             class method below.
 
         """
-        return {
-            "name": self.name,
-            "crystal": self.crystal.asdict if self.crystal is not None else None,
-            "reflist": self.reflist.asdict,
-            "orientlist": self.orientlist.asdict,
-            "reference": self.reference.asdict,
-            "surface": self.surface.asdict,
-            "u_matrix": self.U.tolist() if self.U is not None else None,
-            "ub_matrix": self.UB.tolist() if self.UB is not None else None,
-        }
+        return UbCalcType(
+            name=self.name,
+            crystal=self.crystal.asdict if self.crystal is not None else None,
+            reflist=self.reflist.asdict,
+            orientlist=self.orientlist.asdict,
+            reference=self.reference,
+            surface=self.surface,
+            u_matrix=self.U.tolist() if self.U is not None else None,
+            ub_matrix=self.UB.tolist() if self.UB is not None else None,
+        )
 
     @classmethod
-    def fromdict(cls, data: Dict[str, Any]) -> "UBCalculation":
+    def fromdict(cls, data: UbCalcType, indegrees: bool) -> "UBCalculation":
         """Construct UBCalculation instance from a JSON compatible dictionary.
 
         Parameters
@@ -1481,16 +1431,43 @@ class UBCalculation:
             Instance of this class created from the dictionary.
 
         """
+
+        if data["crystal"] is not None:
+            params = [
+                data["crystal"]["a"],
+                data["crystal"]["b"],
+                data["crystal"]["c"],
+                data["crystal"]["alpha"],
+                data["crystal"]["beta"],
+                data["crystal"]["gamma"],
+            ]
+            crystal = CrystalHandler(
+                name=data["crystal"]["name"],
+                params=params,
+                system=data["crystal"]["system"],
+                indegrees=indegrees,
+            )
+        else:
+            crystal = None
+
         ubcalc = cls(data["name"])
-        ubcalc.crystal = (
-            Crystal(**data["crystal"]) if data["crystal"] is not None else None
-        )
-        ubcalc.reflist = ReflectionList.fromdict(data["reflist"])
-        ubcalc.orientlist = OrientationList.fromdict(data["orientlist"])
-        ubcalc.reference = ReferenceVector(**data["reference"])
-        ubcalc.surface = ReferenceVector(**data["surface"])
+        ubcalc.crystal = crystal
+        ubcalc.reflist = ReflectionList.fromdict(data["reflist"], indegrees)
+        ubcalc.orientlist = OrientationList.fromdict(data["orientlist"], indegrees)
+        ubcalc.reference = data["reference"]
+        ubcalc.surface = data["surface"]
         ubcalc.U = np.array(data["u_matrix"]) if data["u_matrix"] is not None else None
         ubcalc.UB = (
             np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
         )
         return ubcalc
+
+
+# somecalc = UBCalculation("test")
+# somecalc.set_lattice("Si02", [4.3, 2.2])
+# print("ah")
+
+
+# anothercalc = UBCalculation("test2", indegrees=True)
+# anothercalc.set_lattice("fake", [1, 2, 3, 90, 50, 100])
+# print("wahey")

@@ -1,6 +1,7 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
 from dataclasses import asdict, fields
+from math import degrees, radians
 from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
@@ -67,22 +68,6 @@ class Reflection:
         h, k, l, pos, en, tag = dataclasses.astuple(self)
         return (h, k, l), pos, en, tag
 
-    @property
-    def asdict(self) -> Dict[str, Any]:
-        """Serialise the object into a JSON compatible dictionary.
-
-        Returns
-        -------
-        Dict[str, Any]
-            Dictionary containing properties of this class. Can
-            be unpacked to recreate the object using fromdict
-            class method.
-
-        """
-        class_info = self.__dict__.copy()
-        class_info["pos"] = asdict(self.pos)
-        return class_info
-
     @classmethod
     def fromdict(cls, data: Dict[str, Any]) -> "Reflection":
         """Construct Reflection instance from a JSON compatible dictionary.
@@ -118,8 +103,9 @@ class ReflectionList:
         List containing reference reflections.
     """
 
-    def __init__(self, reflections=None):
+    def __init__(self, reflections: List[Reflection] = None, indegrees: bool = True):
         self.reflections: List[Reflection] = reflections if reflections else []
+        self.indegrees = indegrees
 
     def get_tag_index(self, tag: str) -> int:
         """Get a reference reflection index.
@@ -163,7 +149,11 @@ class ReflectionList:
         tag : str
             Identifying tag for the reflection.
         """
-        self.reflections += [Reflection(*hkl, pos, energy, tag)]
+        use_pos = pos
+        if self.indegrees:
+            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
+
+        self.reflections += [Reflection(*hkl, use_pos, energy, tag)]
 
     def edit_reflection(
         self,
@@ -201,10 +191,12 @@ class ReflectionList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        if isinstance(pos, Position):
-            self.reflections[num] = Reflection(*hkl, pos, energy, tag)
-        else:
-            raise TypeError("Invalid position parameter type")
+
+        use_pos = pos
+        if self.indegrees:
+            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
+
+        self.reflections[num] = Reflection(*hkl, use_pos, energy, tag)
 
     def get_reflection(self, idx: Union[str, int]) -> Reflection:
         """Get a reference reflection.
@@ -232,7 +224,18 @@ class ReflectionList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        return self.reflections[num]
+
+        reflection = self.reflections[num]
+        if self.indegrees:
+            return Reflection(
+                h=reflection.h,
+                k=reflection.k,
+                l=reflection.l,
+                pos=Position(*[degrees(i) for i in asdict(reflection.pos).values()]),
+                energy=reflection.energy,
+                tag=reflection.tag,
+            )
+        return reflection
 
     def remove_reflection(self, idx: Union[str, int]) -> None:
         """Delete a reference reflection.
@@ -334,7 +337,7 @@ class ReflectionList:
         return lines
 
     @property
-    def asdict(self) -> List[Dict[str, Any]]:
+    def asdict(self) -> List[Reflection]:
         """Serialise the object into a JSON compatible dictionary.
 
         Returns
@@ -345,10 +348,10 @@ class ReflectionList:
             class method below.
 
         """
-        return [ref.asdict for ref in self.reflections]
+        return self.reflections
 
     @classmethod
-    def fromdict(cls, data: List[Dict[str, Any]]) -> "ReflectionList":
+    def fromdict(cls, data: List[Reflection], indegrees: bool) -> "ReflectionList":
         """Construct ReflectionList instance from a JSON compatible dictionary.
 
         Parameters
@@ -363,8 +366,7 @@ class ReflectionList:
             Instance of this class created from the dictionary.
 
         """
-        reflections = [Reflection.fromdict(each_ref) for each_ref in data]
-        return cls(reflections)
+        return cls(data, indegrees=indegrees)
 
 
 @dataclasses.dataclass
@@ -487,8 +489,9 @@ class OrientationList:
         List containing reference orientations.
     """
 
-    def __init__(self, orientations=None):
+    def __init__(self, orientations=None, indegrees=True):
         self.orientations: List[Orientation] = orientations if orientations else []
+        self.indegrees = indegrees
 
     def get_tag_index(self, tag: str) -> int:
         """Get a reference orientation index.
@@ -537,10 +540,11 @@ class OrientationList:
         tag : str
             Identifying tag for the orientation.
         """
-        if isinstance(pos, Position):
-            self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
-        else:
-            raise TypeError("Invalid position parameter type")
+        use_pos = pos
+        if self.indegrees:
+            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
+
+        self.orientations += [Orientation(*hkl, *xyz, use_pos, tag)]
 
     def edit_orientation(
         self,
@@ -579,10 +583,12 @@ class OrientationList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        if isinstance(pos, Position):
-            self.orientations[num] = Orientation(*hkl, *xyz, pos, tag)
-        else:
-            raise TypeError(f"Invalid position parameter type {type(pos)}")
+
+        use_pos = pos
+        if self.indegrees:
+            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
+
+        self.orientations[num] = Orientation(*hkl, *xyz, use_pos, tag)
 
     def get_orientation(self, idx: Union[str, int]) -> Orientation:
         """Get a reference orientation.
@@ -610,7 +616,20 @@ class OrientationList:
             num = self.get_tag_index(idx)
         else:
             num = idx - 1
-        return self.orientations[num]
+
+        orientation = self.orientations[num]
+        if self.indegrees:
+            return Orientation(
+                h=orientation.h,
+                k=orientation.k,
+                l=orientation.l,
+                x=orientation.x,
+                y=orientation.y,
+                z=orientation.z,
+                pos=Position(*[degrees(i) for i in asdict(orientation.pos).values()]),
+                tag=orientation.tag,
+            )
+        return orientation
 
     def remove_orientation(self, idx: Union[str, int]) -> None:
         """Delete a reference orientation.
@@ -717,7 +736,7 @@ class OrientationList:
         return lines
 
     @property
-    def asdict(self) -> List[Dict[str, Any]]:
+    def asdict(self) -> List[Orientation]:
         """Serialise the object into a JSON compatible dictionary.
 
         Returns
@@ -728,10 +747,10 @@ class OrientationList:
             class method below.
 
         """
-        return [orient.asdict for orient in self.orientations]
+        return self.orientations
 
     @classmethod
-    def fromdict(cls, data: List[Dict[str, Any]]) -> "OrientationList":
+    def fromdict(cls, data: List[Orientation], indegrees: bool) -> "OrientationList":
         """Construct OrientationList instance from a JSON compatible dictionary.
 
         Parameters
@@ -746,5 +765,4 @@ class OrientationList:
             Instance of this class created from the dictionary.
 
         """
-        orientations = [Orientation.fromdict(each_orient) for each_orient in data]
-        return cls(orientations)
+        return cls(data, indegrees=indegrees)

@@ -45,27 +45,8 @@ class TestPosition:
         pos3 = Position(1.1234, 2.3456, 3.4567, 4.5678, 5.6789, 6.7891)
         assert (
             str(pos3)
-            == "Position(mu: 1.1234, delta: 2.3456, nu: 3.4567, eta: 4.5678, chi: 5.6789, phi: 6.7891)"
+            == "Position(mu=1.1234, delta=2.3456, nu=3.4567, eta=4.5678, chi=5.6789, phi=6.7891)"
         )
-
-        pos4 = Position(
-            pi / 1.0, pi / 2.0, pi / 3.0, pi / 4.0, pi / 5.0, pi / 6.0, indegrees=False
-        )
-        assert (
-            str(pos4)
-            == f"Position(mu: {degrees(pi / 1.0):.4f}, delta: {degrees(pi / 2.0):.4f}, nu: {degrees(pi / 3.0):.4f}, eta: {degrees(pi / 4.0):.4f}, chi: {degrees(pi / 5.0):.4f}, phi: {degrees(pi / 6.0):.4f})"
-        )
-
-    def test_getter_setter(self):
-        pos_deg = Position()
-        pos_rad = Position(indegrees=False)
-        for i, field in enumerate(pos_deg.fields, 1):
-            setattr(pos_deg, field, float(i))
-            setattr(pos_rad, field, pi / float(i))
-
-        for i, field in enumerate(pos_deg.fields, 1):
-            assert_almost_equal(getattr(pos_deg, field), float(i))
-            assert_almost_equal(getattr(pos_rad, field), pi / float(i))
 
 
 class Test_position_to_virtual_angles:
@@ -73,17 +54,17 @@ class Test_position_to_virtual_angles:
         constraints = Mock()
         constraints.is_fully_constrained.return_value = True
         self.ubcalc = UBCalculation()
-        self.ubcalc.set_lattice("xtal", 1)
+        self.ubcalc.set_lattice("xtal", [1])
         self.ubcalc.set_u(I)
         self.ubcalc.n_phi = (0, 0, 1)
-        self.calc = HklCalculation(self.ubcalc, constraints)
+        self.calc = HklCalculation(ubcalc=self.ubcalc, constraints=constraints)
 
     def check_angle(
         self, name, expected, mu=-99, delta=99, nu=99, eta=99, chi=99, phi=99
     ):
         """All in degrees"""
         pos = Position(mu=mu, delta=delta, nu=nu, eta=eta, chi=chi, phi=phi)
-        calculated = self.calc.get_virtual_angles(pos, False)[name]
+        calculated = self.calc.get_virtual_angles(pos)[name]
         if isnan(expected):
             assert isnan(calculated)
         else:
@@ -253,7 +234,8 @@ class Test_position_to_virtual_angles:
 
     def test_serialisation(self):
         hklCalc = HklCalculation(
-            self.ubcalc, Constraints({"delta": 1, "alpha": 2, "mu": 3})
+            ubcalc=self.ubcalc,
+            constraints=Constraints({"delta": 1, "alpha": 2, "mu": 3}),
         )
         hklCalc_json = hklCalc.asdict
 

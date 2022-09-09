@@ -189,7 +189,7 @@ def demo_scan_hkl():
 if __name__ == "__main__":
     ubcalc = UBCalculation("surface")
 
-    ubcalc.set_lattice("SiO2", 4.913, 5.405)
+    ubcalc.set_lattice("SiO2", [4.913, 5.405])
 
     ubcalc.n_phi = (0, 0, 1)
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # 2+2 sufrace diffractometer consistes of delta, nu, mu and phi angles.
     # Constraining unused eta and chi angles to 0.
     cons = Constraints({"eta": 0, "chi": 0})
-    hklcalc = HklCalculation(ubcalc, cons)
+    hklcalc = HklCalculation(ubcalc=ubcalc, constraints=cons)
 
     wavelength = 0.689
 

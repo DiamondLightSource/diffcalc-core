@@ -6,13 +6,13 @@ constraints.
 import dataclasses
 from copy import copy
 from math import acos, asin, atan2, cos, degrees, isnan, pi, radians, sin
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl import calc_func
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
-from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.calc import UbCalcType, UBCalculation
 from diffcalc.util import (
     DiffcalcException,
     I,
@@ -25,6 +25,14 @@ from diffcalc.util import (
     sign,
 )
 from numpy.linalg import inv, norm
+from pydantic import BaseModel
+
+
+class HklType(BaseModel):
+    id: str
+    indegrees: bool
+    ubcalc: UbCalcType
+    constraints: Dict[str, float]
 
 
 class HklCalculation:
@@ -45,9 +53,35 @@ class HklCalculation:
         Calculate pseudo-angles corresponding to a diffractometer position.
     """
 
-    def __init__(self, ubcalc, constraints):
-        self.ubcalc = ubcalc  # to get the UBMatrix
-        self.constraints = constraints
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        ubcalc: Optional[UBCalculation] = None,
+        constraints: Optional[Constraints] = None,
+        indegrees=True,
+    ):
+        """Class is initialised here.
+
+        There are only two possible options to initialise - either by supplying a name
+        or both ubcalc and constraints objects. Supplying a name will generate these
+        objects.
+        """
+        if (name is not None) and (ubcalc is None) and (constraints is None):
+            self.ubcalc = UBCalculation(name, indegrees=indegrees)
+            self.constraints = Constraints(indegrees=indegrees)
+        elif (name is None) and (ubcalc is None) and (constraints is None):
+            self.ubcalc = UBCalculation(indegrees=indegrees)
+            self.constraints = Constraints(indegrees=indegrees)
+        elif (name is None) and (ubcalc is not None) and (constraints is not None):
+            self.ubcalc = ubcalc
+            self.constraints = constraints
+        else:
+            raise DiffcalcException(
+                "HklCalculation requires either a name or existing UBCalculation and "
+                + "Constraints objects to be initialised. Or, no arguments."
+            )
+
+        self.indegrees = indegrees
 
     def __str__(self):
         """Return string representing class instance.
@@ -62,9 +96,7 @@ class HklCalculation:
     def __repr_mode(self):
         return repr(self.constraints.asdict)
 
-    def get_hkl(
-        self, pos: Position, wavelength: float, indegrees: bool = True
-    ) -> Tuple[float, float, float]:
+    def get_hkl(self, pos: Position, wavelength: float) -> Tuple[float, float, float]:
         """Calculate miller indices corresponding to a diffractometer positions.
 
         Parameters
@@ -79,14 +111,14 @@ class HklCalculation:
             position at the given wavelength.
         """
 
-        if indegrees:
+        if self.indegrees:
             position_dict = dataclasses.asdict(pos)
             axes = [f.name for f in dataclasses.fields(Position)]
             position = Position(*[radians(position_dict[axis]) for axis in axes])
         else:
             position = pos
 
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(position)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(position, False)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -94,17 +126,13 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(self, pos: Position, indegrees=True) -> Dict[str, float]:
+    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
-
-        If indegrees is set to true, position will be treated as if it is in degrees.
-        However, the result will still be in radians. It is up to the caller to make
-        sure to convert the result.
 
         Parameters
         ----------
         pos: Position
-            Diffractometer position.
+            Diffractometer position in radians.
 
         Returns
         -------
@@ -112,7 +140,7 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
-        if indegrees:
+        if self.indegrees:
             pos_in_rad = Position(
                 radians(pos.mu),
                 radians(pos.delta),
@@ -130,7 +158,7 @@ class HklCalculation:
         )  # (19)
 
         [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(
-            pos_in_rad
+            pos_in_rad, False
         )  # Change 5: changed from pos_in_rad to just pos.
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
@@ -182,7 +210,7 @@ class HklCalculation:
         return result
 
     def get_position(
-        self, h: float, k: float, l: float, wavelength: float, indegrees: bool = True
+        self, h: float, k: float, l: float, wavelength: float
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
@@ -216,7 +244,7 @@ class HklCalculation:
         for pos, virtual_angles in pos_virtual_angles_pairs:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
-            if indegrees:
+            if self.indegrees:
                 # res_pos = Position.asdegrees(pos) #Change 6: Convert to degrees here, not within Position object.
                 res_pos = Position(
                     degrees(pos.mu),
@@ -466,7 +494,16 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-            pseudo_angles = self.get_virtual_angles(position, indegrees=False)
+
+            # get_virtual_angles will modify position based on self.indegrees. So here,
+            # it must be correctly propagated.
+            use_pos = (
+                Position(*[degrees(axis) for axis in position.astuple])
+                if self.indegrees
+                else position
+            )
+
+            pseudo_angles = self.get_virtual_angles(use_pos)
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -551,7 +588,11 @@ class HklCalculation:
     def __verify_pos_map_to_hkl(
         self, h: float, k: float, l: float, wavelength: float, pos: Position
     ) -> None:
-        hkl = self.get_hkl(pos, wavelength, indegrees=False)
+        use_pos = pos
+        if self.indegrees:
+            use_pos = Position(*[degrees(axis) for axis in pos.astuple])
+
+        hkl = self.get_hkl(use_pos, wavelength)
         e = 0.001
         if (abs(hkl[0] - h) > e) or (abs(hkl[1] - k) > e) or (abs(hkl[2] - l) > e):
             s = "ERROR: The angles calculated for hkl=({:f},{:f},{:f}) were {}.\n".format(
@@ -577,8 +618,11 @@ class HklCalculation:
     ) -> None:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
+        use_pos = pos
+        if self.indegrees:
+            use_pos = Position(*[degrees(axis) for axis in pos.astuple])
         virtual_angles_readback = self.get_virtual_angles(
-            pos, indegrees=False
+            use_pos
         )  # Change ?: removed redundant boolean arg for 'asdegrees'
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
@@ -601,7 +645,7 @@ class HklCalculation:
                     raise DiffcalcException(s)
 
     @property
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> HklType:
         """Serialise the object into a JSON compatible dictionary.
 
         Returns
@@ -612,10 +656,15 @@ class HklCalculation:
             class method below.
 
         """
-        return {"ubcalc": self.ubcalc.asdict, "constraints": self.constraints.asdict}
+        return HklType(
+            id="",
+            indegrees=self.indegrees,
+            ubcalc=self.ubcalc.asdict,
+            constraints=self.constraints.asdict,
+        )
 
     @classmethod
-    def fromdict(cls, data: Dict[str, Any]) -> "HklCalculation":
+    def fromdict(cls, data: HklType) -> "HklCalculation":
         """Construct HklCalculation instance from a JSON compatible dictionary.
 
         Parameters
@@ -630,8 +679,9 @@ class HklCalculation:
             Instance of this class created from the dictionary.
 
         """
-        constraint_data = data["constraints"]
+        constraint_data = data.constraints
         return HklCalculation(
-            UBCalculation.fromdict(data["ubcalc"]),
-            Constraints(constraint_data),
+            ubcalc=UBCalculation.fromdict(data.ubcalc, indegrees=data.indegrees),
+            constraints=Constraints(constraint_data, indegrees=data.indegrees),
+            indegrees=data.indegrees,
         )

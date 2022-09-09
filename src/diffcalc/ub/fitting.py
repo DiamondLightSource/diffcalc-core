@@ -8,7 +8,7 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal
+from diffcalc.ub.crystal import CrystalHandler
 from diffcalc.ub.reference import Reflection
 from diffcalc.util import DiffcalcException, I, angle_between_vectors, sign
 from numpy.linalg import inv, norm
@@ -32,7 +32,7 @@ def _func_crystal(
     refl_data: List[Tuple[np.ndarray, Position, float]],
 ) -> float:
     try:
-        trial_cr = Crystal("trial", uc_system, *vals)
+        trial_cr = CrystalHandler("trial", list(vals), uc_system)
     except Exception:
         return 1e6
 
@@ -47,7 +47,7 @@ def _func_crystal(
 
 
 def _func_orient(
-    vals, crystal: Crystal, refl_data: List[Tuple[np.ndarray, Position, float]]
+    vals, crystal: CrystalHandler, refl_data: List[Tuple[np.ndarray, Position, float]]
 ) -> float:
     quat = _get_quat_from_u123(*vals)
     trial_u = _get_rot_matrix(*quat)
@@ -146,7 +146,7 @@ def _get_uc_upper_limits(system: str) -> List[float]:
         raise TypeError("Invalid crystal system parameter: %s" % str(system))
 
 
-def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
+def fit_crystal(crystal: CrystalHandler, refl_list: List[Reflection]) -> CrystalHandler:
     """Fit crystal lattice parameters to reference reflections.
 
     Parameters
@@ -191,13 +191,15 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
     )
     vals = res.x
 
-    res_cr = Crystal("trial", xtal_system, *vals)
+    res_cr = CrystalHandler(
+        "trial", list(vals), xtal_system, indegrees=crystal.indegrees
+    )
     # res_cr._set_cell_for_system(uc_system, *vals)
     return res_cr
 
 
 def fit_u_matrix(
-    init_u: np.ndarray, crystal: Crystal, refl_list: List[Reflection]
+    init_u: np.ndarray, crystal: CrystalHandler, refl_list: List[Reflection]
 ) -> np.ndarray:
     """Fit crystal lattice parameters to reference reflections.
 

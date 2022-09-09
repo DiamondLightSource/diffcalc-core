@@ -9,6 +9,7 @@ References
        J. Appl. Cryst. (1999). 32, 614-623.
 """
 from dataclasses import dataclass
+from math import radians
 from typing import Tuple
 
 import numpy as np
@@ -281,7 +282,7 @@ class Position:
 
 
 def get_rotation_matrices(
-    pos: Position,
+    pos: Position, indegrees: bool = True
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,]:
     """Create rotation matrices corresponding to the diffractometer axes.
 
@@ -298,6 +299,9 @@ def get_rotation_matrices(
         Tuple containing set of rotation matrices corresponding to
         input diffractometer angle values.
     """
+    use_pos = pos
+    if indegrees:
+        use_pos = Position(*[radians(axis) for axis in pos.astuple])
     (
         mu,
         delta,
@@ -305,7 +309,7 @@ def get_rotation_matrices(
         eta,
         chi,
         phi,
-    ) = pos.astuple  # Change 2. Position is in radians by default.
+    ) = use_pos.astuple
     return (
         rot_MU(mu),
         rot_DELTA(delta),

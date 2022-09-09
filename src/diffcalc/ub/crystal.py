@@ -3,15 +3,28 @@
 A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
+from inspect import signature
 from math import acos, cos, degrees, pi, radians, sin, sqrt
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
-from diffcalc.util import allnum, angle_between_vectors, zero_round
+from diffcalc.util import DiffcalcException, angle_between_vectors, zero_round
 from numpy.linalg import inv
+from typing_extensions import TypedDict
 
 
-class Crystal:
+class Crystal(TypedDict):
+    name: str
+    system: str
+    a: float
+    b: float
+    c: float
+    alpha: float
+    beta: float
+    gamma: float
+
+
+class CrystalHandler:
     """Class containing crystal lattice information and auxiliary routines.
 
     Contains the lattice parameters and calculated B matrix for the crystal
@@ -41,15 +54,7 @@ class Crystal:
     """
 
     def __init__(
-        self,
-        name: str,
-        system: Optional[str] = None,
-        a: Optional[float] = None,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
+        self, name: str, params: List[float], system: str, indegrees: bool = True
     ) -> None:
         """Create a new crystal lattice and calculates B matrix.
 
@@ -57,48 +62,21 @@ class Crystal:
         ----------
         name: str
             Crystal name.
+        params: List[float]
+            List of lattice parameters. Can be any size as long as it is not empty.
         system: Optional[float], default = None
             Crystal lattice type.
-        a: Optional[float], default = None
-            Crystal lattice parameter.
-        b: Optional[float], default = None
-            Crystal lattice parameter.
-        c: Optional[float], default = None
-            Crystal lattice parameter.
-        alpha: Optional[float], default = None
-            Crystal lattice angle.
-        beta: Optional[float], default = None
-            Crystal lattice angle.
-        gamma: Optional[float], default = None
-            Crystal lattice angle.
+        indegrees: bool = True
+            are the crystal params are given in degrees. If this is true, calls to
+            asdict will also return in degrees, not radians. All internal logic done
+            in radians, this just changes how the user sees the inputs/outputs.
+
         """
         self.name = name
-        args = tuple(
-            val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
-        )
-        if allnum(args):
-            if len(args) != 6:
-                raise ValueError(
-                    "Crystal definition requires six lattice "
-                    "parameters or crystal system name."
-                )
-            # Set the direct lattice parameters
-            self.system = "Triclinic"
-            self.a1, self.a2, self.a3 = tuple(float(val) for val in args[:3])
-            self.alpha1, self.alpha2, self.alpha3 = tuple(
-                radians(float(val)) for val in args[3:]
-            )
-            self._set_reciprocal_cell(
-                self.a1, self.a2, self.a3, self.alpha1, self.alpha2, self.alpha3
-            )
-        else:
-            if not isinstance(args[0], str):
-                raise ValueError(f"Invalid crystal system name {args[0]}.")
-            self.system = args[0]
-            if allnum(args[1:]):
-                self._set_cell_for_system(system, a, b, c, alpha, beta, gamma)
-            else:
-                raise ValueError("Crystal lattice parameters must be numeric type.")
+        self.system = system
+        self.indegrees = indegrees
+
+        self._set_cell_for_system(params)
 
     def __str__(self) -> str:
         """Represent the crystal lattice information as a string.
@@ -119,11 +97,11 @@ class Crystal:
         lines.append("")
         lines.append(
             "   a, b, c:".ljust(WIDTH)
-            + "% 9.5f % 9.5f % 9.5f" % (self.get_lattice()[1:4])
+            + "% 9.5f % 9.5f % 9.5f" % (self.get_lattice()[2:5])
         )
         lines.append(
             " " * WIDTH
-            + "% 9.5f % 9.5f % 9.5f  %s" % (self.get_lattice()[4:] + (self.system,))
+            + "% 9.5f % 9.5f % 9.5f  %s" % (self.get_lattice()[5:] + (self.system,))
         )
         lines.append("")
 
@@ -157,16 +135,7 @@ class Crystal:
         )
         return lines
 
-    def _set_reciprocal_cell(
-        self,
-        a1: float,
-        a2: float,
-        a3: float,
-        alpha1: float,
-        alpha2: float,
-        alpha3: float,
-    ) -> None:
-        # Calculate the reciprocal lattice parameters
+    def _set_reciprocal_cell(self, a1, a2, a3, alpha1, alpha2, alpha3) -> None:
         beta2 = acos(
             (cos(alpha1) * cos(alpha3) - cos(alpha2)) / (sin(alpha1) * sin(alpha3))
         )
@@ -194,152 +163,12 @@ class Crystal:
 
         # Calculate the BMatrix from the direct and reciprocal parameters.
         # Reference: Busang and Levy (1967)
-        self.B = np.array(
+        self.B: np.ndarray = np.array(
             [
                 [b1, b2 * cos(beta3), b3 * cos(beta2)],
                 [0.0, b2 * sin(beta3), -b3 * sin(beta2) * cos(alpha1)],
                 [0.0, 0.0, 2 * pi / a3],
             ]
-        )
-
-    def get_lattice(self) -> Tuple[str, float, float, float, float, float, float]:
-        """Get all crystal name and crystal lattice parameters.
-
-        Returns
-        -------
-        Tuple[str, float, float, float, float, float, float]
-            Crystal name and crystal lattice parameters.
-        """
-        return (
-            self.name,
-            self.a1,
-            self.a2,
-            self.a3,
-            degrees(self.alpha1),
-            degrees(self.alpha2),
-            degrees(self.alpha3),
-        )
-
-    def get_lattice_params(self) -> Tuple[str, Tuple[float, ...]]:
-        """Get crystal name and non-redundant set of crystal lattice parameters.
-
-        Returns
-        -------
-        Tuple[str, Tuple[float, ...]]
-            Crystal name and minimal set of parameters for the crystal lattice
-            system.
-        """
-        try:
-            if self.system == "Triclinic":
-                return self.system, (
-                    self.a1,
-                    self.a2,
-                    self.a3,
-                    degrees(self.alpha1),
-                    degrees(self.alpha2),
-                    degrees(self.alpha3),
-                )
-            elif self.system == "Monoclinic":
-                return self.system, (
-                    self.a1,
-                    self.a2,
-                    self.a3,
-                    degrees(self.alpha2),
-                )
-            elif self.system == "Orthorhombic":
-                return self.system, (self.a1, self.a2, self.a3)
-            elif self.system == "Tetragonal" or self.system == "Hexagonal":
-                return self.system, (self.a1, self.a3)
-            elif self.system == "Rhombohedral":
-                return self.system, (self.a1, degrees(self.alpha1))
-            elif self.system == "Cubic":
-                return self.system, (self.a1,)
-            else:
-                raise TypeError(
-                    "Invalid crystal system parameter: %s" % str(self.system)
-                )
-        except ValueError as e:
-            raise TypeError from e
-
-    def _get_cell_for_system(
-        self, system: str
-    ) -> Tuple[float, float, float, float, float, float]:
-        if system == "Triclinic":
-            return (
-                self.a1,
-                self.a2,
-                self.a3,
-                radians(self.alpha1),
-                radians(self.alpha2),
-                radians(self.alpha3),
-            )
-        elif system == "Monoclinic":
-            return (self.a1, self.a2, self.a3, pi / 2, radians(self.alpha2), pi / 2)
-        elif system == "Orthorhombic":
-            return (self.a1, self.a2, self.a3, pi / 2, pi / 2, pi / 2)
-        elif system == "Tetragonal":
-            return (self.a1, self.a1, self.a3, pi / 2, pi / 2, pi / 2)
-        elif system == "Rhombohedral":
-            return (
-                self.a1,
-                self.a1,
-                self.a1,
-                radians(self.alpha1),
-                radians(self.alpha1),
-                radians(self.alpha1),
-            )
-        elif system == "Hexagonal":
-            return (self.a1, self.a1, self.a3, pi / 2, pi / 2, 2 * pi / 3)
-        elif system == "Cubic":
-            return (self.a1, self.a1, self.a1, pi / 2, pi / 2, pi / 2)
-        else:
-            raise TypeError("Invalid crystal system parameter: %s" % str(system))
-
-    def _set_cell_for_system(
-        self,
-        system: str,
-        a: float,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
-    ) -> None:
-        args = tuple(val for val in (a, b, c, alpha, beta, gamma) if val is not None)
-        try:
-            if len(args) == 6 or system == "Triclinic":
-                (
-                    self.a1,
-                    self.a2,
-                    self.a3,
-                    self.alpha1,
-                    self.alpha2,
-                    self.alpha3,
-                ) = args
-            elif system == "Monoclinic":
-                (self.a1, self.a2, self.a3, self.alpha2) = args
-            elif system == "Orthorhombic":
-                (self.a1, self.a2, self.a3) = args
-            elif system == "Tetragonal" or system == "Hexagonal":
-                (self.a1, self.a3) = args
-            elif system == "Rhombohedral":
-                (self.a1, self.alpha1) = args
-            elif system == "Cubic":
-                (self.a1,) = args
-            else:
-                raise TypeError("Invalid crystal system parameter: %s" % str(system))
-        except ValueError as e:
-            raise TypeError from e
-        (
-            self.a1,
-            self.a2,
-            self.a3,
-            self.alpha1,
-            self.alpha2,
-            self.alpha3,
-        ) = self._get_cell_for_system(system)
-        self._set_reciprocal_cell(
-            self.a1, self.a2, self.a3, self.alpha1, self.alpha2, self.alpha3
         )
 
     def get_hkl_plane_distance(self, hkl: Tuple[float, float, float]) -> float:
@@ -384,14 +213,174 @@ class Crystal:
         angle = angle_between_vectors(nphi1, nphi2)
         return angle
 
+    def get_lattice(self) -> Tuple[str, str, float, float, float, float, float, float]:
+        """Get all crystal name and crystal lattice parameters.
+
+        Returns
+        -------
+        Tuple[str, float, float, float, float, float, float]
+            Crystal name and crystal lattice parameters.
+        """
+        return (
+            self.name,
+            self.system,
+            self.crystal["a"],
+            self.crystal["b"],
+            self.crystal["c"],
+            degrees(self.crystal["alpha"]) if self.indegrees else self.crystal["alpha"],
+            degrees(self.crystal["beta"]) if self.indegrees else self.crystal["beta"],
+            degrees(self.crystal["gamma"]) if self.indegrees else self.crystal["gamma"],
+        )
+
+    def get_lattice_params(self) -> Tuple[str, Tuple[float, ...]]:
+        """Get crystal name and non-redundant set of crystal lattice parameters.
+
+        Returns
+        -------
+        Tuple[str, Tuple[float, ...]]
+            Crystal name and minimal set of parameters for the crystal lattice
+            system.
+        """
+        try:
+            if self.system == "Triclinic":
+                return self.system, (
+                    self.crystal["a"],
+                    self.crystal["b"],
+                    self.crystal["c"],
+                    degrees(self.crystal["alpha"])
+                    if self.indegrees
+                    else self.crystal["alpha"],
+                    degrees(self.crystal["beta"])
+                    if self.indegrees
+                    else self.crystal["beta"],
+                    degrees(self.crystal["gamma"])
+                    if self.indegrees
+                    else self.crystal["gamma"],
+                )
+            elif self.system == "Monoclinic":
+                return self.system, (
+                    self.crystal["a"],
+                    self.crystal["b"],
+                    self.crystal["c"],
+                    degrees(self.crystal["beta"])
+                    if self.indegrees
+                    else self.crystal["beta"],
+                )
+            elif self.system == "Orthorhombic":
+                return self.system, (
+                    self.crystal["a"],
+                    self.crystal["b"],
+                    self.crystal["c"],
+                )
+            elif self.system == "Tetragonal" or self.system == "Hexagonal":
+                return self.system, (self.crystal["a"], self.crystal["c"])
+            elif self.system == "Rhombohedral":
+                return self.system, (
+                    self.crystal["a"],
+                    degrees(self.crystal["alpha"])
+                    if self.indegrees
+                    else self.crystal["alpha"],
+                )
+            elif self.system == "Cubic":
+                return self.system, (self.crystal["a"],)
+            else:
+                raise TypeError(
+                    "Invalid crystal system parameter: %s" % str(self.system)
+                )
+        except ValueError as e:
+            raise TypeError from e
+
+    def _set_triclinic_cell(
+        self, a: float, b: float, c: float, alpha: float, beta: float, gamma: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        if self.indegrees:
+            return a, b, c, radians(alpha), radians(beta), radians(gamma)
+
+        return a, b, c, alpha, beta, gamma
+
+    def _set_monoclinic_cell(
+        self, a: float, b: float, c: float, beta: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        if self.indegrees:
+            return a, b, c, pi / 2, radians(beta), pi / 2
+
+        return a, b, c, pi / 2, beta, pi / 2
+
+    def _set_orthorhombic_cell(
+        self, a: float, b: float, c: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, b, c, pi / 2, pi / 2, pi / 2
+
+    def _set_tetragonal_cell(
+        self, a: float, c: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, c, pi / 2, pi / 2, pi / 2
+
+    def _set_hexagonal_cell(
+        self, a: float, c: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, c, pi / 2, pi / 2, 2 * pi / 3
+
+    def _set_rhombohedral_cell(
+        self, a: float, alpha: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        if self.indegrees:
+            return a, a, a, radians(alpha), radians(alpha), radians(alpha)
+        return a, a, a, alpha, alpha, alpha
+
+    def _set_cubic_cell(
+        self, a: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, a, pi / 2, pi / 2, pi / 2
+
+    def _set_cell_for_system(
+        self,
+        params: List[float],  # change, make this a list of params instead.
+    ) -> None:
+        """Any angles are already in radians."""
+        system_mappings: Dict[
+            str, Callable[..., Tuple[float, float, float, float, float, float]]
+        ] = {
+            "Triclinic": self._set_triclinic_cell,
+            "Monoclinic": self._set_monoclinic_cell,
+            "Orthorhombic": self._set_orthorhombic_cell,
+            "Tetragonal": self._set_tetragonal_cell,
+            "Hexagonal": self._set_hexagonal_cell,
+            "Rhombohedral": self._set_rhombohedral_cell,
+            "Cubic": self._set_cubic_cell,
+        }
+
+        system_method = system_mappings[self.system]
+        required_length = len(signature(system_method).parameters)
+
+        if len(params) == required_length:
+            (a, b, c, alpha, beta, gamma) = system_method(*params)
+        else:
+            raise DiffcalcException(
+                "Parameters to construct the Crystal do not match specified system."
+                + " System {system} requires exactly {required_length} parameters."
+            )
+
+        self._set_reciprocal_cell(a, b, c, alpha, beta, gamma)
+        self.crystal: Crystal = Crystal(
+            name=self.name,
+            system=self.system,
+            a=a,
+            b=b,
+            c=c,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+        )
+
     @property
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> Crystal:
         """Serialise the crystal into a JSON compatible dictionary.
 
         Note, because the class automatically assumes all angles are
         in degrees, the returned angles alpha, beta and gamma are given
         in degrees such that the dictionary can be directly unpacked as is.
-
+        TODO: change!
         Returns
         -------
         Dict[str, Any]
@@ -400,13 +389,20 @@ class Crystal:
             Crystal(**returned_dict).
 
         """
-        return {
-            "name": self.name,
-            "system": self.system,
-            "a": self.a1,
-            "b": self.a2,
-            "c": self.a3,
-            "alpha": degrees(self.alpha1),
-            "beta": degrees(self.alpha2),
-            "gamma": degrees(self.alpha3),
-        }
+        name, system, a, b, c, alpha, beta, gamma = self.get_lattice()
+        return Crystal(
+            name=name, system=system, a=a, b=b, c=c, alpha=alpha, beta=beta, gamma=gamma
+        )
+
+    @classmethod
+    def fromdict(cls, crystal_info: Dict[str, Any]) -> "CrystalHandler":
+        params = [
+            crystal_info["a"],
+            crystal_info["b"],
+            crystal_info["c"],
+            crystal_info["alpha"],
+            crystal_info["beta"],
+            crystal_info["gamma"],
+        ]
+
+        return cls(crystal_info["name"], params, crystal_info["system"])

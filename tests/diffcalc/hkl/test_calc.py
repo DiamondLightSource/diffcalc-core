@@ -48,29 +48,19 @@ class Pair:
         self.wavelength = wavelength
 
 
-def create_ubcalc():
-    ubcalc = UBCalculation()
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
-    return ubcalc
-
-
 def test_str():
-    ubcalc = create_ubcalc()
-    ubcalc = UBCalculation("test_str")
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
-    ubcalc.set_lattice("xtal", "Cubic", 1)
-    ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
-    ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1")
-    ubcalc.set_u(I)
+    hklcalc = HklCalculation("test_str")
 
-    constraints = Constraints()
-    constraints.nu = 0
-    constraints.psi = 90
-    constraints.phi = 90
+    hklcalc.ubcalc.n_phi = (0, 0, 1)
+    hklcalc.ubcalc.surf_nphi = (0, 0, 1)
+    hklcalc.ubcalc.set_lattice("xtal", [1.0], "Cubic")
+    hklcalc.ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
+    hklcalc.ubcalc.add_orientation(
+        (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
+    )
+    hklcalc.ubcalc.set_u(I)
 
-    hklcalc = HklCalculation(ubcalc, constraints)
+    hklcalc.constraints.asdict = {"nu": 0.0, "psi": 90.0, "phi": 90.0}
     assert (
         str(hklcalc)
         == """    DET             REF             SAMP
@@ -92,9 +82,9 @@ def test_str():
 
 class _BaseTest:
     def setup_method(self):
-        self.ubcalc = create_ubcalc()
-        self.constraints = Constraints()
-        self.hklcalc = HklCalculation(self.ubcalc, self.constraints)
+        self.hklcalc = HklCalculation()
+        self.hklcalc.ubcalc.n_phi = (0, 0, 1)
+        self.hklcalc.ubcalc.surf_nphi = (0, 0, 1)
 
         self.places = 5
 
@@ -103,7 +93,7 @@ class _BaseTest:
         YROT = y_rotation(radians(self.yrot))  # +CHI
         U = ZROT @ YROT
         # UB = U @ self.B
-        self.ubcalc.set_u(U)  # self.mock_ubcalc.UB = UB
+        self.hklcalc.ubcalc.set_u(U)  # self.mock_ubcalc.UB = UB
 
     def _check_hkl_to_angles(
         self, testname, zrot, yrot, hkl, pos_expected, wavelength, virtual_expected={}
@@ -116,7 +106,7 @@ class _BaseTest:
         self._configure_ub()
 
         pos_virtual_angles_pairs = self.hklcalc.get_position(
-            hkl[0], hkl[1], hkl[2], wavelength, indegrees=False
+            hkl[0], hkl[1], hkl[2], wavelength
         )
         pos = list(chain(*pos_virtual_angles_pairs))[::2]
         virtual = list(chain(*pos_virtual_angles_pairs))[1::2]
@@ -137,8 +127,8 @@ class _BaseTest:
         )
         self.zrot, self.yrot = zrot, yrot
         self._configure_ub()
-        hkl = self.hklcalc.get_hkl(pos, wavelength, indegrees=False)
-        virtual = self.hklcalc.get_virtual_angles(pos, indegrees=False)
+        hkl = self.hklcalc.get_hkl(pos, wavelength)
+        virtual = self.hklcalc.get_virtual_angles(pos)
         assert_array_almost_equal(
             hkl,
             hkl_expected,
@@ -171,7 +161,7 @@ class _BaseTest:
 class _TestCubic(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.ubcalc.set_lattice("Cubic", 1)
+        self.hklcalc.ubcalc.set_lattice("Cubic", [1.0])
         # self.B = I * 2 * pi
 
 
@@ -295,7 +285,7 @@ class TestCubicVertical(_TestCubic):
         ),
     )
     def test_delta_aeqb_mu_zrot_and_yrot0(self, name, zrot, make_cases):
-        self.constraints.asdict = {"delta": 60, "a_eq_b": True, "mu": 0}
+        self.hklcalc.constraints.asdict = {"delta": 60, "a_eq_b": True, "mu": 0}
         case = make_cases(name, zrot, 0)
         if name == "001":
             with pytest.raises(DiffcalcException):
@@ -323,7 +313,7 @@ class TestCubicVertical(_TestCubic):
         ),
     )
     def test_pairs_various_zrot_and_yrot0(self, name, zrot, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(name, zrot, 0)
         if name == "001":
             with pytest.raises(DiffcalcException):
@@ -354,7 +344,7 @@ class TestCubicVertical(_TestCubic):
         ),
     )
     def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(name, zrot, yrot)
         self.case_generator(case)
 
@@ -367,7 +357,7 @@ class TestCubicVertical(_TestCubic):
         ],
     )
     def testHklDeltaGreaterThan90(self, constraint):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         wavelength = 1
         hkl = (0.1, 0, 1.5)
         pos = Position(
@@ -384,7 +374,7 @@ class TestCubicVertical(_TestCubic):
 class TestCubicVertical_alpha90(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.ubcalc.n_hkl = (1, -1, 0)
+        self.hklcalc.ubcalc.n_hkl = (1, -1, 0)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -445,7 +435,7 @@ class TestCubicVertical_alpha90(_TestCubic):
         ),
     )
     def test_delta_alpha_mu_zrot_and_yrot0(self, name, zrot, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(name, zrot, 0)
         self.case_generator(case)
 
@@ -453,8 +443,8 @@ class TestCubicVertical_alpha90(_TestCubic):
 class TestCubicVertical_ttheta180(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"nu": 0, "chi": 0, "phi": 0}
-        self.ubcalc.n_hkl = (1, -1, 0)
+        self.hklcalc.constraints.asdict = {"nu": 0, "chi": 0, "phi": 0}
+        self.hklcalc.n_hkl = (1, -1, 0)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -502,7 +492,7 @@ class TestCubicVertical_ttheta180(_TestCubic):
 class TestCubicVertical_ChiPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"nu": 0, "chi": 90.0, "phi": 0.0}
+        self.hklcalc.constraints.asdict = {"nu": 0, "chi": 90.0, "phi": 0.0}
         self.places = 5
 
     @pytest.fixture(scope="class")
@@ -619,7 +609,7 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
 class TestCubic_FixedPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"mu": 0, "nu": 0, "phi": 0}
+        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -725,7 +715,7 @@ class TestCubic_FixedPhiMode(_TestCubic):
 class TestCubic_FixedPhi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"mu": 0, "nu": 0, "phi": 30}
+        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 30}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -802,7 +792,7 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
 class TestCubic_FixedPhiMode010(TestCubic_FixedPhiMode):
     def setup_method(self):
         TestCubic_FixedPhiMode.setup_method(self)
-        self.constraints.asdict = {"mu": 0, "nu": 0, "phi": 90}
+        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 90}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -841,7 +831,7 @@ class TestCubic_FixedPhiMode010(TestCubic_FixedPhiMode):
 class TestCubicVertical_MuEtaMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"nu": 0, "mu": 90.0, "eta": 0.0}
+        self.hklcalc.constraints.asdict = {"nu": 0, "mu": 90.0, "eta": 0.0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -965,7 +955,7 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
 class TestCubic_FixedRefMuPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"psi": 90, "mu": 0, "phi": 0}
+        self.hklcalc.constraints.asdict = {"psi": 90, "mu": 0, "phi": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1089,7 +1079,7 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
 class TestCubic_FixedRefEtaPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"psi": 0, "eta": 0, "phi": 0}
+        self.hklcalc.constraints.asdict = {"psi": 0, "eta": 0, "phi": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1213,7 +1203,7 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
 class TestCubicVertical_Bisect(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"nu": 0, "bisect": True, "omega": 0}
+        self.hklcalc.constraints.asdict = {"nu": 0, "bisect": True, "omega": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1369,19 +1359,19 @@ class TestCubicVertical_Bisect(_TestCubic):
 class TestCubicVertical_Bisect_NuMu(TestCubicVertical_Bisect):
     def setup_method(self):
         TestCubicVertical_Bisect.setup_method(self)
-        self.constraints.asdict = {"nu": 0, "bisect": True, "mu": 0}
+        self.hklcalc.constraints.asdict = {"nu": 0, "bisect": True, "mu": 0}
 
 
 class TestCubicVertical_Bisect_qaz(TestCubicVertical_Bisect):
     def setup_method(self):
         TestCubicVertical_Bisect.setup_method(self)
-        self.constraints.asdict = {"qaz": 90.0, "bisect": True, "mu": 0}
+        self.hklcalc.constraints.asdict = {"qaz": 90.0, "bisect": True, "mu": 0}
 
 
 class TestCubicHorizontal_Bisect(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"delta": 0, "bisect": True, "omega": 0}
+        self.hklcalc.constraints.asdict = {"delta": 0, "bisect": True, "omega": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1537,13 +1527,13 @@ class TestCubicHorizontal_Bisect(_TestCubic):
 class TestCubicHorizontal_Bisect_NuMu(TestCubicHorizontal_Bisect):
     def setup_method(self):
         TestCubicHorizontal_Bisect.setup_method(self)
-        self.constraints.asdict = {"delta": 0, "bisect": True, "eta": 0}
+        self.hklcalc.constraints.asdict = {"delta": 0, "bisect": True, "eta": 0}
 
 
 class TestCubicHorizontal_Bisect_qaz(TestCubicHorizontal_Bisect):
     def setup_method(self):
         TestCubicHorizontal_Bisect.setup_method(self)
-        self.constraints.asdict = {"qaz": 0, "bisect": True, "eta": 0}
+        self.hklcalc.constraints.asdict = {"qaz": 0, "bisect": True, "eta": 0}
 
 
 class TestCubicHorizontal(_TestCubic):
@@ -1655,7 +1645,7 @@ class TestCubicHorizontal(_TestCubic):
         ),
     )
     def test_pairs_zrot0_yrot0(self, name, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(0, 0)
         if name in ("100", "010", "001"):
             with pytest.raises(DiffcalcException):
@@ -1692,7 +1682,7 @@ class TestCubicHorizontal(_TestCubic):
         ),
     )
     def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(zrot, yrot)
         if name == "010":
             with pytest.raises(DiffcalcException):
@@ -1704,13 +1694,13 @@ class TestCubicHorizontal(_TestCubic):
 # class TestCubicHorizontal_qaz0_aeqb(_TestCubicHorizontal):
 #    def setup_method(self):
 #        _TestCubicHorizontal.setup_method(self)
-#        self.constraints.asdict = {"a_eq_b": True, "qaz": 0, "eta": 0}
+#        self.hklcalc.constraints.asdict = {"a_eq_b": True, "qaz": 0, "eta": 0}
 #
 #
 # class TestCubicHorizontal_delta0_aeqb(_TestCubicHorizontal):
 #    def setup_method(self):
 #        _TestCubicHorizontal.setup_method(self)
-#        self.constraints.asdict = {"a_eq_b": True, "delta": 0, "eta": 0}
+#        self.hklcalc.constraints.asdict = {"a_eq_b": True, "delta": 0, "eta": 0}
 
 
 class TestCubic_FixedDetRefChiMode(_TestCubic):
@@ -1822,7 +1812,7 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
         ),
     )
     def test_pairs_zrot0_yrot0(self, name, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(0, 0)
         if name == "001":
             with pytest.raises(DiffcalcException):
@@ -1945,7 +1935,7 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
         ),
     )
     def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         case = make_cases(zrot, yrot)
         self.case_generator(case[name])
 
@@ -1953,7 +1943,7 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"eta": 0, "delta": 0, "phi": 0}
+        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "phi": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2068,7 +2058,7 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"eta": 0, "delta": 0, "phi": 30}
+        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "phi": 30}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2137,7 +2127,7 @@ class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"eta": 0, "delta": 0, "chi": 0}
+        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "chi": 0}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2252,7 +2242,7 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"eta": 0, "delta": 0, "chi": 30}
+        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "chi": 30}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2321,7 +2311,7 @@ class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
 class TestCubic_FixedGamMuChi90Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"mu": 0, "nu": 0, "chi": 90}
+        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "chi": 90}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2436,7 +2426,7 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
 class TestCubic_FixedGamMuChi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"mu": 0, "nu": 0, "chi": 30}
+        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "chi": 30}
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2508,11 +2498,11 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.constraints.asdict = {"a_eq_b": True, "mu": 0, "nu": 0}
+        self.hklcalc.constraints.asdict = {"a_eq_b": True, "mu": 0, "nu": 0}
         self.places = 2
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("name", 3.8401, 5.43072)
+        self.hklcalc.ubcalc.set_lattice("name", [3.8401, 5.43072])
         U = array(
             (
                 (0.997161, -0.062217, 0.042420),
@@ -2520,7 +2510,7 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
                 (-0.041940, 0.009006, 0.999080),
             )
         )
-        self.ubcalc.set_u(U)
+        self.hklcalc.ubcalc.set_u(U)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2613,12 +2603,12 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
 
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.constraints.asdict = {"phi": -90, "nu": 0, "mu": 0}
+        self.hklcalc.constraints.asdict = {"phi": -90, "nu": 0, "mu": 0}
         self.wavelength = 12.39842 / 1.650
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("xtal", 5.34, 13.2)
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_lattice("xtal", [5.34, 13.2])
+        self.hklcalc.ubcalc.set_u(I)
 
     def testHkl001(self):
         hkl = (0, 0, 1)
@@ -2663,12 +2653,12 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
 class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.constraints.asdict = {"phi": -90, "delta": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"phi": -90, "delta": 0, "eta": 0}
         self.wavelength = 12.39842 / 1.650
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("xtal", 5.34, 13.2)
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_lattice("xtal", [5.34, 13.2])
+        self.hklcalc.ubcalc.set_u(I)
 
     def testHkl001(self):
         hkl = (0, 0, 1)
@@ -2716,7 +2706,7 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
 ):
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.constraints.asdict = {"phi": -90, "chi": 0, "delta": 0}
+        self.hklcalc.constraints.asdict = {"phi": -90, "chi": 0, "delta": 0}
         self.wavelength = 12.39842 / 1.650
 
     @pytest.mark.xfail(raises=DiffcalcException)  # q || eta
@@ -2750,11 +2740,11 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
 class TestFixedNazPsiEtaMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"naz": 90, "psi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"naz": 90, "psi": 0, "eta": 0}
         self.wavelength = 1
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
         # Set some random reference vector orientation
         # that won't coincide with the scattering vector direction.
         # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
@@ -2839,11 +2829,11 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
 
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 0, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "a_eq_b": True}
         self.wavelength = 1
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
         # Set some random reference vector orientation
         # that won't coincide with the scattering vector direction.
         # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
@@ -3020,12 +3010,12 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
 class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
         self.wavelength = 1
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
 
     @pytest.mark.parametrize(
         ("hkl", "pos", "places"),
@@ -3201,12 +3191,12 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
 
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "psi": 90, "phi": 0}
+        self.hklcalc.constraints.asdict = {"chi": 90, "psi": 90, "phi": 0}
         self.wavelength = 1
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
 
     @pytest.mark.parametrize(
         ("hkl", "pos"),
@@ -3277,12 +3267,12 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
 class TestConstrain3Sample_ChiPhiEta(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
         self.wavelength = 1
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
         # Set some random reference vector orientation
         # that won't coincide with the scattering vector direction.
         # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
@@ -3296,7 +3286,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_001(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 0, 1),
             Position(
@@ -3310,7 +3300,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_010(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 1, 0),
             Position(
@@ -3324,7 +3314,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_011(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 1, 1),
             Position(
@@ -3338,7 +3328,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_phi30_100(self):
-        self.constraints.asdict = {"chi": 0, "phi": 30, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 30, "eta": 0}
         self._check(
             (1, 0, 0),
             Position(
@@ -3352,7 +3342,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_eta30_100(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 30}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 30}
         self._check(
             (1, 0, 0),
             Position(
@@ -3366,7 +3356,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_phi90_110(self):
-        self.constraints.asdict = {"chi": 0, "phi": 90, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 90, "eta": 0}
         self._check(
             (1, 1, 0),
             Position(
@@ -3380,7 +3370,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_eta90_110(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 90}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 90}
         self._check(
             (1, 1, 0),
             Position(
@@ -3394,7 +3384,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_1(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0.01, 0.01, 0.1),
             Position(
@@ -3408,7 +3398,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_2(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 0, 0.1),
             Position(
@@ -3422,7 +3412,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_3(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0.1, 0, 0.01),
             Position(
@@ -3436,7 +3426,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_show_all_solutionsall0_3(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0.1, 0, 0.01),
             Position(
@@ -3451,7 +3441,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         # print self.hklcalc.hkl_to_all_angles(.1, 0, .01, 1)
 
     def testHkl_all0_010to001(self):
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, cos(radians(4)), sin(radians(4))),
             Position(
@@ -3466,7 +3456,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 
     def testHkl_1(self):
         self.wavelength = 0.1
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 0, 1),
             Position(
@@ -3481,7 +3471,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 
     def testHkl_2(self):
         self.wavelength = 0.1
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (0, 0, 1),
             Position(
@@ -3496,7 +3486,7 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 
     def testHkl_3(self):
         self.wavelength = 0.1
-        self.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
         self._check(
             (1, 0, 0.1),
             Position(
@@ -3513,12 +3503,12 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 class TestConstrain3Sample_MuChiPhi(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
         self.wavelength = 1
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
         # Set some random reference vector orientation
         # that won't coincide with the scattering vector direction.
         # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
@@ -3614,44 +3604,9 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
         ],
     )
     def testHkl(self, hkl, pos, constraint):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
-
-    # def testHkl_all0_001(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 0, 'mu': 0}
-    #    self._check((0, 0, 1),
-    #                Position(mu=0, delta=60, nu=0, eta=30, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_all0_010(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 0, 'mu': 0}
-    #    self._check((0, 1, 0),
-    #                Position(mu=0, delta=60, nu=0, eta=120, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_all0_011(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 0, 'mu': 0}
-    #    self._check((0, 1, 1),
-    #                Position(mu=0, delta=90, nu=0, eta=90, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_etam60_100(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 90 * TORAD, 'mu': 0}
-    #    self._check((1, 0, 0),
-    #                Position(mu=0, delta=60, nu=0, eta=-60, chi=90, phi=90, unit='DEG'))
-    #
-    # def testHkl_eta90_m110(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 0, 'mu': 90 * TORAD}
-    #    self._check((-1, 1, 0),
-    #                Position(mu=90, delta=90, nu=0, eta=90, chi=90, phi=0, unit='DEG'), fails=True)
-    #
-    # def testHkl_eta0_101(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 90 * TORAD, 'mu': 0}
-    #    self._check((1, 0, 1),
-    #                Position(mu=0, delta=90, nu=0, eta=0, chi=90, phi=90, unit='DEG'))
-    #
-    # def testHkl_all0_010to100(self):
-    #    self.constraints.asdict = {'chi': 0, 'phi': 0, 'mu': 0}
-    #    self._check((sin(radians(4)), cos(radians(4)), 0),
-    #                Position(mu=0, delta=60, nu=0, eta=120 - 4, chi=0, phi=0, unit='DEG'))
 
 
 class TestConstrain3Sample_MuEtaChi(_TestCubic):
@@ -3661,10 +3616,7 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
-        # Set some random reference vector orientation
-        # that won't coincide with the scattering vector direction.
-        # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
+        self.hklcalc.ubcalc.set_u(I)
 
     @pytest.mark.parametrize(
         ("hkl", "pos", "constraint"),
@@ -3758,55 +3710,20 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
         ],
     )
     def testHKL(self, hkl, pos, constraint):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
-
-    # def testHkl_all0_001(self):
-    #    self.constraints.asdict = {'eta': radians(30), 'chi': 90 * TORAD, 'mu': 0}
-    #    self._check((0, 0, 1),
-    #                Position(mu=0, delta=60, nu=0, eta=30, chi=90, phi=0, unit='DEG'), fails=True)
-    #
-    # def testHkl_all0_010(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'eta': 120 * TORAD, 'mu': 0}
-    #    self._check((0, 1, 0),
-    #                Position(mu=0, delta=60, nu=0, eta=120, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_all0_011(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'eta': 90 * TORAD, 'mu': 0}
-    #    self._check((0, 1, 1),
-    #                Position(mu=0, delta=90, nu=0, eta=90, chi=90, phi=0, unit='DEG'), fails=True)
-    #
-    # def testHkl_phi90_100(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'eta': -60 * TORAD, 'mu': 0}
-    #    self._check((1, 0, 0),
-    #                Position(mu=0, delta=60, nu=0, eta=-60, chi=90, phi=90, unit='DEG'))
-    #
-    # def testHkl_phi0_m110(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'eta': 90 * TORAD, 'mu': 90 * TORAD}
-    #    self._check((-1, 1, 0),
-    #                Position(mu=90, delta=90, nu=0, eta=90, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_phi90_101(self):
-    #    self.constraints.asdict = {'chi': 90 * TORAD, 'eta': 0, 'mu': 0}
-    #    self._check((1, 0, 1),
-    #                Position(mu=0, delta=90, nu=0, eta=0, chi=90, phi=90, unit='DEG'))
-    #
-    # def testHkl_all0_010to100(self):
-    #    self.constraints.asdict = {'chi': 0, 'eta': 0, 'mu': 0}
-    #    self._check((sin(radians(4)), cos(radians(4)), 0),
-    #                Position(mu=0, delta=60, nu=0, eta=0, chi=0, phi=120 - 4, unit='DEG'))
 
 
 class TestConstrain3Sample_MuEtaPhi(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
         self.wavelength = 1
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_u(I)
 
     @pytest.mark.parametrize(
         ("hkl", "pos", "constraint"),
@@ -3901,44 +3818,9 @@ class TestConstrain3Sample_MuEtaPhi(_TestCubic):
         ],
     )
     def testHKL(self, hkl, pos, constraint):
-        self.constraints.asdict = constraint
+        self.hklcalc.constraints.asdict = constraint
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
-
-    # def testHkl_all0_001(self):
-    #    self.constraints.asdict = {'eta': 0, 'phi': 0, 'mu': radians(30)}
-    #    self._check((0, 0, 1),
-    #                Position(mu=30, delta=0, nu=60, eta=0, chi=0, phi=0, unit='DEG'))
-    #
-    # def testHkl_all0_010(self):
-    #    self.constraints.asdict = {'eta': 120 * TORAD, 'phi': 0, 'mu': 0}
-    #    self._check((0, 1, 0),
-    #                Position(mu=0, delta=60, nu=0, eta=120, chi=90, phi=0, unit='DEG'), fails=True)
-    #
-    # def testHkl_all0_011(self):
-    #    self.constraints.asdict = {'eta': 90 * TORAD, 'phi': 0, 'mu': 0}
-    #    self._check((0, 1, 1),
-    #                Position(mu=0, delta=90, nu=0, eta=90, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_chi90_100(self):
-    #    self.constraints.asdict = {'eta': -60 * TORAD, 'phi': 90 * TORAD, 'mu': 0}
-    #    self._check((1, 0, 0),
-    #                Position(mu=0, delta=60, nu=0, eta=-60, chi=90, phi=90, unit='DEG'), fails=True)
-    #
-    # def testHkl_chi90_m110(self):
-    #    self.constraints.asdict = {'eta': 90 * TORAD, 'phi': 0, 'mu': 90 * TORAD}
-    #    self._check((-1, 1, 0),
-    #                Position(mu=90, delta=90, nu=0, eta=90, chi=90, phi=0, unit='DEG'))
-    #
-    # def testHkl_chi90_101(self):
-    #    self.constraints.asdict = {'eta': 0, 'phi': 90 * TORAD, 'mu': 0}
-    #    self._check((1, 0, 1),
-    #                Position(mu=0, delta=90, nu=0, eta=0, chi=90, phi=90, unit='DEG'), fails=True)
-    #
-    # def testHkl_all0_010to100(self):
-    #    self.constraints.asdict = {'eta': radians(30), 'phi': 0, 'mu': 0}
-    #    self._check((sin(radians(4)), 0, cos(radians(4))),
-    #                Position(mu=0, delta=60, nu=0, eta=30, chi=90 - 4, phi=0, unit='DEG'))
 
 
 class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
@@ -3960,7 +3842,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
         self.places = 3
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("I16_test", "Hexagonal", 4.785, 12.991)
+        self.hklcalc.ubcalc.set_lattice("I16_test", [4.785, 12.991], "Hexagonal")
 
         U = array(
             [
@@ -3969,7 +3851,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
                 [5.23201232e-03, 3.55426382e-05, 9.99986312e-01],
             ]
         )
-        self.ubcalc.set_u(U)
+        self.hklcalc.ubcalc.set_u(U)
 
     def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
         if not skip_test_pair_verification:
@@ -3981,7 +3863,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
         )
 
     def test_hkl_bisecting_works_okay_on_i16(self):
-        self.constraints.asdict = {"delta": 0, "a_eq_b": True, "eta": 0}
+        self.hklcalc.constraints.asdict = {"delta": 0, "a_eq_b": True, "eta": 0}
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
@@ -3996,7 +3878,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
 
     def test_hkl_psi90_works_okay_on_i16(self):
         # This is failing here but on the live one. Suggesting some extreme sensitivity?
-        self.constraints.asdict = {"delta": 0, "psi": -90, "eta": 0}
+        self.hklcalc.constraints.asdict = {"delta": 0, "psi": -90, "eta": 0}
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
@@ -4011,7 +3893,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
 
     def test_hkl_alpha_17_9776_used_to_fail(self):
         # This is failing here but on the live one. Suggesting some extreme sensitivity?
-        self.constraints.asdict = {"delta": 0, "alpha": 17.9776, "eta": 0}
+        self.hklcalc.constraints.asdict = {"delta": 0, "alpha": 17.9776, "eta": 0}
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
@@ -4026,7 +3908,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
 
     def test_hkl_alpha_17_9776_failing_after_bigger_small(self):
         # This is failing here but on the live one. Suggesting some extreme sensitivity?
-        self.constraints.asdict = {"delta": 0, "alpha": 17.8776, "eta": 0}
+        self.hklcalc.constraints.asdict = {"delta": 0, "alpha": 17.8776, "eta": 0}
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
@@ -4045,8 +3927,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
 
 class TestAnglesToHkl_I16Examples:
     def setup_method(self):
-        self.ubcalc = UBCalculation()
-        self.constraints = Constraints()
+        self.hklcalc = HklCalculation()
 
         U = array(
             (
@@ -4056,10 +3937,8 @@ class TestAnglesToHkl_I16Examples:
             )
         )
         self.WL1 = 1  # Angstrom
-        self.ubcalc.set_lattice("Cubic", 1)
-        self.ubcalc.set_u(U)
-
-        self.hklcalc = HklCalculation(self.ubcalc, self.constraints)
+        self.hklcalc.ubcalc.set_lattice("Cubic", [1.0])
+        self.hklcalc.ubcalc.set_u(U)
 
     def test_anglesToHkl_mu_0_gam_0(self):
         pos = PosFromI16sEuler(1, 1, 30, 0, 60, 0)
@@ -4093,13 +3972,13 @@ class TestAnglesToHkl_I16Numerical(_BaseTest):
 
         # self.UB = array(((1.11143, 0, 0), (0, 1.11143, 0), (0, 0, 1.11143)))
 
-        self.constraints.asdict = {"mu": 0, "nu": 0, "phi": 0}
+        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 0}
         self.wavelength = 1.0
         self.places = 6
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("xtal", 5.653244295348863)
-        self.ubcalc.set_u(I)
+        self.hklcalc.ubcalc.set_lattice("xtal", [5.653244295348863])
+        self.hklcalc.ubcalc.set_u(I)
         self.n_phi = (0, 0, 1)
 
     def _check(
@@ -4135,15 +4014,7 @@ class TestAnglesToHkl_I16GaAsExample(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        # self.UB = array(
-        #    (
-        #        (-0.78935, 0.78234, 0.01191),
-        #        (-0.44391, -0.46172, 0.90831),
-        #        (0.64431, 0.64034, 0.64039),
-        #    )
-        # )
-
-        self.constraints.asdict = {
+        self.hklcalc.constraints.asdict = {
             "qaz": 90.0,
             "alpha": 11.0,
             "mu": 0.0,
@@ -4152,7 +4023,7 @@ class TestAnglesToHkl_I16GaAsExample(_BaseTest):
         self.places = 3
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("xtal", 5.65315)  # 5.6325) #3244295348863)
+        self.hklcalc.ubcalc.set_lattice("xtal", [5.65315])
         U = array(
             [
                 [-0.71021455, 0.70390373, 0.01071626],
@@ -4160,7 +4031,7 @@ class TestAnglesToHkl_I16GaAsExample(_BaseTest):
                 [0.57971538, 0.5761409, 0.57618724],
             ]
         )
-        self.ubcalc.set_u(U)
+        self.hklcalc.ubcalc.set_u(U)
 
     def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
         if not skip_test_pair_verification:
@@ -4188,19 +4059,19 @@ class Test_I21ExamplesUB(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        # self.constraints = Constraints()
-        # self.hklcalc = HklCalculation(self.ubcalc, self.constraints)
+        # self.hklcalc.constraints = Constraints()
+        # self.hklcalc = HklCalculation(self.ubcalc, self.hklcalc.constraints)
 
         # B = array(((1.66222, 0.0, 0.0), (0.0, 1.66222, 0.0), (0.0, 0.0, 0.31260)))
 
-        self.constraints.asdict = {"psi": 10, "mu": 0, "nu": 0}
+        self.hklcalc.constraints.asdict = {"psi": 10, "mu": 0, "nu": 0}
         self.places = 3
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("xtal", 3.78, 20.10)
+        self.hklcalc.ubcalc.set_lattice("xtal", [3.78, 20.10])
         U = array(((1.0, 0.0, 0.0), (0.0, 0.18482, -0.98277), (0.0, 0.98277, 0.18482)))
-        self.ubcalc.set_u(U)
-        self.ubcalc.n_phi = (0, 0, 1)
+        self.hklcalc.ubcalc.set_u(U)
+        self.hklcalc.ubcalc.n_phi = (0, 0, 1)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -4257,11 +4128,11 @@ class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.constraints.asdict = {"alpha": 12.0, "mu": 0, "chi": 90.0}
+        self.hklcalc.constraints.asdict = {"alpha": 12.0, "mu": 0, "chi": 90.0}
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice("GaAs", 5.65325)
+        self.hklcalc.ubcalc.set_lattice("GaAs", [5.65325])
         U = array(
             (
                 (-0.71022, 0.70390, 0.01071),
@@ -4270,8 +4141,8 @@ class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
             )
         )
 
-        self.ubcalc.set_u(U)
-        self.ubcalc.n_hkl = (0, 0, 1)
+        self.hklcalc.ubcalc.set_u(U)
+        self.hklcalc.ubcalc.n_hkl = (0, 0, 1)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -4332,7 +4203,7 @@ class TestConstrainNazAlphaEta(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.constraints.asdict = {
+        self.hklcalc.constraints.asdict = {
             "naz": 3.0,
             "alpha": 2.0,
             "eta": 1.0,
@@ -4341,17 +4212,17 @@ class TestConstrainNazAlphaEta(_BaseTest):
         self.places = 4
 
     def _configure_ub(self):
-        self.ubcalc.set_lattice(name="test", a=4.913, c=5.405)
-        self.ubcalc.add_reflection(
+        self.hklcalc.ubcalc.set_lattice("test", [4.913, 5.405])
+        self.hklcalc.ubcalc.add_reflection(
             hkl=(0, 0, 1),
             position=Position(7.31, 0, 10.62, 0, 0, 0),
             energy=12.39842,
             tag="refl1",
         )
-        self.ubcalc.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
-        self.ubcalc.calc_ub("refl1", "plane")
+        self.hklcalc.ubcalc.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
+        self.hklcalc.ubcalc.calc_ub("refl1", "plane")
 
-        self.ubcalc.n_hkl = (1.0, 0.0, 0.0)
+        self.hklcalc.ubcalc.n_hkl = (1.0, 0.0, 0.0)
 
     def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
         if not skip_test_pair_verification:
