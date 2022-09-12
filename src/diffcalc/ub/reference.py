@@ -1,7 +1,6 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
 from dataclasses import asdict, fields
-from math import degrees, radians
 from typing import Any, Dict, List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
@@ -103,9 +102,8 @@ class ReflectionList:
         List containing reference reflections.
     """
 
-    def __init__(self, reflections: List[Reflection] = None, indegrees: bool = True):
+    def __init__(self, reflections: List[Reflection] = None):
         self.reflections: List[Reflection] = reflections if reflections else []
-        self.indegrees = indegrees
 
     def get_tag_index(self, tag: str) -> int:
         """Get a reference reflection index.
@@ -149,11 +147,7 @@ class ReflectionList:
         tag : str
             Identifying tag for the reflection.
         """
-        use_pos = pos
-        if self.indegrees:
-            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
-
-        self.reflections += [Reflection(*hkl, use_pos, energy, tag)]
+        self.reflections += [Reflection(*hkl, pos, energy, tag)]
 
     def edit_reflection(
         self,
@@ -192,11 +186,7 @@ class ReflectionList:
         else:
             num = idx - 1
 
-        use_pos = pos
-        if self.indegrees:
-            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
-
-        self.reflections[num] = Reflection(*hkl, use_pos, energy, tag)
+        self.reflections[num] = Reflection(*hkl, pos, energy, tag)
 
     def get_reflection(self, idx: Union[str, int]) -> Reflection:
         """Get a reference reflection.
@@ -226,15 +216,6 @@ class ReflectionList:
             num = idx - 1
 
         reflection = self.reflections[num]
-        if self.indegrees:
-            return Reflection(
-                h=reflection.h,
-                k=reflection.k,
-                l=reflection.l,
-                pos=Position(*[degrees(i) for i in asdict(reflection.pos).values()]),
-                energy=reflection.energy,
-                tag=reflection.tag,
-            )
         return reflection
 
     def remove_reflection(self, idx: Union[str, int]) -> None:
@@ -335,38 +316,6 @@ class ReflectionList:
             values = (n, energy, h, k, l) + pos + (tag,)
             lines.append(fmt % values)
         return lines
-
-    @property
-    def asdict(self) -> List[Reflection]:
-        """Serialise the object into a JSON compatible dictionary.
-
-        Returns
-        -------
-        Dict[str, Any]
-            Dictionary containing properties of this class. Can
-            be unpacked to recreate this object using fromdict
-            class method below.
-
-        """
-        return self.reflections
-
-    @classmethod
-    def fromdict(cls, data: List[Reflection], indegrees: bool) -> "ReflectionList":
-        """Construct ReflectionList instance from a JSON compatible dictionary.
-
-        Parameters
-        ----------
-        data: Dict[str, Any]
-            Dictionary containing properties of this class, must have the
-            equivalent structure of asdict property above.
-
-        Returns
-        -------
-        ReflectionList
-            Instance of this class created from the dictionary.
-
-        """
-        return cls(data, indegrees=indegrees)
 
 
 @dataclasses.dataclass
@@ -489,9 +438,8 @@ class OrientationList:
         List containing reference orientations.
     """
 
-    def __init__(self, orientations=None, indegrees=True):
+    def __init__(self, orientations=None):
         self.orientations: List[Orientation] = orientations if orientations else []
-        self.indegrees = indegrees
 
     def get_tag_index(self, tag: str) -> int:
         """Get a reference orientation index.
@@ -540,11 +488,7 @@ class OrientationList:
         tag : str
             Identifying tag for the orientation.
         """
-        use_pos = pos
-        if self.indegrees:
-            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
-
-        self.orientations += [Orientation(*hkl, *xyz, use_pos, tag)]
+        self.orientations += [Orientation(*hkl, *xyz, pos, tag)]
 
     def edit_orientation(
         self,
@@ -584,11 +528,7 @@ class OrientationList:
         else:
             num = idx - 1
 
-        use_pos = pos
-        if self.indegrees:
-            use_pos = Position(*[radians(i) for i in asdict(pos).values()])
-
-        self.orientations[num] = Orientation(*hkl, *xyz, use_pos, tag)
+        self.orientations[num] = Orientation(*hkl, *xyz, pos, tag)
 
     def get_orientation(self, idx: Union[str, int]) -> Orientation:
         """Get a reference orientation.
@@ -618,17 +558,6 @@ class OrientationList:
             num = idx - 1
 
         orientation = self.orientations[num]
-        if self.indegrees:
-            return Orientation(
-                h=orientation.h,
-                k=orientation.k,
-                l=orientation.l,
-                x=orientation.x,
-                y=orientation.y,
-                z=orientation.z,
-                pos=Position(*[degrees(i) for i in asdict(orientation.pos).values()]),
-                tag=orientation.tag,
-            )
         return orientation
 
     def remove_orientation(self, idx: Union[str, int]) -> None:
@@ -734,35 +663,3 @@ class OrientationList:
             values = (n, h, k, l, x, y, z) + angles + (tag,)
             lines.append(str_format % values)
         return lines
-
-    @property
-    def asdict(self) -> List[Orientation]:
-        """Serialise the object into a JSON compatible dictionary.
-
-        Returns
-        -------
-        Dict[str, Any]
-            Dictionary containing properties of this class. Can
-            be unpacked to recreate this object using fromdict
-            class method below.
-
-        """
-        return self.orientations
-
-    @classmethod
-    def fromdict(cls, data: List[Orientation], indegrees: bool) -> "OrientationList":
-        """Construct OrientationList instance from a JSON compatible dictionary.
-
-        Parameters
-        ----------
-        data: Dict[str, Any]
-            Dictionary containing properties of this class, must have the
-            equivalent structure to the asdict property.
-
-        Returns
-        -------
-        OrientationList
-            Instance of this class created from the dictionary.
-
-        """
-        return cls(data, indegrees=indegrees)

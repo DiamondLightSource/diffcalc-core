@@ -174,16 +174,15 @@ class UBCalculation:
         UB matrix as a NumPy array.
     """
 
-    def __init__(self, name: Optional[str] = None, indegrees: bool = True) -> None:
+    def __init__(self, name: Optional[str] = None) -> None:
         self.name: str = name if name is not None else str(uuid.uuid4())
         self.crystal: CrystalHandler = None
-        self.reflist: ReflectionList = ReflectionList(indegrees=indegrees)
-        self.orientlist: OrientationList = OrientationList(indegrees=indegrees)
+        self.reflist: ReflectionList = ReflectionList()
+        self.orientlist: OrientationList = OrientationList()
         self.reference: ReferenceVector = ReferenceVector((1, 0, 0), True)
         self.surface: ReferenceVector = ReferenceVector((0, 0, 1), False)
         self.U: np.ndarray = None
         self.UB: np.ndarray = None
-        self.indegrees = indegrees
         self._WIDTH: int = 13
 
     ### State ###
@@ -450,17 +449,13 @@ class UBCalculation:
         if system is None:
             if len(params) in guess_system_by_length.keys():
                 use_system: str = guess_system_by_length.get(len(params))
-                self.crystal = CrystalHandler(
-                    name, params, use_system, indegrees=self.indegrees
-                )
+                self.crystal = CrystalHandler(name, params, use_system)
             else:
                 raise DiffcalcException(
                     "Invalid number of input parameters to set unit lattice."
                 )
         else:
-            self.crystal = CrystalHandler(
-                name, params, system, indegrees=self.indegrees
-            )
+            self.crystal = CrystalHandler(name, params, system)
 
     ### Reference vector ###
     @property
@@ -1406,8 +1401,8 @@ class UBCalculation:
         return UbCalcType(
             name=self.name,
             crystal=self.crystal.asdict if self.crystal is not None else None,
-            reflist=self.reflist.asdict,
-            orientlist=self.orientlist.asdict,
+            reflist=self.reflist.reflections,
+            orientlist=self.orientlist.orientations,
             reference=self.reference,
             surface=self.surface,
             u_matrix=self.U.tolist() if self.U is not None else None,
@@ -1415,7 +1410,7 @@ class UBCalculation:
         )
 
     @classmethod
-    def fromdict(cls, data: UbCalcType, indegrees: bool) -> "UBCalculation":
+    def fromdict(cls, data: UbCalcType) -> "UBCalculation":
         """Construct UBCalculation instance from a JSON compatible dictionary.
 
         Parameters
@@ -1431,14 +1426,14 @@ class UBCalculation:
 
         """
         if data["crystal"] is not None:
-            crystal = CrystalHandler.fromdict(data["crystal"], indegrees=indegrees)
+            crystal = CrystalHandler.fromdict(data["crystal"])
         else:
             crystal = None
 
         ubcalc = cls(data["name"])
         ubcalc.crystal = crystal
-        ubcalc.reflist = ReflectionList.fromdict(data["reflist"], indegrees)
-        ubcalc.orientlist = OrientationList.fromdict(data["orientlist"], indegrees)
+        ubcalc.reflist = ReflectionList(data["reflist"])
+        ubcalc.orientlist = OrientationList(data["orientlist"])
         ubcalc.reference = data["reference"]
         ubcalc.surface = data["surface"]
         ubcalc.U = np.array(data["u_matrix"]) if data["u_matrix"] is not None else None
@@ -1446,13 +1441,3 @@ class UBCalculation:
             np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
         )
         return ubcalc
-
-
-# somecalc = UBCalculation("test")
-# somecalc.set_lattice("Si02", [4.3, 2.2])
-# print("ah")
-
-
-# anothercalc = UBCalculation("test2", indegrees=True)
-# anothercalc.set_lattice("fake", [1, 2, 3, 90, 50, 100])
-# print("wahey")

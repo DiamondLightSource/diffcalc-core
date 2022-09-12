@@ -3,10 +3,9 @@
 Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
-import dataclasses
-from copy import copy
-from math import acos, asin, atan2, cos, degrees, isnan, pi, radians, sin
-from typing import Dict, Iterator, List, Optional, Tuple
+
+from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl import calc_func
@@ -37,7 +36,7 @@ class HklType(BaseModel):
     id: str
     indegrees: bool
     ubcalc: UbCalcType
-    constraints: Dict[str, float]
+    constraints: Dict[str, Union[bool, float]]
 
     def __eq__(self, other):
         """Compare different HklType objects."""
@@ -71,7 +70,6 @@ class HklCalculation:
         name: Optional[str] = None,
         ubcalc: Optional[UBCalculation] = None,
         constraints: Optional[Constraints] = None,
-        indegrees=True,
     ):
         """Class is initialised here.
 
@@ -80,11 +78,11 @@ class HklCalculation:
         objects.
         """
         if (name is not None) and (ubcalc is None) and (constraints is None):
-            self.ubcalc = UBCalculation(name, indegrees=indegrees)
-            self.constraints = Constraints(indegrees=indegrees)
+            self.ubcalc = UBCalculation(name)
+            self.constraints = Constraints()
         elif (name is None) and (ubcalc is None) and (constraints is None):
-            self.ubcalc = UBCalculation(indegrees=indegrees)
-            self.constraints = Constraints(indegrees=indegrees)
+            self.ubcalc = UBCalculation()
+            self.constraints = Constraints()
         elif (name is None) and (ubcalc is not None) and (constraints is not None):
             self.ubcalc = ubcalc
             self.constraints = constraints
@@ -93,8 +91,6 @@ class HklCalculation:
                 "HklCalculation requires either a name or existing UBCalculation and "
                 + "Constraints objects to be initialised. Or, no arguments."
             )
-
-        self.indegrees = indegrees
 
     def __str__(self):
         """Return string representing class instance.
@@ -115,7 +111,7 @@ class HklCalculation:
         Parameters
         ----------
         pos: Position
-            Diffractometer position. In radians by default.
+            Diffractometer position.
 
         Returns
         -------
@@ -123,14 +119,7 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-        if self.indegrees:
-            position_dict = dataclasses.asdict(pos)
-            axes = [f.name for f in dataclasses.fields(Position)]
-            position = Position(*[radians(position_dict[axis]) for axis in axes])
-        else:
-            position = pos
-
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(position, False)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -138,9 +127,7 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(
-        self, pos: Position, convert: bool = True
-    ) -> Dict[str, float]:
+    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
 
         Parameters
@@ -154,26 +141,12 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
-        if self.indegrees:
-            pos_in_rad = Position(
-                radians(pos.mu),
-                radians(pos.delta),
-                radians(pos.nu),
-                radians(pos.eta),
-                radians(pos.chi),
-                radians(pos.phi),
-            )
-        else:
-            pos_in_rad = pos
-        # pos_in_rad = Position.asradians(pos) #Change 3: Position is by default in radians.
         theta, qaz = self.__theta_and_qaz_from_detector_angles(
-            pos_in_rad.delta,
-            pos_in_rad.nu,  # Change 4: changed from pos_in_rad to just pos.
+            pos.delta,
+            pos.nu,
         )  # (19)
 
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(
-            pos_in_rad, False
-        )  # Change 5: changed from pos_in_rad to just pos.
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
 
@@ -219,9 +192,6 @@ class HklCalculation:
             "betaout": betaout,
         }
 
-        if self.indegrees and convert:
-            return {k: degrees(v) for k, v in result.items()}
-
         return result
 
     def get_position(
@@ -242,8 +212,6 @@ class HklCalculation:
                 l miller index.
             wavelength: float
                 wavelength in Angstroms.
-            indegrees: bool
-                If True, return angles in degrees.
 
         Returns
         -------
@@ -259,23 +227,7 @@ class HklCalculation:
         for pos, virtual_angles in pos_virtual_angles_pairs:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
-            if self.indegrees:
-                # res_pos = Position.asdegrees(pos) #Change 6: Convert to degrees here, not within Position object.
-                res_pos = Position(
-                    degrees(pos.mu),
-                    degrees(pos.delta),
-                    degrees(pos.nu),
-                    degrees(pos.eta),
-                    degrees(pos.chi),
-                    degrees(pos.phi),
-                )
-                res_virtual_angles = {
-                    key: degrees(val) for key, val in virtual_angles.items()
-                }
-            else:
-                res_pos = copy(pos)
-                res_virtual_angles = copy(virtual_angles)
-            results.append((res_pos, res_virtual_angles))
+            results.append((pos, virtual_angles))
 
         return results
 
@@ -512,13 +464,7 @@ class HklCalculation:
 
             # get_virtual_angles will modify position based on self.indegrees. So here,
             # it must be correctly propagated.
-            use_pos = (
-                Position(*[degrees(axis) for axis in position.astuple])
-                if self.indegrees
-                else position
-            )
-
-            pseudo_angles = self.get_virtual_angles(use_pos, False)
+            pseudo_angles = self.get_virtual_angles(position)
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -603,11 +549,7 @@ class HklCalculation:
     def __verify_pos_map_to_hkl(
         self, h: float, k: float, l: float, wavelength: float, pos: Position
     ) -> None:
-        use_pos = pos
-        if self.indegrees:
-            use_pos = Position(*[degrees(axis) for axis in pos.astuple])
-
-        hkl = self.get_hkl(use_pos, wavelength)
+        hkl = self.get_hkl(pos, wavelength)
         e = 0.001
         if (abs(hkl[0] - h) > e) or (abs(hkl[1] - k) > e) or (abs(hkl[2] - l) > e):
             s = "ERROR: The angles calculated for hkl=({:f},{:f},{:f}) were {}.\n".format(
@@ -633,10 +575,7 @@ class HklCalculation:
     ) -> None:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
-        use_pos = pos
-        if self.indegrees:
-            use_pos = Position(*[degrees(axis) for axis in pos.astuple])
-        virtual_angles_readback = self.get_virtual_angles(use_pos, False)
+        virtual_angles_readback = self.get_virtual_angles(pos)
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
                 r = virtual_angles_readback[key]
@@ -671,7 +610,6 @@ class HklCalculation:
         """
         return HklType(
             id="",
-            indegrees=self.indegrees,
             ubcalc=self.ubcalc.asdict,
             constraints=self.constraints.asdict,
         )
@@ -692,9 +630,7 @@ class HklCalculation:
             Instance of this class created from the dictionary.
 
         """
-        constraint_data = data.constraints
         return HklCalculation(
-            ubcalc=UBCalculation.fromdict(data.ubcalc, indegrees=data.indegrees),
-            constraints=Constraints(constraint_data, indegrees=data.indegrees),
-            indegrees=data.indegrees,
+            ubcalc=UBCalculation.fromdict(data.ubcalc),
+            constraints=Constraints(data.constraints),
         )

@@ -4,7 +4,7 @@ A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
 from inspect import signature
-from math import acos, cos, degrees, pi, radians, sin, sqrt
+from math import acos, cos, pi, sin, sqrt
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
@@ -59,9 +59,7 @@ class CrystalHandler:
         B matrix.
     """
 
-    def __init__(
-        self, name: str, params: List[float], system: str, indegrees: bool = True
-    ) -> None:
+    def __init__(self, name: str, params: List[float], system: str) -> None:
         """Create a new crystal lattice and calculates B matrix.
 
         Parameters
@@ -80,7 +78,6 @@ class CrystalHandler:
         """
         self.name = name
         self.system = system
-        self.indegrees = indegrees
 
         self._set_cell_for_system(params)
 
@@ -233,9 +230,9 @@ class CrystalHandler:
             self.crystal["a"],
             self.crystal["b"],
             self.crystal["c"],
-            degrees(self.crystal["alpha"]) if self.indegrees else self.crystal["alpha"],
-            degrees(self.crystal["beta"]) if self.indegrees else self.crystal["beta"],
-            degrees(self.crystal["gamma"]) if self.indegrees else self.crystal["gamma"],
+            self.crystal["alpha"],
+            self.crystal["beta"],
+            self.crystal["gamma"],
         )
 
     def get_lattice_params(self) -> Tuple[str, Tuple[float, ...]]:
@@ -253,24 +250,16 @@ class CrystalHandler:
                     self.crystal["a"],
                     self.crystal["b"],
                     self.crystal["c"],
-                    degrees(self.crystal["alpha"])
-                    if self.indegrees
-                    else self.crystal["alpha"],
-                    degrees(self.crystal["beta"])
-                    if self.indegrees
-                    else self.crystal["beta"],
-                    degrees(self.crystal["gamma"])
-                    if self.indegrees
-                    else self.crystal["gamma"],
+                    self.crystal["alpha"],
+                    self.crystal["beta"],
+                    self.crystal["gamma"],
                 )
             elif self.system == "Monoclinic":
                 return self.system, (
                     self.crystal["a"],
                     self.crystal["b"],
                     self.crystal["c"],
-                    degrees(self.crystal["beta"])
-                    if self.indegrees
-                    else self.crystal["beta"],
+                    self.crystal["beta"],
                 )
             elif self.system == "Orthorhombic":
                 return self.system, (
@@ -283,9 +272,7 @@ class CrystalHandler:
             elif self.system == "Rhombohedral":
                 return self.system, (
                     self.crystal["a"],
-                    degrees(self.crystal["alpha"])
-                    if self.indegrees
-                    else self.crystal["alpha"],
+                    self.crystal["alpha"],
                 )
             elif self.system == "Cubic":
                 return self.system, (self.crystal["a"],)
@@ -299,17 +286,11 @@ class CrystalHandler:
     def _set_triclinic_cell(
         self, a: float, b: float, c: float, alpha: float, beta: float, gamma: float
     ) -> Tuple[float, float, float, float, float, float]:
-        if self.indegrees:
-            return a, b, c, radians(alpha), radians(beta), radians(gamma)
-
         return a, b, c, alpha, beta, gamma
 
     def _set_monoclinic_cell(
         self, a: float, b: float, c: float, beta: float
     ) -> Tuple[float, float, float, float, float, float]:
-        if self.indegrees:
-            return a, b, c, pi / 2, radians(beta), pi / 2
-
         return a, b, c, pi / 2, beta, pi / 2
 
     def _set_orthorhombic_cell(
@@ -330,8 +311,6 @@ class CrystalHandler:
     def _set_rhombohedral_cell(
         self, a: float, alpha: float
     ) -> Tuple[float, float, float, float, float, float]:
-        if self.indegrees:
-            return a, a, a, radians(alpha), radians(alpha), radians(alpha)
         return a, a, a, alpha, alpha, alpha
 
     def _set_cubic_cell(
@@ -342,9 +321,6 @@ class CrystalHandler:
     def _set_cell_full_params(
         self, a: float, b: float, c: float, alpha: float, beta: float, gamma: float
     ):
-        if self.indegrees:
-            return a, b, c, radians(alpha), radians(beta), radians(gamma)
-
         return a, b, c, alpha, beta, gamma
 
     def _set_cell_for_system(
@@ -412,7 +388,7 @@ class CrystalHandler:
         )
 
     @classmethod
-    def fromdict(cls, crystal_info: Crystal, indegrees: bool) -> "CrystalHandler":
+    def fromdict(cls, crystal_info: Crystal) -> "CrystalHandler":
         """Deserialise a typed dict into a class object instance.
 
         Returns a new CrystalHandler instance containing all information from the
@@ -441,6 +417,4 @@ class CrystalHandler:
             crystal_info["gamma"],
         ]
 
-        return cls(
-            crystal_info["name"], params, crystal_info["system"], indegrees=indegrees
-        )
+        return cls(crystal_info["name"], params, crystal_info["system"])

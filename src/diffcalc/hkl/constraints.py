@@ -2,8 +2,17 @@
 import dataclasses
 from enum import Enum
 from itertools import zip_longest
-from math import degrees, radians
-from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Collection,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from diffcalc.util import DiffcalcException
 
@@ -61,7 +70,6 @@ class Constraints:
     def __init__(
         self,
         constraints: Collection[Union[Tuple[str, float], str]] = None,
-        indegrees: bool = True,
     ):
         """Object for setting diffractometer angle constraints."""
         self._delta = _Constraint("delta", _con_category.DETECTOR, _con_type.VALUE)
@@ -105,7 +113,6 @@ class Constraints:
             self._bisect,
             self._omega,
         )
-        self.indegrees = indegrees
         if constraints is not None:
             if isinstance(constraints, dict):
                 self.asdict = constraints
@@ -165,7 +172,7 @@ class Constraints:
         }
 
     @property
-    def all(self) -> Dict[str, Union[float, bool, None]]:
+    def all(self) -> Dict[str, Optional[Union[float, bool]]]:
         """Get all angle names and values.
 
         Returns
@@ -173,7 +180,7 @@ class Constraints:
         Dict[str, Union[float, bool, None]]
             Dictionary with all angle names and values.
         """
-        return {con.name: getattr(self, con.name) for con in self._all}
+        return {con.name: getattr(self, "_" + con.name).value for con in self._all}
 
     @property
     def asdict(self) -> Dict[str, Union[float, bool]]:
@@ -182,7 +189,7 @@ class Constraints:
         Returns
         -------
         Dict[str, Union[float, bool]]
-            Dictionary with all constrained angle names and values.
+            Dictionary with all constrained angle names and values.all
         """
         return {con.name: getattr(self, con.name) for con in self._all if con.active}
 
@@ -243,21 +250,6 @@ class Constraints:
             else:
                 raise DiffcalcException(f"Invalid constraint parameter: {el}")
 
-    def _get_factory(self, con: _Constraint) -> Callable[[], Union[float, bool, None]]:
-        def _get_constraint() -> Optional[Union[float, bool, None]]:
-            if con.value is None:
-                return None
-            if isinstance(con.value, bool):
-                return con.value
-            elif isinstance(con.value, (int, float)):
-                return degrees(con.value) if self.indegrees else con.value
-            else:
-                raise DiffcalcException(
-                    f"Invalid {con.name} value type: {type(con.value)}"
-                )
-
-        return _get_constraint
-
     def _set_factory(
         self, con: _Constraint
     ) -> Callable[[Union[float, bool, None]], None]:
@@ -273,7 +265,7 @@ class Constraints:
                     )
             if con._type is _con_type.VALUE:
                 try:
-                    con.value = radians(float(val)) if self.indegrees else float(val)
+                    con.value = float(val)
                     return
                 except ValueError:
                     raise DiffcalcException(
@@ -331,7 +323,7 @@ class Constraints:
     @property
     def delta(self) -> Union[float, None]:
         """Constraint for delta angle."""
-        return self._get_factory(self._delta)()
+        return self._delta.value
 
     @delta.setter
     def delta(self, val):
@@ -344,7 +336,7 @@ class Constraints:
     @property
     def nu(self):
         """Constraint for nu angle."""
-        return self._get_factory(self._nu)()
+        return self._nu.value
 
     @nu.setter
     def nu(self, val):
@@ -357,7 +349,7 @@ class Constraints:
     @property
     def qaz(self):
         """Constraint for qaz angle."""
-        return self._get_factory(self._qaz)()
+        return self._qaz.value
 
     @qaz.setter
     def qaz(self, val):
@@ -370,7 +362,7 @@ class Constraints:
     @property
     def naz(self):
         """Constraint for naz angle."""
-        return self._get_factory(self._naz)()
+        return self._naz.value
 
     @naz.setter
     def naz(self, val):
@@ -409,7 +401,7 @@ class Constraints:
     @property
     def beta(self):
         """Constraint for beta angle."""
-        return self._get_factory(self._beta)()
+        return self._beta.value
 
     @beta.setter
     def beta(self, val):
@@ -606,42 +598,6 @@ class Constraints:
         lines.extend([self._report_constraint(con) for con in self._all if con.active])
         return lines
 
-    @classmethod
-    def asdegrees(cls, constraints: "Constraints") -> "Constraints":
-        """Create new Constraints object with angles in degrees.
-
-        Parameters
-        ----------
-        constraints: Constraints
-            Input Constraints object
-
-        Returns
-        -------
-        Constraints
-            New Constraints object with angles in degrees.
-        """
-        res = cls(constraints.asdict, indegrees=constraints.indegrees)
-        res.indegrees = True
-        return res
-
-    @classmethod
-    def asradians(cls, constraints: "Constraints") -> "Constraints":
-        """Create new Constraints object with angles in radians.
-
-        Parameters
-        ----------
-        constraints: Constraints
-            Input Position object
-
-        Returns
-        -------
-        Constraints
-            New Constraints object with angles in radians.
-        """
-        res = cls(constraints.asdict, indegrees=constraints.indegrees)
-        res.indegrees = False
-        return res
-
     def is_fully_constrained(self, con: Optional[_Constraint] = None) -> bool:
         """Check if configuration is fully constrained.
 
@@ -737,3 +693,218 @@ class Constraints:
         """Remove all constraints."""
         for con in self._all:
             delattr(self, con.name)
+
+
+# cons = Constraints({"alpha": 0})
+
+# cons.beta = 2
+# cons.chi = 0
+
+# print(cons.beta)
+
+
+class Types(Enum):
+    SAMPLE = 1
+    DETECTOR = 5
+    REFERENCE = 11
+
+
+detector_constraints = Enum("DETCONS", "DELTA NU QAZ NAZ")
+reference_constraints = Enum(
+    "REFCONS", "A_EQ_B ALPHA BETA PSI BIN_EQ_BOUT BETAIN BETAOUT"
+)
+sample_constraints = Enum("SAMPCONS", "MU ETA CHI PHI BISECT OMEGA")
+
+boolean_constraints = Enum("BOOLCONS", "A_EQ_B BIN_EQ_BOUT BISECT")
+
+
+@dataclasses.dataclass
+class FakeConstraints:
+    cons_as_dict: dataclasses.InitVar[Optional[Dict[str, Union[float, bool]]]]
+
+    def __post_init__(self, cons_as_dict) -> None:
+        self.delta: Optional[float] = None
+        self.nu: Optional[float] = None
+        self.qaz: Optional[float] = None
+        self.naz: Optional[float] = None
+        self.a_eq_b: Optional[bool] = None
+        self.alpha: Optional[float] = None
+        self.beta: Optional[float] = None
+        self.psi: Optional[float] = None
+        self.bin_eq_bout: Optional[bool] = None
+        self.betain: Optional[float] = None
+        self.betaout: Optional[float] = None
+        self.mu: Optional[float] = None
+        self.eta: Optional[float] = None
+        self.chi: Optional[float] = None
+        self.phi: Optional[float] = None
+        self.bisect: Optional[bool] = None
+        self.omega: Optional[float] = None
+
+        if not cons_as_dict:
+            return
+
+        # loop through each constraint and set it.
+        for constraint_name, constraint_value in cons_as_dict.items():
+            self._set_attr(constraint_name, constraint_value)
+        # if more than 3 constraints have been given, what do?
+        # take the most recent dictionary entries and use those.
+
+        # have a set attr func...
+        # active_cons = {k: v for k, v in vars(self).items() if v is not None}
+
+        # if len(active_cons) > 3:
+        #     raise DiffcalcException("More than three constraints given.")
+
+        # valid: bool = self._check_combination_valid()
+        # if not valid:
+        #     raise DiffcalcException("Constraint combination not valid.")
+        # keep it simple- if more than 3 constraints given, throw an error. Less than 3 is fine.
+
+    def _set_attr(self, attr: str, value: Optional[Union[float, bool]]):
+        # check what type of constraint this is, and how many others are 'active'
+        active_cons = self.active()
+
+        if len(active_cons) == 0:
+            self._set_correct_value_for_attr(attr, value)
+            return
+
+        names, categories = self.constraint_types(attr)
+
+        # 1. find the length of categories. Over 3? something needs to be replaced.
+        if len(categories) > 3:
+            print("needs replacement")
+
+        # 2. do you have two references now? or two detectors?
+        ref = [(idx, c) for idx, c in enumerate(categories) if c == Types.REFERENCE]
+        det = [(idx, c) for idx, c in enumerate(categories) if c == Types.DETECTOR]
+        samp = [(idx, c) for idx, c in enumerate(categories) if c == Types.SAMPLE]
+
+        # if length of ref or det is 2, replace old with the new.
+        if len(ref) == 2:
+            self._set_correct_value_for_attr(names[ref[0][0]], None)
+
+        if len(det) == 2:
+            self._set_correct_value_for_attr(names[det[0][0]], None)
+
+        # if you've given a sample, but 2 samples and a det or ref are set, throw.
+        if (len(samp) == 3) and (len(ref) == 1 ^ len(det) == 1):
+            raise DiffcalcException("Unconstrain a sample constraint.")
+
+        self._set_correct_value_for_attr(attr, value)
+
+    def _set_correct_value_for_attr(
+        self, attr: str, value: Optional[Union[bool, float]]
+    ):
+
+        boolean_cons = [con.name.lower() for con in boolean_constraints]
+
+        if value and (attr in boolean_cons):
+            setattr(self, attr, bool(value))
+        elif value and (attr not in boolean_cons):
+            setattr(self, attr, float(value))
+        else:
+            setattr(self, attr, None)
+
+    def constraint_types(
+        self, attr: str
+    ) -> Tuple[List[str], List[Literal[Types.DETECTOR, Types.REFERENCE, Types.SAMPLE]]]:
+        active_cons = self.active()
+
+        det_names = [con.name.lower() for con in detector_constraints]
+        samp_names = [con.name.lower() for con in sample_constraints]
+        ref_names = [con.name.lower() for con in reference_constraints]
+
+        con_type = []
+        con_name = []
+
+        for constraint, _ in active_cons.items():
+            if constraint in det_names:
+                con_type.append(Types.DETECTOR)
+            elif constraint in samp_names:
+                con_type.append(Types.SAMPLE)
+            elif constraint in ref_names:
+                con_type.append(Types.REFERENCE)
+            con_name.append(constraint)
+
+        if attr in det_names:
+            con_type.append(Types.DETECTOR)
+        elif attr in samp_names:
+            con_type.append(Types.SAMPLE)
+        elif attr in ref_names:
+            con_type.append(Types.REFERENCE)
+        else:
+            raise DiffcalcException(f"invalid constraint given: {attr}")
+        con_name.append(attr)
+
+        return con_name, con_type
+
+    def active(self):
+        return {k: v for k, v in vars(self).items() if v is not None}
+
+    def _check_combination_valid(self):
+        """Check if constraints are valid."""
+        det_names = [con.name.lower() for con in detector_constraints]
+        samp_names = [con.name.lower() for con in sample_constraints]
+        ref_names = [con.name.lower() for con in reference_constraints]
+
+        det = {
+            k: v for k, v in vars(self).items() if (k in det_names) and (v is not None)
+        }
+        samp = {
+            k: v for k, v in vars(self).items() if (k in samp_names) and (v is not None)
+        }
+        ref = {
+            k: v for k, v in vars(self).items() if (k in ref_names) and (v is not None)
+        }
+
+        total_cons = len(ref) + len(samp) + len(det)
+
+        if (len(ref) > 1) or (len(det) > 1):
+            return False
+        if total_cons < 3:
+            return True
+
+        if len(det) == len(samp) == len(ref):
+            return True
+        elif len(samp) == 2 and len(det) == 1:
+            if "bisect" in samp:
+                return ("mu" in samp) or ("eta" in samp) or ("omega" in samp)
+
+        return all([con in {"mu", "eta", "chi", "phi"} for con in samp.keys()])
+        # if det samp  and ref all length 1, return True
+        # if 2 samp and 1 ref, return True only if samp constraints are both one of mu, eta, chi or phi.
+
+        # if 2 samp and 1 det, return true only if samp constraints are both one of mu, eta, chi or phi, or if one is bisect the other is mu, eta, or omega
+        # if 3 samp, return true only if all samp constraints are one of mu, eta, chi or phi.
+
+
+"""    List of the available constraint combinations:
+
+        1 x samp, 1 x ref and 1 x det:  all
+
+        2 x samp and 1 x ref:  chi & phi
+                               chi & eta
+                               chi & mu
+                               mu & eta
+                               mu & phi
+                               eta & phi
+
+        2 x samp and 1 x det:  chi & phi
+                               mu & eta
+                               mu & phi
+                               mu & chi
+                               eta & phi
+                               eta & chi
+                               bisect & mu
+                               bisect & eta
+                               bisect & omega
+
+        3 x samp:              eta, chi & phi
+                               mu, chi & phi
+                               mu, eta & phi
+                               mu, eta & chi
+"""
+
+wat = FakeConstraints({"alpha": 1.0, "beta": 2.0})
+print("wat")
