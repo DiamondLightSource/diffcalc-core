@@ -5,7 +5,7 @@ crystal plane geometric properties.
 """
 from inspect import signature
 from math import acos, cos, degrees, pi, radians, sin, sqrt
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 from diffcalc.util import DiffcalcException, angle_between_vectors, zero_round
@@ -14,6 +14,12 @@ from typing_extensions import TypedDict
 
 
 class Crystal(TypedDict):
+    """Internal Crystal definition.
+
+    Conversions between degrees/radians and other functions are managed by the
+    CrystalHandler.
+    """
+
     name: str
     system: str
     a: float
@@ -333,9 +339,17 @@ class CrystalHandler:
     ) -> Tuple[float, float, float, float, float, float]:
         return a, a, a, pi / 2, pi / 2, pi / 2
 
+    def _set_cell_full_params(
+        self, a: float, b: float, c: float, alpha: float, beta: float, gamma: float
+    ):
+        if self.indegrees:
+            return a, b, c, radians(alpha), radians(beta), radians(gamma)
+
+        return a, b, c, alpha, beta, gamma
+
     def _set_cell_for_system(
         self,
-        params: List[float],  # change, make this a list of params instead.
+        params: List[float],
     ) -> None:
         """Any angles are already in radians."""
         system_mappings: Dict[
@@ -355,10 +369,13 @@ class CrystalHandler:
 
         if len(params) == required_length:
             (a, b, c, alpha, beta, gamma) = system_method(*params)
+        elif len(params) == 6:
+            (a, b, c, alpha, beta, gamma) = self._set_cell_full_params(*params)
         else:
             raise DiffcalcException(
                 "Parameters to construct the Crystal do not match specified system."
-                + " System {system} requires exactly {required_length} parameters."
+                + f" {self.system} system requires exactly {required_length} "
+                + f"or 6 parameter(s), but got {len(params)}."
             )
 
         self._set_reciprocal_cell(a, b, c, alpha, beta, gamma)
@@ -377,10 +394,10 @@ class CrystalHandler:
     def asdict(self) -> Crystal:
         """Serialise the crystal into a JSON compatible dictionary.
 
-        Note, because the class automatically assumes all angles are
-        in degrees, the returned angles alpha, beta and gamma are given
-        in degrees such that the dictionary can be directly unpacked as is.
-        TODO: change!
+        Returns a typed dictionary containing all unit cell parameters.
+        This will correctly return in either degrees or radians depending on
+        self.indegrees.
+
         Returns
         -------
         Dict[str, Any]
@@ -395,7 +412,26 @@ class CrystalHandler:
         )
 
     @classmethod
-    def fromdict(cls, crystal_info: Dict[str, Any]) -> "CrystalHandler":
+    def fromdict(cls, crystal_info: Crystal, indegrees: bool) -> "CrystalHandler":
+        """Deserialise a typed dict into a class object instance.
+
+        Returns a new CrystalHandler instance containing all information from the
+        typed dict. CrystalHandler automatically creates a crystal instance within
+        itself that is in radians.
+
+        Parameters
+        ----------
+        crystal_info: Crystal
+            A typed dict containing basic crystal information.
+        indegrees: bool
+            Boolean to determine if the crystal_info is in degrees or not.
+
+        Returns
+        -------
+        CrystalHandler
+            Instance of this class.
+
+        """
         params = [
             crystal_info["a"],
             crystal_info["b"],
@@ -405,4 +441,6 @@ class CrystalHandler:
             crystal_info["gamma"],
         ]
 
-        return cls(crystal_info["name"], params, crystal_info["system"])
+        return cls(
+            crystal_info["name"], params, crystal_info["system"], indegrees=indegrees
+        )

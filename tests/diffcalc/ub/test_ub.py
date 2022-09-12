@@ -18,6 +18,7 @@
 
 from math import degrees, radians, sqrt
 
+import numpy as np
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
@@ -121,7 +122,7 @@ CRYSTAL ORIENTATIONS
         ubcalc = UBCalculation("test_str_UB_unity")
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
-        ubcalc.set_lattice("xtal", "Cubic", 1)
+        ubcalc.set_lattice("xtal", [1], "Cubic")
         ubcalc.set_miscut(None, 0.0)
 
         assert (
@@ -176,7 +177,7 @@ CRYSTAL ORIENTATIONS
         ubcalc = UBCalculation("test_str")
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
-        ubcalc.set_lattice("xtal", "Cubic", 1)
+        ubcalc.set_lattice("xtal", [1], "Cubic")
         ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
         ubcalc.add_orientation(
             (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
@@ -243,19 +244,28 @@ CRYSTAL ORIENTATIONS
             ubcalc.set_lattice(1, 2)
         with pytest.raises(TypeError):
             ubcalc.set_lattice("HCl")
-        ubcalc.set_lattice("NaCl", 1.1)
-        eq_(("NaCl", 1.1, 1.1, 1.1, 90, 90, 90), ubcalc.crystal.get_lattice())
-        ubcalc.set_lattice("NaCl", 1.1, 2.2)
-        eq_(("NaCl", 1.1, 1.1, 2.2, 90, 90, 90), ubcalc.crystal.get_lattice())
-        ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3)
-        eq_(("NaCl", 1.1, 2.2, 3.3, 90, 90, 90), ubcalc.crystal.get_lattice())
-        ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91)
-        eq_(("NaCl", 1.1, 2.2, 3.3, 90, 91, 90), ubcalc.crystal.get_lattice())
-        with pytest.raises(TypeError):
-            ubcalc.set_lattice(("NaCl", 1.1, 2.2, 3.3, 91, 92))
-        ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91, 92, 93)
+        ubcalc.set_lattice("NaCl", [1.1])
+        eq_(("NaCl", "Cubic", 1.1, 1.1, 1.1, 90, 90, 90), ubcalc.crystal.get_lattice())
+        ubcalc.set_lattice("NaCl", [1.1, 2.2])
+        eq_(
+            ("NaCl", "Tetragonal", 1.1, 1.1, 2.2, 90, 90, 90),
+            ubcalc.crystal.get_lattice(),
+        )
+        ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3])
+        eq_(
+            ("NaCl", "Orthorhombic", 1.1, 2.2, 3.3, 90, 90, 90),
+            ubcalc.crystal.get_lattice(),
+        )
+        ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, 91])
+        eq_(
+            ("NaCl", "Monoclinic", 1.1, 2.2, 3.3, 90, 91, 90),
+            ubcalc.crystal.get_lattice(),
+        )
+        with pytest.raises(DiffcalcException):
+            ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, 91, 92])
+        ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, 91, 92, 93])
         assert_iterable_almost_equal(
-            ("NaCl", 1.1, 2.2, 3.3, 91, 92, 92.99999999999999),
+            ("NaCl", "Triclinic", 1.1, 2.2, 3.3, 91, 92, 92.99999999999999),
             ubcalc.crystal.get_lattice(),
         )
 
@@ -272,12 +282,24 @@ CRYSTAL ORIENTATIONS
         energy = 1.10
         ubcalc.add_reflection((1.1, 1.2, 1.3), pos1, energy)
         result = reflist.get_reflection(1)
-        eq_(result.astuple, ((1.1, 1.2, 1.3), pos1.astuple, 1.10, None))
+
+        hkl, pos_out, energy_out, tag = result.astuple
+
+        assert hkl == (1.1, 1.2, 1.3)
+        assert (np.round(pos_out, 12) == np.round(pos1.astuple, 12)).all()
+        assert energy_out == energy
+        assert tag is None
 
         energy = 2.10
         ubcalc.add_reflection((2.1, 2.2, 2.3), pos2, energy, "atag")
         result = reflist.get_reflection(2)
-        eq_(result.astuple, ((2.1, 2.2, 2.3), pos2.astuple, 2.10, "atag"))
+
+        hkl, pos_out, energy_out, tag = result.astuple
+
+        assert hkl == (2.1, 2.2, 2.3)
+        assert (np.round(pos_out, 12) == np.round(pos2.astuple, 12)).all()
+        assert energy_out == energy
+        assert tag == "atag"
 
         with pytest.raises(TypeError):
             ubcalc.add_reflection((3.1, 3.2, 3.3), pos3, 3.10)
@@ -286,7 +308,13 @@ CRYSTAL ORIENTATIONS
 
         ubcalc.add_reflection((4.1, 4.2, 4.3), pos4, 4.10, "tag2")
         result = reflist.get_reflection(3)
-        eq_(result.astuple, ((4.1, 4.2, 4.3), pos4.astuple, 4.10, "tag2"))
+
+        hkl, pos_out, energy_out, tag = result.astuple
+
+        assert hkl == (4.1, 4.2, 4.3)
+        assert (np.round(pos_out, 12) == np.round(pos4.astuple, 12)).all()
+        assert energy_out == 4.10
+        assert tag == "tag2"
 
     def test_edit_reflection(self):
         pos1 = Position(1.1, 1.2, 1.3, 1.4, 1.5, 1.6)
@@ -298,7 +326,13 @@ CRYSTAL ORIENTATIONS
 
         reflist = ubcalc.reflist  # for convenience
         result = reflist.get_reflection(1)
-        eq_(result.astuple, ((1.1, 2, 3.1), pos2.astuple, 11, "tag1"))
+
+        hkl, pos_out, energy_out, tag = result.astuple
+
+        assert hkl == (1.1, 2, 3.1)
+        assert (np.round(pos_out, 12) == np.round(pos2.astuple, 12)).all()
+        assert energy_out == 11
+        assert tag == "tag1"
 
     def test_swap_reflections(self):
         ubcalc = UBCalculation("testing_swapref")
@@ -454,7 +488,7 @@ CRYSTAL ORIENTATIONS
 
         for s in scenarios.sessions():
             ubcalc = UBCalculation("test_calcub")
-            ubcalc.set_lattice(s.name, *s.lattice)
+            ubcalc.set_lattice(s.name, [*s.lattice])
             r = s.ref1
             ubcalc.add_reflection((r.h, r.k, r.l), r.pos, r.energy, r.tag)
             r = s.ref2
@@ -474,7 +508,7 @@ CRYSTAL ORIENTATIONS
             ubcalc.calc_ub()
 
         s = scenarios.sessions()[1]
-        ubcalc.set_lattice(s.name, *s.lattice)
+        ubcalc.set_lattice(s.name, [*s.lattice])
         r1 = s.ref1
         orient1 = array([[1], [0], [0]]).T.tolist()[0]
         tag1 = "or" + r1.tag
@@ -516,7 +550,7 @@ CRYSTAL ORIENTATIONS
 
     def test_refine_ub(self):
         ubcalc = UBCalculation("testing_refine_ub")
-        ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
+        ubcalc.set_lattice("xtal", [1, 1, 1, 90, 90, 90], "Cubic")
         ubcalc.set_miscut(None, 0)
         ubcalc.refine_ub(
             (1, 1, 0),
@@ -525,7 +559,10 @@ CRYSTAL ORIENTATIONS
             True,
             True,
         )
-        eq_(("xtal", sqrt(2.0), sqrt(2.0), 1, 90, 90, 90), ubcalc.crystal.get_lattice())
+        eq_(
+            ("xtal", "Cubic", sqrt(2.0), sqrt(2.0), 1, 90, 90, 90),
+            ubcalc.crystal.get_lattice(),
+        )
         mneq_(
             ubcalc.U,
             self._refineub_matrix,
@@ -539,7 +576,7 @@ CRYSTAL ORIENTATIONS
             a, b, c, alpha, beta, gamma = s.lattice
             for r in s.reflist:
                 ubcalc.add_reflection((r.h, r.k, r.l), r.pos, r.energy, r.tag)
-            ubcalc.set_lattice(s.name, s.system, *s.lattice)
+            ubcalc.set_lattice(s.name, [*s.lattice], s.system)
             ubcalc.calc_ub(s.ref1.tag, s.ref2.tag)
 
             init_latt = (
@@ -550,13 +587,13 @@ CRYSTAL ORIENTATIONS
                 1.06 * beta,
                 0.95 * gamma,
             )
-            ubcalc.set_lattice(s.name, s.system, *init_latt)
+            ubcalc.set_lattice(s.name, [*init_latt], s.system)
             ubcalc.set_miscut([0.2, 0.8, 0.1], 3.0, True)
 
             ubcalc.fit_ub([r.tag for r in s.reflist], True, True)
             assert ubcalc.crystal.system == s.system
             mneq_(
-                array([ubcalc.crystal.get_lattice()[1:]]),
+                array([ubcalc.crystal.get_lattice()[2:]]),
                 array([s.lattice]),
                 2,
                 note="wrong lattice after fitting UB",
@@ -570,7 +607,7 @@ CRYSTAL ORIENTATIONS
 
     def test_get_ttheta_from_hkl(self):
         ubcalc = UBCalculation("test_get_ttheta_from_hkl")
-        ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
+        ubcalc.set_lattice("cube", [1, 1, 1, 90, 90, 90])
         assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(
             radians(60)
         )
@@ -578,7 +615,7 @@ CRYSTAL ORIENTATIONS
     def test_miscut(self):
         ubcalc = UBCalculation("testsetmiscut")
         ubcalc.reference = ReferenceVector((0, 0, 1), False)
-        ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
+        ubcalc.set_lattice("cube", [1, 1, 1, 90, 90, 90])
         beam_axis = array([[0], [1], [0]]).T.tolist()[0]
         beam_maxis = array([[0], [-1], [0]]).T.tolist()[0]
         ubcalc.set_miscut(beam_axis, radians(30))
@@ -600,9 +637,11 @@ CRYSTAL ORIENTATIONS
     )
     def test_get_miscut_from_hkl(self, axis, angle, hkl):
         ubcalc = UBCalculation("testing_calc_miscut")
-        ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
+        ubcalc.set_lattice("xtal", [1, 1, 1, 90, 90, 90])
         ubcalc.set_miscut(axis, radians(angle))
-        hklcalc = HklCalculation(ubcalc, Constraints({"delta": 0, "psi": 0, "eta": 0}))
+        hklcalc = HklCalculation(
+            ubcalc=ubcalc, constraints=Constraints({"delta": 0, "psi": 0, "eta": 0})
+        )
         pos, _ = hklcalc.get_position(*hkl, 1.0)[0]
         ubcalc.set_miscut(None, 0)
         miscut, miscut_axis = ubcalc.get_miscut_from_hkl(hkl, pos)
@@ -620,7 +659,7 @@ CRYSTAL ORIENTATIONS
     )
     def test_get_miscut(self, axis, angle):
         ubcalc = UBCalculation("testing_calc_miscut")
-        ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
+        ubcalc.set_lattice("xtal", [1, 1, 1, 90, 90, 90])
         ubcalc.set_miscut(axis, radians(angle))
         test_angle, test_axis = ubcalc.get_miscut()
         assert degrees(test_angle) == pytest.approx(angle)

@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import degrees, isnan, pi
+from math import isnan
 from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
@@ -68,7 +68,7 @@ class Test_position_to_virtual_angles:
         if isnan(expected):
             assert isnan(calculated)
         else:
-            assert_almost_equal(degrees(calculated), expected)
+            assert_almost_equal(calculated, expected)
 
     # theta
 

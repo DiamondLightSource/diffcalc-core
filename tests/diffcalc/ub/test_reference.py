@@ -95,10 +95,3 @@ def test_n_phi_from_hkl_with_unity_matrix_001(reference):
 def test_n_phi_from_hkl_with_unity_matrix_010(reference):
     reference = ReferenceVector((0, 1, 0), True)
     assert_2darray_almost_equal(reference.get_array(), array([[0], [1], [0]]))
-
-
-def test_serialisation(reference):
-    reference_json = reference.asdict
-    reformed_reference = ReferenceVector(**reference_json)
-
-    assert reformed_reference.asdict == reference.asdict

@@ -125,6 +125,6 @@ class TestReflectionList:
     def test_serialisation(self):
         orig_reflist = self.reflist
         reflist_json = orig_reflist.asdict
-        reformed_reflist = ReflectionList.fromdict(reflist_json)
+        reformed_reflist = ReflectionList.fromdict(reflist_json, True)
 
         assert reformed_reflist.asdict == orig_reflist.asdict

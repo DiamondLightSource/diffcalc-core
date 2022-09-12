@@ -22,9 +22,7 @@ from math import cos, radians, sin, sqrt
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
-from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
-from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
 from numpy import array
 

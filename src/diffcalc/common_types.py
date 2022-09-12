@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CrystalData:
-    """diffcalc.ub.crystal.Crystal objects are serialised in this way"""
+    """diffcalc.ub.crystal.Crystal objects are serialised in this way."""
 
     name: str
     system: str

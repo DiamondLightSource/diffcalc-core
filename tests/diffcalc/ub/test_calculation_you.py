@@ -55,7 +55,7 @@ REF1b = PosFromI16sEuler(1, 91, 30, 0, 60, 0)
 
 def testAgainstI16Results():
     ubcalc = UBCalculation("cubcalc")
-    ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
@@ -64,7 +64,7 @@ def testAgainstI16Results():
 
 def test_serialisation():
     ubcalc = UBCalculation()
-    ubcalc.set_lattice(name="test", a=4.913, c=5.405)
+    ubcalc.set_lattice("test", [4.913, 5.405])
     ubcalc.add_reflection(
         hkl=(0, 0, 1),
         position=Position(7.31, 0, 10.62, 0, 0, 0),
@@ -75,7 +75,7 @@ def test_serialisation():
     ubcalc.n_hkl = (1, 0, 0)
 
     ubcalc_json = ubcalc.asdict
-    new_ubcalc = UBCalculation.fromdict(ubcalc_json)
+    new_ubcalc = UBCalculation.fromdict(ubcalc_json, ubcalc.indegrees)
 
     ubcalc.calc_ub("refl1", "plane")
     new_ubcalc.calc_ub("refl1", "plane")

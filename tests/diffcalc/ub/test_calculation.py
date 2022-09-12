@@ -43,7 +43,7 @@ REF1b = PosFromI16sEuler(1, 91, 30, 0, 60, 0)
 
 def testAgainstI16Results():
     ubcalc = UBCalculation("cubcalc")
-    ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
@@ -65,14 +65,14 @@ def test_save_and_restore_empty_ubcalc(tmpdir):
 def test_save_and_restore_ubcalc_with_lattice(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_lattice"
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
 
     test_file = tmpdir / "test.pkl"
     ubcalc.pickle(test_file)
 
     ubcalc2 = UBCalculation.load(test_file)
 
-    eq_(ubcalc2.crystal.get_lattice(), ("latt", 1, 1, 1, 90, 90, 90))
+    eq_(ubcalc2.crystal.get_lattice(), ("latt", "Triclinic", 1, 1, 1, 90, 90, 90))
 
 
 def test_save_and_restore_ubcalc_with_reflections(tmpdir):
@@ -98,7 +98,7 @@ def test_save_and_restore_ubcalc_with_reflections(tmpdir):
 def test_save_and_restore_ubcalc_with_UB_from_two_ref(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_UB_from_two_ref"
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
@@ -114,7 +114,7 @@ def test_save_and_restore_ubcalc_with_UB_from_two_ref(tmpdir):
 def test_save_and_restore_ubcalc_with_UB_from_one_ref(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_UB_from_one_ref"
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1, places=2)
@@ -146,7 +146,7 @@ def test_save_and_restore_ubcalc_with_manual_u(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_manual_u"
     U = array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
     ubcalc.set_u(U)
     matrixeq_(ubcalc.UB, U * 2 * pi)
     filename = tmpdir / "test_file.pkl"

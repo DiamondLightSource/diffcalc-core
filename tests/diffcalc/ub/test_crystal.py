@@ -19,7 +19,7 @@
 from math import atan, radians, sqrt
 
 import pytest
-from diffcalc.ub.crystal import Crystal
+from diffcalc.ub.crystal import CrystalHandler
 from numpy import array
 
 from tests.diffcalc import scenarios
@@ -46,7 +46,7 @@ class TestCrystalUnderTest:
         for sess in scenarios.sessions():
             if sess.bmatrix is None:
                 continue
-            cut = Crystal("tc", *sess.lattice)
+            cut = CrystalHandler("tc", [*sess.lattice], "Triclinic")
             desired = array(sess.bmatrix)
             print(desired.tolist())
             answer = cut.B
@@ -64,27 +64,27 @@ class TestCrystalUnderTest:
             ("Rhombohedral", (1, 10), (1, 1, 1, 10, 10, 10)),
             ("Cubic", (1,), (1, 1, 1, 90, 90, 90)),
             pytest.param(
-                "Orthorombic",
+                "Orthorhombic",
                 (1, 2, 3),
                 (1, 2, 3, 90, 90, 90),
-                marks=pytest.mark.xfail(raises=TypeError),
+                # marks=pytest.mark.xfail(raises=TypeError),
             ),
         ],
     )
     def test_get_lattice_params(self, xtal_system, unit_cell, full_unit_cell):
-        xtal = Crystal("xtal", xtal_system, *unit_cell)
+        xtal = CrystalHandler("xtal", [*unit_cell], xtal_system)
         test_xtal_system, test_unit_cell = xtal.get_lattice_params()
         assert test_xtal_system == xtal_system
         assert_iterable_almost_equal(test_unit_cell, unit_cell)
 
-        xtal_name, a1, a2, a3, alpha1, alpha2, alpha3 = xtal.get_lattice()
+        xtal_name, _, a1, a2, a3, alpha1, alpha2, alpha3 = xtal.get_lattice()
         assert xtal_name == "xtal"
         assert_iterable_almost_equal(
             (a1, a2, a3, alpha1, alpha2, alpha3), full_unit_cell
         )
 
     def test_get_hkl_plane_angle(self):
-        xtal = Crystal("cube", 1, 1, 1, 90, 90, 90)
+        xtal = CrystalHandler("cube", [1, 1, 1, 90, 90, 90], "Cubic")
         assert xtal.get_hkl_plane_angle((0, 0, 1), (0, 0, 2)) == pytest.approx(0)
         assert xtal.get_hkl_plane_angle((0, 1, 0), (0, 0, 2)) == pytest.approx(
             radians(90)
@@ -106,15 +106,15 @@ class TestCrystalUnderTest:
         )
 
     def test__str__(self):
-        cut = Crystal("HCl", 1, 2, 3, 4, 5, 6)
+        cut = CrystalHandler("HCl", [1, 2, 3, 4, 5, 6], "Triclinic")
         print(cut.__str__())
 
     def test_serialisation(self):
         for sess in scenarios.sessions():
             if sess.bmatrix is None:
                 continue
-            crystal = Crystal("tc", *sess.lattice)
+            crystal = CrystalHandler("tc", [*sess.lattice], "Triclinic")
             cut_json = crystal.asdict
-            reformed_crystal = Crystal(**cut_json)
+            reformed_crystal = CrystalHandler.fromdict(cut_json, True)
 
             assert (reformed_crystal.B == crystal.B).all()

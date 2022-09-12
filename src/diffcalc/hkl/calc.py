@@ -29,10 +29,23 @@ from pydantic import BaseModel
 
 
 class HklType(BaseModel):
+    """Datastructure for serialising HklCalculation objects.
+
+    BaseModel is required as a base class for this to be compatible with fastAPI.
+    """
+
     id: str
     indegrees: bool
     ubcalc: UbCalcType
     constraints: Dict[str, float]
+
+    def __eq__(self, other):
+        """Compare different HklType objects."""
+        same_id = self.id == other.id
+        same_units = self.indegrees == other.indegrees
+        same_ubcalc = self.ubcalc == other.ubcalc
+        same_constraints = self.constraints == other.constraints
+        return same_id and same_units and same_ubcalc and same_constraints
 
 
 class HklCalculation:
@@ -110,7 +123,6 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-
         if self.indegrees:
             position_dict = dataclasses.asdict(pos)
             axes = [f.name for f in dataclasses.fields(Position)]
@@ -126,7 +138,9 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
+    def get_virtual_angles(
+        self, pos: Position, convert: bool = True
+    ) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
 
         Parameters
@@ -205,8 +219,9 @@ class HklCalculation:
             "betaout": betaout,
         }
 
-        # Change ?: removed conversion to degrees of the resulting angles if
-        # 'asdegrees' parameter is set.
+        if self.indegrees and convert:
+            return {k: degrees(v) for k, v in result.items()}
+
         return result
 
     def get_position(
@@ -503,7 +518,7 @@ class HklCalculation:
                 else position
             )
 
-            pseudo_angles = self.get_virtual_angles(use_pos)
+            pseudo_angles = self.get_virtual_angles(use_pos, False)
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -621,9 +636,7 @@ class HklCalculation:
         use_pos = pos
         if self.indegrees:
             use_pos = Position(*[degrees(axis) for axis in pos.astuple])
-        virtual_angles_readback = self.get_virtual_angles(
-            use_pos
-        )  # Change ?: removed redundant boolean arg for 'asdegrees'
+        virtual_angles_readback = self.get_virtual_angles(use_pos, False)
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
                 r = virtual_angles_readback[key]

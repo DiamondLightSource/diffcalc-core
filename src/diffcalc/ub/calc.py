@@ -139,6 +139,8 @@ class ReferenceVector:
 
 
 class UbCalcType(TypedDict):
+    """Typed dictionary for UBCalculation object JSON storage."""
+
     name: str
     crystal: Optional[Crystal]
     reflist: List[Reflection]
@@ -1395,14 +1397,11 @@ class UBCalculation:
     def asdict(self) -> UbCalcType:
         """Serialise the object into a JSON compatible dictionary.
 
-        TODO: update this.
         Returns
         -------
-        Dict[str, Any]
-            Dictionary containing properties of this class. Can
-            be unpacked to recreate this object using fromdict
-            class method below.
-
+        UbcalcType
+            typed dictionary containing necessary information to recreate this
+            object instance.
         """
         return UbCalcType(
             name=self.name,
@@ -1421,9 +1420,9 @@ class UBCalculation:
 
         Parameters
         ----------
-        data: Dict[str, Any]
-            Dictionary containing properties of this class, must have the
-            equivalent structure to the asdict property.
+        data: UbCalcType
+            Typed dictionary containing necessary information for initialising an
+            instance of this class
 
         Returns
         -------
@@ -1431,22 +1430,8 @@ class UBCalculation:
             Instance of this class created from the dictionary.
 
         """
-
         if data["crystal"] is not None:
-            params = [
-                data["crystal"]["a"],
-                data["crystal"]["b"],
-                data["crystal"]["c"],
-                data["crystal"]["alpha"],
-                data["crystal"]["beta"],
-                data["crystal"]["gamma"],
-            ]
-            crystal = CrystalHandler(
-                name=data["crystal"]["name"],
-                params=params,
-                system=data["crystal"]["system"],
-                indegrees=indegrees,
-            )
+            crystal = CrystalHandler.fromdict(data["crystal"], indegrees=indegrees)
         else:
             crystal = None
 
