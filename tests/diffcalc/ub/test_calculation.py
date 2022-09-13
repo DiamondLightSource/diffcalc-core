@@ -17,7 +17,7 @@
 ###
 
 import pickle
-from math import pi
+from math import pi, radians
 
 import pytest
 from diffcalc.ub.calc import UBCalculation
@@ -37,13 +37,13 @@ UB1 = array(
 ) * (2 * pi)
 
 EN1 = 12.39842
-REF1a = PosFromI16sEuler(1, 1, 30, 0, 60, 0)
-REF1b = PosFromI16sEuler(1, 91, 30, 0, 60, 0)
+REF1a = PosFromI16sEuler(radians(1), radians(1), radians(30), 0, radians(60), 0)
+REF1b = PosFromI16sEuler(radians(1), radians(91), radians(30), 0, radians(60), 0)
 
 
 def testAgainstI16Results():
     ubcalc = UBCalculation("cubcalc")
-    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
+    ubcalc.set_lattice("latt", [1, 1, 1, pi / 2, pi / 2, pi / 2])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
@@ -98,7 +98,7 @@ def test_save_and_restore_ubcalc_with_reflections(tmpdir):
 def test_save_and_restore_ubcalc_with_UB_from_two_ref(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_UB_from_two_ref"
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
+    ubcalc.set_lattice("latt", [1, 1, 1, pi / 2, pi / 2, pi / 2])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
@@ -114,7 +114,7 @@ def test_save_and_restore_ubcalc_with_UB_from_two_ref(tmpdir):
 def test_save_and_restore_ubcalc_with_UB_from_one_ref(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_UB_from_one_ref"
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
+    ubcalc.set_lattice("latt", [1, 1, 1, pi / 2, pi / 2, pi / 2])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1, places=2)
@@ -146,7 +146,7 @@ def test_save_and_restore_ubcalc_with_manual_u(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_manual_u"
     U = array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     ubcalc = UBCalculation(NAME)
-    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
+    ubcalc.set_lattice("latt", [1, 1, 1, pi / 2, pi / 2, pi / 2])
     ubcalc.set_u(U)
     matrixeq_(ubcalc.UB, U * 2 * pi)
     filename = tmpdir / "test_file.pkl"
