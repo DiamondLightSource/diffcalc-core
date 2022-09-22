@@ -1,7 +1,7 @@
 """Module providing objects for working with reference reflections and orientations."""
 import dataclasses
-from dataclasses import asdict, fields
-from typing import Any, Dict, List, Tuple, Union
+from dataclasses import dataclass, field, fields
+from typing import List, Tuple, Union
 
 from diffcalc.hkl.geometry import Position
 
@@ -67,32 +67,8 @@ class Reflection:
         h, k, l, pos, en, tag = dataclasses.astuple(self)
         return (h, k, l), pos, en, tag
 
-    @classmethod
-    def fromdict(cls, data: Dict[str, Any]) -> "Reflection":
-        """Construct Reflection instance from a JSON compatible dictionary.
 
-        Parameters
-        ----------
-        data: Dict[str, Any]
-            Dictionary containing properties of reflection class, must have the
-            equivalent structure of asdict property above.
-
-        Returns
-        -------
-        Reflection
-            Instance of this class created from the dictionary.
-
-        """
-        return cls(
-            data["h"],
-            data["k"],
-            data["l"],
-            Position(**data["pos"]),
-            data["energy"],
-            data["tag"],
-        )
-
-
+@dataclass
 class ReflectionList:
     """Class containing collection of reference reflections.
 
@@ -102,8 +78,7 @@ class ReflectionList:
         List containing reference reflections.
     """
 
-    def __init__(self, reflections: List[Reflection] = None):
-        self.reflections: List[Reflection] = reflections if reflections else []
+    reflections: List[Reflection] = field(default_factory=list)
 
     def get_tag_index(self, tag: str) -> int:
         """Get a reference reflection index.
@@ -385,50 +360,8 @@ class Orientation:
         h, k, l, x, y, z, pos, tag = dataclasses.astuple(self)
         return (h, k, l), (x, y, z), pos, tag
 
-    @property
-    def asdict(self) -> Dict[str, Any]:
-        """Serialise the object into a JSON compatible dictionary.
 
-        Returns
-        -------
-        Dict[str, Any]
-            Dictionary containing properties of this class. Can
-            be unpacked to recreate this object using fromdict
-            class method below.
-
-        """
-        class_info = self.__dict__.copy()
-        class_info["pos"] = asdict(self.pos)
-        return class_info
-
-    @classmethod
-    def fromdict(cls, data: Dict[str, Any]) -> "Orientation":
-        """Construct Orientation instance from a JSON compatible dictionary.
-
-        Parameters
-        ----------
-        data: Dict[str, Any]
-            Dictionary containing properties of this class, must have the
-            equivalent structure to the asdict property.
-
-        Returns
-        -------
-        Orientation
-            Instance of this class created from the dictionary.
-
-        """
-        return cls(
-            data["h"],
-            data["k"],
-            data["l"],
-            data["x"],
-            data["y"],
-            data["z"],
-            Position(**data["pos"]),
-            data["tag"],
-        )
-
-
+@dataclass
 class OrientationList:
     """Class containing collection of reference orientations.
 
@@ -438,8 +371,7 @@ class OrientationList:
         List containing reference orientations.
     """
 
-    def __init__(self, orientations=None):
-        self.orientations: List[Orientation] = orientations if orientations else []
+    orientations: List[Orientation] = field(default_factory=list)
 
     def get_tag_index(self, tag: str) -> int:
         """Get a reference orientation index.

@@ -26,25 +26,25 @@ boolean_constraints = Enum("BOOLCONS", "A_EQ_B BIN_EQ_BOUT BISECT")
 class Constraints:
     cons_as_dict: dataclasses.InitVar[Optional[Dict[str, Union[float, bool]]]] = None
 
-    def __post_init__(self, cons_as_dict) -> None:
-        self.delta: Optional[float] = None
-        self.nu: Optional[float] = None
-        self.qaz: Optional[float] = None
-        self.naz: Optional[float] = None
-        self.a_eq_b: Optional[bool] = None
-        self.alpha: Optional[float] = None
-        self.beta: Optional[float] = None
-        self.psi: Optional[float] = None
-        self.bin_eq_bout: Optional[bool] = None
-        self.betain: Optional[float] = None
-        self.betaout: Optional[float] = None
-        self.mu: Optional[float] = None
-        self.eta: Optional[float] = None
-        self.chi: Optional[float] = None
-        self.phi: Optional[float] = None
-        self.bisect: Optional[bool] = None
-        self.omega: Optional[float] = None
+    delta: Optional[float] = None
+    nu: Optional[float] = None
+    qaz: Optional[float] = None
+    naz: Optional[float] = None
+    a_eq_b: Optional[bool] = None
+    alpha: Optional[float] = None
+    beta: Optional[float] = None
+    psi: Optional[float] = None
+    bin_eq_bout: Optional[bool] = None
+    betain: Optional[float] = None
+    betaout: Optional[float] = None
+    mu: Optional[float] = None
+    eta: Optional[float] = None
+    chi: Optional[float] = None
+    phi: Optional[float] = None
+    bisect: Optional[bool] = None
+    omega: Optional[float] = None
 
+    def __post_init__(self, cons_as_dict) -> None:
         if not cons_as_dict:
             return
 

@@ -6,7 +6,6 @@ and crystal miscut information.
 """
 import dataclasses
 import pickle
-import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, sin
@@ -15,14 +14,18 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal, CrystalHandler
+
+# from diffcalc.ub.crystal import Crystal, CrystalHandler
+from diffcalc.ub.crystal import Crystal
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
-from diffcalc.ub.reference import (
-    Orientation,
-    OrientationList,
-    Reflection,
-    ReflectionList,
-)
+
+# from diffcalc.ub.reference import (
+#     Orientation,
+#     OrientationList,
+#     Reflection,
+#     ReflectionList,
+# )
+from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
@@ -34,7 +37,8 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
-from typing_extensions import TypedDict
+
+# from typing_extensions import TypedDict
 
 
 @dataclasses.dataclass
@@ -138,26 +142,24 @@ class ReferenceVector:
         self.n_ref = (r1, r2, r3)
 
 
-class UbCalcType(TypedDict):
-    """Typed dictionary for UBCalculation object JSON storage."""
+# class UbCalcType(TypedDict):
+#     """Typed dictionary for UBCalculation object JSON storage."""
 
-    name: str
-    crystal: Optional[Crystal]
-    reflist: List[Reflection]
-    orientlist: List[Orientation]
-    reference: ReferenceVector
-    surface: ReferenceVector
-    u_matrix: Optional[List[List[float]]]
-    ub_matrix: Optional[List[List[float]]]
+#     crystal: Optional[Crystal]
+#     reflist: List[Reflection]
+#     orientlist: List[Orientation]
+#     reference: ReferenceVector
+#     surface: ReferenceVector
+#     u_matrix: Optional[List[List[float]]]
+#     ub_matrix: Optional[List[List[float]]]
 
 
+@dataclasses.dataclass
 class UBCalculation:
     """Class containing information required for for UB matrix calculation.
 
     Attributes
     ----------
-    name: str, defalut = UUID
-        Name for UB calculation. Default is to generate UUID value.
     crystal: Crystal
         Object containing crystal lattice parameters.
     reflist: ReflectionList
@@ -174,16 +176,13 @@ class UBCalculation:
         UB matrix as a NumPy array.
     """
 
-    def __init__(self, name: Optional[str] = None) -> None:
-        self.name: str = name if name is not None else str(uuid.uuid4())
-        self.crystal: CrystalHandler = None
-        self.reflist: ReflectionList = ReflectionList()
-        self.orientlist: OrientationList = OrientationList()
-        self.reference: ReferenceVector = ReferenceVector((1, 0, 0), True)
-        self.surface: ReferenceVector = ReferenceVector((0, 0, 1), False)
-        self.U: np.ndarray = None
-        self.UB: np.ndarray = None
-        self._WIDTH: int = 13
+    crystal: Optional[Crystal] = None
+    reflist: ReflectionList = ReflectionList()
+    orientlist: OrientationList = OrientationList()
+    reference: ReferenceVector = ReferenceVector((1, 0, 0), True)
+    surface: ReferenceVector = ReferenceVector((0, 0, 1), False)
+    U: Optional[np.ndarray] = None
+    UB: Optional[np.ndarray] = None
 
     ### State ###
     @staticmethod
@@ -237,24 +236,25 @@ class UBCalculation:
             String containing crystal lattice, reference vector, UB matrix
             and reference reflection/orientation information.
         """
-        if self.name is None:
-            return "<<< No UB calculation started >>>"
+        width = 13
         lines = []
         lines.append("UBCALC")
-        lines.append("")
-        lines.append("   name:".ljust(self._WIDTH) + self.name.rjust(9))
 
         lines.append("")
         lines.append("REFERNCE")
         lines.append("")
         lines.extend(
-            self.__str_lines_reference(self.n_hkl, self.n_phi, self.reference.rlv)
+            self.__str_lines_reference(
+                self.n_hkl, self.n_phi, self.reference.rlv, width
+            )
         )
         lines.append("")
         lines.append("SURFACE NORMAL")
         lines.append("")
         lines.extend(
-            self.__str_lines_reference(self.surf_nhkl, self.surf_nphi, self.surface.rlv)
+            self.__str_lines_reference(
+                self.surf_nhkl, self.surf_nphi, self.surface.rlv, width
+            )
         )
 
         lines.append("")
@@ -273,11 +273,11 @@ class UBCalculation:
         if self.UB is None:
             lines.append("   <<< none calculated >>>")
         else:
-            lines.extend(self.__str_lines_u())
+            lines.extend(self.__str_lines_u(width))
             lines.append("")
-            lines.extend(self.__str_lines_ub_angle_and_axis())
+            lines.extend(self.__str_lines_ub_angle_and_axis(width))
             lines.append("")
-            lines.extend(self.__str_lines_ub())
+            lines.extend(self.__str_lines_ub(width))
 
         lines.extend(self.__str_lines_refl())
 
@@ -285,11 +285,11 @@ class UBCalculation:
 
         return "\n".join(lines)
 
-    def __str_lines_u(self) -> List[str]:
+    def __str_lines_u(self, width: int) -> List[str]:
         lines: List[str] = []
         fmt = "% 9.5f % 9.5f % 9.5f"
         lines.append(
-            "   U matrix:".ljust(self._WIDTH)
+            "   U matrix:".ljust(width)
             + fmt
             % (
                 zero_round(self.U[0, 0]),
@@ -298,7 +298,7 @@ class UBCalculation:
             )
         )
         lines.append(
-            " " * self._WIDTH
+            " " * width
             + fmt
             % (
                 zero_round(self.U[1, 0]),
@@ -307,7 +307,7 @@ class UBCalculation:
             )
         )
         lines.append(
-            " " * self._WIDTH
+            " " * width
             + fmt
             % (
                 zero_round(self.U[2, 0]),
@@ -317,35 +317,35 @@ class UBCalculation:
         )
         return lines
 
-    def __str_lines_ub_angle_and_axis(self) -> List[str]:
+    def __str_lines_ub_angle_and_axis(self, width: int) -> List[str]:
         lines = []
         fmt = "% 9.5f % 9.5f % 9.5f"
         rotation_angle, rotation_axis = self.get_miscut()
         angle = 0 if is_small(rotation_angle) else degrees(rotation_angle)
         axis = tuple(0 if is_small(x) else x for x in rotation_axis.T.tolist()[0])
         if abs(norm(rotation_axis)) < SMALL:
-            lines.append("   miscut angle:".ljust(self._WIDTH) + "  0")
+            lines.append("   miscut angle:".ljust(width) + "  0")
         else:
             lines.append("   miscut:")
-            lines.append("      angle:".ljust(self._WIDTH) + f"{angle:9.5f}")
-            lines.append("       axis:".ljust(self._WIDTH) + fmt % axis)
+            lines.append("      angle:".ljust(width) + f"{angle:9.5f}")
+            lines.append("       axis:".ljust(width) + fmt % axis)
 
         return lines
 
-    def __str_lines_ub(self) -> List[str]:
+    def __str_lines_ub(self, width: int) -> List[str]:
         lines = []
         fmt = "% 9.5f % 9.5f % 9.5f"
         UB = self.UB
         lines.append(
-            "   UB matrix:".ljust(self._WIDTH)
+            "   UB matrix:".ljust(width)
             + fmt % (zero_round(UB[0, 0]), zero_round(UB[0, 1]), zero_round(UB[0, 2]))
         )
         lines.append(
-            " " * self._WIDTH
+            " " * width
             + fmt % (zero_round(UB[1, 0]), zero_round(UB[1, 1]), zero_round(UB[1, 2]))
         )
         lines.append(
-            " " * self._WIDTH
+            " " * width
             + fmt % (zero_round(UB[2, 0]), zero_round(UB[2, 1]), zero_round(UB[2, 2]))
         )
         return lines
@@ -356,7 +356,7 @@ class UBCalculation:
         return " ".join([(f"{e:9.5f}").rjust(9) for e in m.T.tolist()[0]])
 
     def __str_lines_reference(
-        self, ref_nhkl: np.ndarray, ref_nphi: np.ndarray, rlv: bool
+        self, ref_nhkl: np.ndarray, ref_nphi: np.ndarray, rlv: bool, width: int
     ) -> List[str]:
         SET_LABEL = " <- set"
         lines = []
@@ -368,10 +368,10 @@ class UBCalculation:
             nphi_label = SET_LABEL
 
         lines.append(
-            "   n_hkl:".ljust(self._WIDTH) + self.__str_vector(ref_nhkl) + nhkl_label
+            "   n_hkl:".ljust(width) + self.__str_vector(ref_nhkl) + nhkl_label
         )
         lines.append(
-            "   n_phi:".ljust(self._WIDTH) + self.__str_vector(ref_nphi) + nphi_label
+            "   n_phi:".ljust(width) + self.__str_vector(ref_nphi) + nphi_label
         )
         return lines
 
@@ -449,13 +449,13 @@ class UBCalculation:
         if system is None:
             if len(params) in guess_system_by_length.keys():
                 use_system: str = guess_system_by_length.get(len(params))
-                self.crystal = CrystalHandler(name, params, use_system)
+                self.crystal = Crystal(name, use_system, *params)
             else:
                 raise DiffcalcException(
                     "Invalid number of input parameters to set unit lattice."
                 )
         else:
-            self.crystal = CrystalHandler(name, params, system)
+            self.crystal = Crystal(name, system, *params)
 
     ### Reference vector ###
     @property
@@ -1156,7 +1156,7 @@ class UBCalculation:
                         "Cannot read reflection data for index %s" % str(idx)
                     )
             print("Fitting crystal lattice parameters...")
-            new_crystal: CrystalHandler = fit_crystal(self.crystal, refl_list)
+            new_crystal: Crystal = fit_crystal(self.crystal, refl_list)
             print("Fitting orientation matrix...")
             new_u = fit_u_matrix(self.U, new_crystal, refl_list)
             new_lattice = (self.crystal.get_lattice()[0],) + new_crystal.get_lattice()[
@@ -1387,57 +1387,3 @@ class UBCalculation:
             [ref_a1, ref_a2, ref_a3, alpha1, alpha2, alpha3],
             system,
         )
-
-    @property
-    def asdict(self) -> UbCalcType:
-        """Serialise the object into a JSON compatible dictionary.
-
-        Returns
-        -------
-        UbcalcType
-            typed dictionary containing necessary information to recreate this
-            object instance.
-        """
-        return UbCalcType(
-            name=self.name,
-            crystal=self.crystal.asdict if self.crystal is not None else None,
-            reflist=self.reflist.reflections,
-            orientlist=self.orientlist.orientations,
-            reference=self.reference,
-            surface=self.surface,
-            u_matrix=self.U.tolist() if self.U is not None else None,
-            ub_matrix=self.UB.tolist() if self.UB is not None else None,
-        )
-
-    @classmethod
-    def fromdict(cls, data: UbCalcType) -> "UBCalculation":
-        """Construct UBCalculation instance from a JSON compatible dictionary.
-
-        Parameters
-        ----------
-        data: UbCalcType
-            Typed dictionary containing necessary information for initialising an
-            instance of this class
-
-        Returns
-        -------
-        UBCalculation
-            Instance of this class created from the dictionary.
-
-        """
-        if data["crystal"] is not None:
-            crystal = CrystalHandler.fromdict(data["crystal"])
-        else:
-            crystal = None
-
-        ubcalc = cls(data["name"])
-        ubcalc.crystal = crystal
-        ubcalc.reflist = ReflectionList(data["reflist"])
-        ubcalc.orientlist = OrientationList(data["orientlist"])
-        ubcalc.reference = data["reference"]
-        ubcalc.surface = data["surface"]
-        ubcalc.U = np.array(data["u_matrix"]) if data["u_matrix"] is not None else None
-        ubcalc.UB = (
-            np.array(data["ub_matrix"]) if data["ub_matrix"] is not None else None
-        )
-        return ubcalc

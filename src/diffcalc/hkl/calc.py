@@ -4,14 +4,19 @@ Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
 
+from dataclasses import dataclass
 from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+
+# from typing import Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from diffcalc.hkl import calc_func
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
-from diffcalc.ub.calc import UbCalcType, UBCalculation
+
+# from diffcalc.ub.calc import UbCalcType, UBCalculation
+from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import (
     DiffcalcException,
     I,
@@ -24,27 +29,19 @@ from diffcalc.util import (
     sign,
 )
 from numpy.linalg import inv, norm
-from pydantic import BaseModel
+
+# @dataclass
+# class HklType:
+#     """Datastructure for serialising HklCalculation objects.
+
+#     BaseModel is required as a base class for this to be compatible with fastAPI.
+#     """
+
+#     ubcalc: UbCalcType
+#     constraints: Dict[str, Union[bool, float]]
 
 
-class HklType(BaseModel):
-    """Datastructure for serialising HklCalculation objects.
-
-    BaseModel is required as a base class for this to be compatible with fastAPI.
-    """
-
-    id: str
-    ubcalc: UbCalcType
-    constraints: Dict[str, Union[bool, float]]
-
-    def __eq__(self, other):
-        """Compare different HklType objects."""
-        same_id = self.id == other.id
-        same_ubcalc = self.ubcalc == other.ubcalc
-        same_constraints = self.constraints == other.constraints
-        return same_id and same_ubcalc and same_constraints
-
-
+@dataclass
 class HklCalculation:
     """Class for converting between miller indices and diffractometer position.
 
@@ -63,32 +60,9 @@ class HklCalculation:
         Calculate pseudo-angles corresponding to a diffractometer position.
     """
 
-    def __init__(
-        self,
-        name: Optional[str] = None,
-        ubcalc: Optional[UBCalculation] = None,
-        constraints: Optional[Constraints] = None,
-    ):
-        """Class is initialised here.
-
-        There are only two possible options to initialise - either by supplying a name
-        or both ubcalc and constraints objects. Supplying a name will generate these
-        objects.
-        """
-        if (name is not None) and (ubcalc is None) and (constraints is None):
-            self.ubcalc = UBCalculation(name)
-            self.constraints = Constraints()
-        elif (name is None) and (ubcalc is None) and (constraints is None):
-            self.ubcalc = UBCalculation()
-            self.constraints = Constraints()
-        elif (name is None) and (ubcalc is not None) and (constraints is not None):
-            self.ubcalc = ubcalc
-            self.constraints = constraints
-        else:
-            raise DiffcalcException(
-                "HklCalculation requires either a name or existing UBCalculation and "
-                + "Constraints objects to be initialised. Or, no arguments."
-            )
+    name: str
+    ubcalc: UBCalculation = UBCalculation()
+    constraints: Constraints = Constraints()
 
     def __str__(self):
         """Return string representing class instance.
@@ -591,41 +565,9 @@ class HklCalculation:
                     )
                     raise DiffcalcException(s)
 
-    @property
-    def asdict(self) -> HklType:
-        """Serialise the object into a JSON compatible dictionary.
-
-        Returns
-        -------
-        Dict[str, Any]
-            Dictionary containing properties of hkl class. Can
-            be unpacked to recreate HklCalculation object using fromdict
-            class method below.
-
-        """
-        return HklType(
-            id="",
-            ubcalc=self.ubcalc.asdict,
-            constraints=self.constraints.asdict,
-        )
-
-    @classmethod
-    def fromdict(cls, data: HklType) -> "HklCalculation":
-        """Construct HklCalculation instance from a JSON compatible dictionary.
-
-        Parameters
-        ----------
-        data: Dict[str, Any]
-            Dictionary containing properties of hkl class, must have the equivalent
-            structure of asdict method above.
-
-        Returns
-        -------
-        HklCalculation
-            Instance of this class created from the dictionary.
-
-        """
-        return HklCalculation(
-            ubcalc=UBCalculation.fromdict(data.ubcalc),
-            constraints=Constraints(data.constraints),
-        )
+    def __eq__(self, other):
+        """Compare different HklType objects."""
+        same_name = self.name == other.name
+        same_ubcalc = self.ubcalc == other.ubcalc
+        same_constraints = self.constraints == other.constraints
+        return same_name and same_ubcalc and same_constraints
