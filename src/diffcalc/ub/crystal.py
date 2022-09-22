@@ -139,6 +139,7 @@ class CrystalHandler:
         return lines
 
     def _set_reciprocal_cell(self, a1, a2, a3, alpha1, alpha2, alpha3) -> None:
+        # TODO: what happens if math domain error?
         beta2 = acos(
             (cos(alpha1) * cos(alpha3) - cos(alpha2)) / (sin(alpha1) * sin(alpha3))
         )

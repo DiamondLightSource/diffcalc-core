@@ -16,12 +16,16 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
+
+### ROTATIONS SHOULD ALSO BE IN RAD
+
 import itertools
 from itertools import chain
-from math import cos, radians, sin, sqrt
+from math import cos, pi, radians, sin, sqrt
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
+from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
 from numpy import array
@@ -52,13 +56,15 @@ def test_str():
     hklcalc.ubcalc.n_phi = (0, 0, 1)
     hklcalc.ubcalc.surf_nphi = (0, 0, 1)
     hklcalc.ubcalc.set_lattice("xtal", [1.0], "Cubic")
-    hklcalc.ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
+    hklcalc.ubcalc.add_reflection(
+        (0, 0, 1), Position(0, pi / 3, 0, pi / 6, 0, 0), 12.4, "ref1"
+    )
     hklcalc.ubcalc.add_orientation(
-        (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
+        (0, 1, 0), (0, 1, 0), Position(radians(1), 0, 0, 0, radians(2), 0), "orient1"
     )
     hklcalc.ubcalc.set_u(I)
 
-    hklcalc.constraints.asdict = {"nu": 0.0, "psi": 90.0, "phi": 90.0}
+    hklcalc.constraints = Constraints({"nu": 0.0, "psi": pi / 2, "phi": pi / 2})
     assert (
         str(hklcalc)
         == """    DET             REF             SAMP
@@ -72,23 +78,24 @@ def test_str():
                     betaout
 
     nu   : 0.0000
-    psi  : 90.0000
-    phi  : 90.0000
+    psi  : 1.5708
+    phi  : 1.5708
 """
     )
 
 
 class _BaseTest:
     def setup_method(self):
-        self.hklcalc = HklCalculation()
+
+        self.hklcalc = HklCalculation("test")
         self.hklcalc.ubcalc.n_phi = (0, 0, 1)
         self.hklcalc.ubcalc.surf_nphi = (0, 0, 1)
 
         self.places = 5
 
     def _configure_ub(self):
-        ZROT = z_rotation(radians(self.zrot))  # -PHI
-        YROT = y_rotation(radians(self.yrot))  # +CHI
+        ZROT = z_rotation(self.zrot)  # -PHI
+        YROT = y_rotation(self.yrot)  # +CHI
         U = ZROT @ YROT
         # UB = U @ self.B
         self.hklcalc.ubcalc.set_u(U)  # self.mock_ubcalc.UB = UB
@@ -177,9 +184,9 @@ class TestCubicVertical(_TestCubic):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
+                        eta=pi / 6,
                         chi=0 - yrot,
                         phi=0 + zrot,
                     ),
@@ -192,10 +199,10 @@ class TestCubicVertical(_TestCubic):
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=4 - yrot,
+                        eta=pi / 6,
+                        chi=radians(4) - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -207,11 +214,11 @@ class TestCubicVertical(_TestCubic):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
+                        eta=pi / 6,
                         chi=0,
-                        phi=90 + zrot,
+                        phi=pi / 2 + zrot,
                     ),
                     zrot,
                     yrot,
@@ -222,10 +229,10 @@ class TestCubicVertical(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=90 - yrot,
+                        eta=pi / 6,
+                        chi=pi / 2 - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -237,10 +244,10 @@ class TestCubicVertical(_TestCubic):
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
                         mu=0,
-                        delta=97.46959231642,
+                        delta=radians(97.46959231642),
                         nu=0,
-                        eta=97.46959231642 / 2,
-                        chi=86.18592516571 - yrot,
+                        eta=radians(97.46959231642 / 2),
+                        chi=radians(86.18592516571) - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -252,10 +259,10 @@ class TestCubicVertical(_TestCubic):
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=86 - yrot,
+                        eta=pi / 6,
+                        chi=radians(86) - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -279,11 +286,13 @@ class TestCubicVertical(_TestCubic):
                 "001",
                 "001-->100",
             ],
-            [0, 2, -2, 45, -45, 90, -90],
+            [0, radians(2), radians(-2), pi / 4, -pi / 4, pi / 2, -pi / 2],
         ),
     )
     def test_delta_aeqb_mu_zrot_and_yrot0(self, name, zrot, make_cases):
-        self.hklcalc.constraints.asdict = {"delta": 60, "a_eq_b": True, "mu": 0}
+        self.hklcalc.constraints = Constraints(
+            {"delta": pi / 3, "a_eq_b": True, "mu": 0}
+        )
         case = make_cases(name, zrot, 0)
         if name == "001":
             with pytest.raises(DiffcalcException):
@@ -302,16 +311,16 @@ class TestCubicVertical(_TestCubic):
                 "0.1 0 1.5",
                 "001-->100",
             ],
-            [0, 2, -2, 45, -45, 90, -90],
+            [0, radians(2), radians(-2), pi / 4, -pi / 4, pi / 2, -pi / 2],
             [
                 {"a_eq_b": True, "mu": 0, "nu": 0},
-                {"psi": 90, "mu": 0, "nu": 0},
-                {"a_eq_b": True, "mu": 0, "qaz": 90},
+                {"psi": pi / 2, "mu": 0, "nu": 0},
+                {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
             ],
         ),
     )
     def test_pairs_various_zrot_and_yrot0(self, name, zrot, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(name, zrot, 0)
         if name == "001":
             with pytest.raises(DiffcalcException):
@@ -330,19 +339,19 @@ class TestCubicVertical(_TestCubic):
                 "0.1 0 1.5",
                 "001-->100",
             ],
-            [1, -1],
+            [radians(1), radians(-1)],
             [
-                2,
+                radians(2),
             ],
             [
                 {"a_eq_b": True, "mu": 0, "nu": 0},
-                {"psi": 90, "mu": 0, "nu": 0},
-                {"a_eq_b": True, "mu": 0, "qaz": 90},
+                {"psi": pi / 2, "mu": 0, "nu": 0},
+                {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
             ],
         ),
     )
     def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(name, zrot, yrot)
         self.case_generator(case)
 
@@ -350,20 +359,20 @@ class TestCubicVertical(_TestCubic):
         ("constraint"),
         [
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": 90, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": 90},
+            {"psi": pi / 2, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
         ],
     )
     def testHklDeltaGreaterThan90(self, constraint):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         wavelength = 1
         hkl = (0.1, 0, 1.5)
         pos = Position(
             mu=0,
-            delta=97.46959231642,
+            delta=radians(97.46959231642),
             nu=0,
-            eta=97.46959231642 / 2,
-            chi=86.18592516571,
+            eta=radians(97.46959231642 / 2),
+            chi=radians(86.18592516571),
             phi=0,
         )
         self._check_hkl_to_angles("", 0, 0, hkl, pos, wavelength)
@@ -384,9 +393,9 @@ class TestCubicVertical_alpha90(_TestCubic):
                     (sqrt(2), 0, 0),
                     Position(
                         mu=0,
-                        delta=90,
+                        delta=pi / 2,
                         nu=0,
-                        eta=45,
+                        eta=pi / 4,
                         chi=0,
                         phi=0,
                     ),
@@ -398,11 +407,11 @@ class TestCubicVertical_alpha90(_TestCubic):
                     "00sqrt(2)",
                     (0, 0, sqrt(2)),
                     Position(
-                        mu=90,
-                        delta=90,
+                        mu=pi / 2,
+                        delta=pi / 2,
                         nu=0,
                         eta=0,
-                        chi=45,
+                        chi=pi / 4,
                         phi=0,
                     ),
                     zrot,
@@ -426,14 +435,14 @@ class TestCubicVertical_alpha90(_TestCubic):
                 0,
             ],
             [
-                {"qaz": 90, "alpha": 90, "phi": 0},
-                {"delta": 90, "beta": 0, "phi": 0},
-                {"delta": 90, "betain": 0, "phi": 0},
+                {"qaz": pi / 2, "alpha": pi / 2, "phi": 0},
+                {"delta": pi / 2, "beta": 0, "phi": 0},
+                {"delta": pi / 2, "betain": 0, "phi": 0},
             ],
         ),
     )
     def test_delta_alpha_mu_zrot_and_yrot0(self, name, zrot, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(name, zrot, 0)
         self.case_generator(case)
 
@@ -441,8 +450,8 @@ class TestCubicVertical_alpha90(_TestCubic):
 class TestCubicVertical_ttheta180(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"nu": 0, "chi": 0, "phi": 0}
-        self.hklcalc.n_hkl = (1, -1, 0)
+        self.hklcalc.constraints = Constraints({"nu": 0, "chi": 0, "phi": 0})
+        self.hklcalc.ubcalc.n_hkl = (1, -1, 0)
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -454,9 +463,9 @@ class TestCubicVertical_ttheta180(_TestCubic):
                     (2, 0, 0),
                     Position(
                         mu=0,
-                        delta=180,
+                        delta=pi,
                         nu=0,
-                        eta=90,
+                        eta=pi / 2,
                         chi=0,
                         phi=0,
                     ),
@@ -490,7 +499,7 @@ class TestCubicVertical_ttheta180(_TestCubic):
 class TestCubicVertical_ChiPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"nu": 0, "chi": 90.0, "phi": 0.0}
+        self.hklcalc.constraints = Constraints({"nu": 0, "chi": pi / 2, "phi": 0.0})
         self.places = 5
 
     @pytest.fixture(scope="class")
@@ -502,11 +511,11 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                     "110",
                     (1, 1, 0),
                     Position(
-                        mu=-90,
-                        delta=90,
+                        mu=-pi / 2,
+                        delta=pi / 2,
                         nu=0,
-                        eta=90,
-                        chi=90,
+                        eta=pi / 2,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -517,11 +526,11 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                     "100-->001",
                     (sin(radians(4)), 0, cos(radians(4))),
                     Position(
-                        mu=-8.01966360660,
-                        delta=60,
+                        mu=radians(-8.01966360660),
+                        delta=pi / 3,
                         nu=0,
-                        eta=29.75677306273,
-                        chi=90,
+                        eta=radians(29.75677306273),
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -533,10 +542,10 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=90,
+                        eta=pi * 2 / 3,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -548,10 +557,10 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 - yrot,
-                        chi=90,
+                        eta=pi / 6 - yrot,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -562,11 +571,11 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                     "0.1 0 1.5",
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
-                        mu=-5.077064540005,
-                        delta=97.46959231642,
+                        mu=radians(-5.077064540005),
+                        delta=radians(97.46959231642),
                         nu=0,
-                        eta=48.62310452627,
-                        chi=90 - yrot,
+                        eta=radians(48.62310452627),
+                        chi=pi / 2 - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -578,10 +587,10 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
                     (0, cos(radians(86)), sin(radians(86))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=34,
-                        chi=90,
+                        eta=radians(34),
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -607,7 +616,7 @@ class TestCubicVertical_ChiPhiMode(_TestCubic):
 class TestCubic_FixedPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 0}
+        self.hklcalc.constraints = Constraints({"mu": 0, "nu": 0, "phi": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -619,9 +628,9 @@ class TestCubic_FixedPhiMode(_TestCubic):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 + zrot,
+                        eta=pi / 6 + zrot,
                         chi=0 - yrot,
                         phi=0,
                     ),
@@ -634,10 +643,10 @@ class TestCubic_FixedPhiMode(_TestCubic):
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 + zrot,
-                        chi=4 - yrot,
+                        eta=pi / 6 + zrot,
+                        chi=radians(4) - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -651,10 +660,10 @@ class TestCubic_FixedPhiMode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 + zrot,
-                        chi=90 - yrot,
+                        eta=pi / 6 + zrot,
+                        chi=pi / 2 - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -666,10 +675,10 @@ class TestCubic_FixedPhiMode(_TestCubic):
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
                         mu=0,
-                        delta=97.46959231642,
+                        delta=radians(97.46959231642),
                         nu=0,
-                        eta=97.46959231642 / 2 + zrot,
-                        chi=86.18592516571 - yrot,
+                        eta=radians(97.46959231642 / 2) + zrot,
+                        chi=radians(86.18592516571) - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -681,10 +690,10 @@ class TestCubic_FixedPhiMode(_TestCubic):
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 + zrot,
-                        chi=86 - yrot,
+                        eta=pi / 6 + zrot,
+                        chi=radians(86) - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -702,7 +711,7 @@ class TestCubic_FixedPhiMode(_TestCubic):
         ("name, yrot"),
         itertools.product(
             ["100", "100-->001", "001", "0.1 0 1.5", "001-->100"],
-            [0, 2, -2, 45, -45, 90, -90],
+            [0, radians(2), radians(-2), pi / 4, -pi / 4, pi / 2, -pi / 2],
         ),
     )
     def test_pairs_various_zrot0_and_yrot(self, name, yrot, make_cases):
@@ -713,7 +722,7 @@ class TestCubic_FixedPhiMode(_TestCubic):
 class TestCubic_FixedPhi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 30}
+        self.hklcalc.constraints = Constraints({"mu": 0, "nu": 0, "phi": pi / 6})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -725,11 +734,11 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
                         eta=0 + zrot,
                         chi=0 - yrot,
-                        phi=30,
+                        phi=pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -745,11 +754,11 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 + zrot,
-                        chi=90 - yrot,
-                        phi=30,
+                        eta=pi / 6 + zrot,
+                        chi=pi / 2 - yrot,
+                        phi=pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -760,11 +769,11 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
                         mu=0,
-                        delta=97.46959231642,
+                        delta=radians(97.46959231642),
                         nu=0,
-                        eta=46.828815370173 + zrot,
-                        chi=86.69569481984 - yrot,
-                        phi=30,
+                        eta=radians(46.828815370173) + zrot,
+                        chi=radians(86.69569481984) - yrot,
+                        phi=pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -790,7 +799,7 @@ class TestCubic_FixedPhi30Mode(_TestCubic):
 class TestCubic_FixedPhiMode010(TestCubic_FixedPhiMode):
     def setup_method(self):
         TestCubic_FixedPhiMode.setup_method(self)
-        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 90}
+        self.hklcalc.constraints = Constraints({"mu": 0, "nu": 0, "phi": pi / 2})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -802,11 +811,11 @@ class TestCubic_FixedPhiMode010(TestCubic_FixedPhiMode):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30 + zrot,
+                        eta=pi / 6 + zrot,
                         chi=0,
-                        phi=90,
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -820,7 +829,9 @@ class TestCubic_FixedPhiMode010(TestCubic_FixedPhiMode):
 
         return __make_cases_fixture
 
-    @pytest.mark.parametrize(("yrot"), [0, 2, -2, 45, -45, 90, -90])
+    @pytest.mark.parametrize(
+        ("yrot"), [0, radians(2), radians(-2), pi / 4, -pi / 4, pi / 2, -pi / 2]
+    )
     def test_pairs_various_zrot0_and_yrot(self, yrot, make_cases):
         case = make_cases(0, yrot)
         self.case_generator(case["010"])
@@ -829,7 +840,7 @@ class TestCubic_FixedPhiMode010(TestCubic_FixedPhiMode):
 class TestCubicVertical_MuEtaMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"nu": 0, "mu": 90.0, "eta": 0.0}
+        self.hklcalc.constraints = Constraints({"nu": 0, "mu": pi / 2, "eta": 0.0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -840,12 +851,12 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                     "011",
                     (0, 1, 1),
                     Position(
-                        mu=90,
-                        delta=90,
+                        mu=pi / 2,
+                        delta=pi / 2,
                         nu=0,
                         eta=0,
                         chi=0,
-                        phi=90,
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -855,11 +866,11 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                     "100-->001",
                     (sin(radians(4)), 0, cos(radians(4))),
                     Position(
-                        mu=90,
-                        delta=60,
+                        mu=pi / 2,
+                        delta=pi / 3,
                         nu=0,
                         eta=0,
-                        chi=56,
+                        chi=radians(56),
                         phi=0,
                     ),
                     zrot,
@@ -870,12 +881,12 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=90,
-                        delta=60,
+                        mu=pi / 2,
+                        delta=pi / 3,
                         nu=0,
                         eta=0,
-                        chi=-30,
-                        phi=90,
+                        chi=-pi / 6,
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -885,11 +896,11 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=90,
-                        delta=60,
+                        mu=pi / 2,
+                        delta=pi / 3,
                         nu=0,
                         eta=0,
-                        chi=60,
+                        chi=pi / 3,
                         phi=0,
                     ),
                     zrot,
@@ -900,11 +911,11 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                     "0.1 0 1.5",
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
-                        mu=90,
-                        delta=97.46959231642,
+                        mu=pi / 2,
+                        delta=radians(97.46959231642),
                         nu=0,
                         eta=0,
-                        chi=37.45112900750 - yrot,
+                        chi=radians(37.45112900750) - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -915,12 +926,12 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
                     "010-->001",
                     (0, cos(radians(86)), sin(radians(86))),
                     Position(
-                        mu=90,
-                        delta=60,
+                        mu=pi / 2,
+                        delta=pi / 3,
                         nu=0,
                         eta=0,
-                        chi=56,
-                        phi=90,
+                        chi=radians(56),
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -953,7 +964,7 @@ class TestCubicVertical_MuEtaMode(_TestCubic):
 class TestCubic_FixedRefMuPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"psi": 90, "mu": 0, "phi": 0}
+        self.hklcalc.constraints = Constraints({"psi": pi / 2, "mu": 0, "phi": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -965,9 +976,9 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
+                        eta=pi / 6,
                         chi=0,
                         phi=0,
                     ),
@@ -980,9 +991,9 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                     (sin(radians(4)), cos(radians(4)), 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120 - 4,
+                        eta=pi * 2 / 3 - radians(4),
                         chi=0,
                         phi=0,
                     ),
@@ -995,9 +1006,9 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
+                        eta=pi * 2 / 3,
                         chi=0,
                         phi=0,
                     ),
@@ -1010,10 +1021,10 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=90,
+                        eta=pi / 6,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -1025,10 +1036,10 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
                         mu=0,
-                        delta=97.46959231642,
+                        delta=radians(97.46959231642),
                         nu=0,
-                        eta=97.46959231642 / 2,
-                        chi=86.18592516571,
+                        eta=radians(97.46959231642 / 2),
+                        chi=radians(86.18592516571),
                         phi=0,
                     ),
                     zrot,
@@ -1040,10 +1051,10 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=86,
+                        eta=pi / 6,
+                        chi=radians(86),
                         phi=0,
                     ),
                     zrot,
@@ -1077,7 +1088,7 @@ class TestCubic_FixedRefMuPhiMode(_TestCubic):
 class TestCubic_FixedRefEtaPhiMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"psi": 0, "eta": 0, "phi": 0}
+        self.hklcalc.constraints = Constraints({"psi": 0, "eta": 0, "phi": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1088,11 +1099,11 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=-90,
-                        delta=60,
+                        mu=-pi / 2,
+                        delta=pi / 3,
                         nu=0,
                         eta=0,
-                        chi=30,
+                        chi=pi / 6,
                         phi=0,
                     ),
                     zrot,
@@ -1103,11 +1114,11 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                     "100-->001",
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
-                        mu=-90,
-                        delta=60,
+                        mu=-pi / 2,
+                        delta=pi / 3,
                         nu=0,
                         eta=0,
-                        chi=30 + 4,
+                        chi=pi / 6 + radians(4),
                         phi=0,
                     ),
                     zrot,
@@ -1118,11 +1129,11 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=180,
+                        chi=pi,
                         phi=0,
                     ),
                     zrot,
@@ -1134,10 +1145,10 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=90,
+                        eta=pi / 6,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -1148,11 +1159,11 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                     "0.1 0 1.5",
                     (0.1, 0, 0.15),  # cover case where delta > 90 !
                     Position(
-                        mu=-90,
-                        delta=10.34318,
+                        mu=-pi / 2,
+                        delta=radians(10.34318),
                         nu=0,
                         eta=0,
-                        chi=61.48152,
+                        chi=radians(61.48152),
                         phi=0,
                     ),
                     zrot,
@@ -1163,11 +1174,11 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
                     "010-->001",
                     (0, cos(radians(4)), sin(radians(4))),
                     Position(
-                        mu=120 + 4,
+                        mu=radians(120 + 4),
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=180,
+                        chi=pi,
                         phi=0,
                     ),
                     zrot,
@@ -1201,7 +1212,7 @@ class TestCubic_FixedRefEtaPhiMode(_TestCubic):
 class TestCubicVertical_Bisect(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"nu": 0, "bisect": True, "omega": 0}
+        self.hklcalc.constraints = Constraints({"nu": 0, "bisect": True, "omega": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1213,10 +1224,10 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (1, 0, 1),
                     Position(
                         mu=0,
-                        delta=90,
+                        delta=pi / 2,
                         nu=0,
-                        eta=45,
-                        chi=45,
+                        eta=pi / 4,
+                        chi=pi / 4,
                         phi=0,
                     ),
                     zrot,
@@ -1228,10 +1239,10 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (1, 0, -1),
                     Position(
                         mu=0,
-                        delta=90,
+                        delta=pi / 2,
                         nu=0,
-                        eta=45,
-                        chi=-45,
+                        eta=pi / 4,
+                        chi=-pi / 4,
                         phi=0,
                     ),
                     zrot,
@@ -1243,11 +1254,11 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (0, 1, 1),
                     Position(
                         mu=0,
-                        delta=90,
+                        delta=pi / 2,
                         nu=0,
-                        eta=45,
-                        chi=45,
-                        phi=90,
+                        eta=pi / 4,
+                        chi=pi / 4,
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -1258,10 +1269,10 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (sin(radians(4)), 0, cos(radians(4))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=86,
+                        eta=pi / 6,
+                        chi=radians(86),
                         phi=0,
                     ),
                     zrot,
@@ -1273,11 +1284,11 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
+                        eta=pi / 6,
                         chi=0,
-                        phi=90,
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -1288,10 +1299,10 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=90,
+                        eta=pi / 6,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -1303,10 +1314,10 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
                         mu=0,
-                        delta=97.46959231642,
+                        delta=radians(97.46959231642),
                         nu=0,
-                        eta=48.73480,
-                        chi=86.18593 - yrot,
+                        eta=radians(48.73480),
+                        chi=radians(86.18593) - yrot,
                         phi=0 + zrot,
                     ),
                     zrot,
@@ -1318,11 +1329,11 @@ class TestCubicVertical_Bisect(_TestCubic):
                     (0, cos(radians(86)), sin(radians(86))),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=86,
-                        phi=90,
+                        eta=pi / 6,
+                        chi=radians(86),
+                        phi=pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -1357,19 +1368,19 @@ class TestCubicVertical_Bisect(_TestCubic):
 class TestCubicVertical_Bisect_NuMu(TestCubicVertical_Bisect):
     def setup_method(self):
         TestCubicVertical_Bisect.setup_method(self)
-        self.hklcalc.constraints.asdict = {"nu": 0, "bisect": True, "mu": 0}
+        self.hklcalc.constraints = Constraints({"nu": 0, "bisect": True, "mu": 0})
 
 
 class TestCubicVertical_Bisect_qaz(TestCubicVertical_Bisect):
     def setup_method(self):
         TestCubicVertical_Bisect.setup_method(self)
-        self.hklcalc.constraints.asdict = {"qaz": 90.0, "bisect": True, "mu": 0}
+        self.hklcalc.constraints = Constraints({"qaz": pi / 2, "bisect": True, "mu": 0})
 
 
 class TestCubicHorizontal_Bisect(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"delta": 0, "bisect": True, "omega": 0}
+        self.hklcalc.constraints = Constraints({"delta": 0, "bisect": True, "omega": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1380,12 +1391,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "101",
                     (1, 0, 1),
                     Position(
-                        mu=45,
+                        mu=pi / 4,
                         delta=0,
-                        nu=90,
+                        nu=pi / 2,
                         eta=0,
-                        chi=45,
-                        phi=180,
+                        chi=pi / 4,
+                        phi=pi,
                     ),
                     zrot,
                     yrot,
@@ -1395,12 +1406,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "10m1",
                     (1, 0, -1),
                     Position(
-                        mu=45,
+                        mu=pi / 4,
                         delta=0,
-                        nu=90,
+                        nu=pi / 2,
                         eta=0,
-                        chi=135,
-                        phi=180,
+                        chi=radians(135),
+                        phi=pi,
                     ),
                     zrot,
                     yrot,
@@ -1410,12 +1421,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "011",
                     (0, 1, 1),
                     Position(
-                        mu=45,
+                        mu=pi / 4,
                         delta=0,
-                        nu=90,
+                        nu=pi / 2,
                         eta=0,
-                        chi=45,
-                        phi=270,
+                        chi=pi / 4,
+                        phi=pi * 3 / 2,
                     ),
                     zrot,
                     yrot,
@@ -1425,12 +1436,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "100-->001",
                     (sin(radians(4)), 0, cos(radians(4))),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=4,
-                        phi=180,
+                        chi=radians(4),
+                        phi=pi,
                     ),
                     zrot,
                     yrot,
@@ -1440,12 +1451,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=90,
-                        phi=270,
+                        chi=pi / 2,
+                        phi=pi * 3 / 2,
                     ),
                     zrot,
                     yrot,
@@ -1455,9 +1466,9 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
                         phi=0,
@@ -1470,12 +1481,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "0.1 0 1.5",
                     (0.1, 0, 1.5),  # cover case where delta > 90 !
                     Position(
-                        mu=48.73480,
+                        mu=radians(48.73480),
                         delta=0,
-                        nu=97.46959231642,
+                        nu=radians(97.46959231642),
                         eta=0,
-                        chi=3.81407 - yrot,
-                        phi=180 + zrot,
+                        chi=radians(3.81407) - yrot,
+                        phi=pi + zrot,
                     ),
                     zrot,
                     yrot,
@@ -1485,12 +1496,12 @@ class TestCubicHorizontal_Bisect(_TestCubic):
                     "010-->001",
                     (0, cos(radians(86)), sin(radians(86))),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=4,
-                        phi=270,
+                        chi=radians(4),
+                        phi=pi * 3 / 2,
                     ),
                     zrot,
                     yrot,
@@ -1525,13 +1536,13 @@ class TestCubicHorizontal_Bisect(_TestCubic):
 class TestCubicHorizontal_Bisect_NuMu(TestCubicHorizontal_Bisect):
     def setup_method(self):
         TestCubicHorizontal_Bisect.setup_method(self)
-        self.hklcalc.constraints.asdict = {"delta": 0, "bisect": True, "eta": 0}
+        self.hklcalc.constraints = Constraints({"delta": 0, "bisect": True, "eta": 0})
 
 
 class TestCubicHorizontal_Bisect_qaz(TestCubicHorizontal_Bisect):
     def setup_method(self):
         TestCubicHorizontal_Bisect.setup_method(self)
-        self.hklcalc.constraints.asdict = {"qaz": 0, "bisect": True, "eta": 0}
+        self.hklcalc.constraints = Constraints({"qaz": 0, "bisect": True, "eta": 0})
 
 
 class TestCubicHorizontal(_TestCubic):
@@ -1547,12 +1558,12 @@ class TestCubicHorizontal(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=90 + yrot,
-                        phi=-180 + zrot,
+                        chi=pi / 2 + yrot,
+                        phi=-pi + zrot,
                     ),
                     zrot,
                     yrot,
@@ -1562,12 +1573,12 @@ class TestCubicHorizontal(_TestCubic):
                     "100-->001",
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=90 - 4 + yrot,
-                        phi=-180 + zrot,
+                        chi=pi / 2 - radians(4) + yrot,
+                        phi=-pi + zrot,
                     ),
                     zrot,
                     yrot,
@@ -1577,12 +1588,12 @@ class TestCubicHorizontal(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=90,
-                        phi=-90 + zrot,
+                        chi=pi / 2,
+                        phi=-pi / 2 + zrot,
                     ),
                     zrot,
                     yrot,
@@ -1592,9 +1603,9 @@ class TestCubicHorizontal(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0 - yrot,
                         phi=0 + zrot,
@@ -1607,12 +1618,12 @@ class TestCubicHorizontal(_TestCubic):
                     "001-->100",
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=0 - 4 - yrot,
-                        phi=0 + zrot,
+                        chi=-radians(4) - yrot,
+                        phi=zrot,
                     ),
                     zrot,
                     yrot,
@@ -1643,7 +1654,7 @@ class TestCubicHorizontal(_TestCubic):
         ),
     )
     def test_pairs_zrot0_yrot0(self, name, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(0, 0)
         if name in ("100", "010", "001"):
             with pytest.raises(DiffcalcException):
@@ -1670,9 +1681,9 @@ class TestCubicHorizontal(_TestCubic):
                 "001-->100",
             ],
             [
-                1,
+                radians(1),
             ],
-            [2, -2],
+            [radians(2), radians(-2)],
             [
                 {"a_eq_b": True, "qaz": 0, "eta": 0},
                 {"a_eq_b": True, "delta": 0, "eta": 0},
@@ -1680,7 +1691,7 @@ class TestCubicHorizontal(_TestCubic):
         ),
     )
     def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(zrot, yrot)
         if name == "010":
             with pytest.raises(DiffcalcException):
@@ -1714,12 +1725,12 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=-90,
-                        delta=60,
+                        mu=-pi / 2,
+                        delta=pi / 3,
                         nu=0,
-                        eta=90,
-                        chi=90,
-                        phi=-60,
+                        eta=pi / 2,
+                        chi=pi / 2,
+                        phi=-pi / 3,
                     ),
                     zrot,
                     yrot,
@@ -1729,12 +1740,12 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
                     "100-->001",
                     (cos(radians(4)), sin(radians(4)), 0),
                     Position(
-                        mu=-90,
-                        delta=60,
+                        mu=-pi / 2,
+                        delta=pi / 3,
                         nu=0,
-                        eta=90,
-                        chi=90,
-                        phi=-56,
+                        eta=pi / 2,
+                        chi=pi / 2,
+                        phi=-radians(56),
                     ),
                     zrot,
                     yrot,
@@ -1744,12 +1755,12 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=90,
-                        delta=60,
+                        mu=pi / 2,
+                        delta=pi / 3,
                         nu=0,
-                        eta=-90,
-                        chi=90,
-                        phi=-150,
+                        eta=-pi / 2,
+                        chi=pi / 2,
+                        phi=-radians(150),
                     ),
                     zrot,
                     yrot,
@@ -1760,10 +1771,10 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=90,
+                        eta=pi / 6,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -1774,12 +1785,12 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
                     "001-->100",
                     (cos(radians(86)), sin(radians(86)), 0),
                     Position(
-                        mu=90,
-                        delta=60,
+                        mu=pi / 2,
+                        delta=pi / 3,
                         nu=0,
-                        eta=90,
-                        chi=90,
-                        phi=-34,
+                        eta=pi / 2,
+                        chi=pi / 2,
+                        phi=radians(-34),
                     ),
                     zrot,
                     yrot,
@@ -1804,13 +1815,13 @@ class TestCubic_FixedDetRefChiMode(_TestCubic):
                 "001-->100",
             ],
             [
-                {"a_eq_b": True, "qaz": 90, "chi": 90},
-                {"a_eq_b": True, "nu": 0, "chi": 90},
+                {"a_eq_b": True, "qaz": pi / 2, "chi": pi / 2},
+                {"a_eq_b": True, "nu": 0, "chi": pi / 2},
             ],
         ),
     )
     def test_pairs_zrot0_yrot0(self, name, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(0, 0)
         if name == "001":
             with pytest.raises(DiffcalcException):
@@ -1832,11 +1843,11 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=120 - yrot,
+                        mu=pi * 2 / 3 - yrot,
                         delta=0,
-                        nu=60,
-                        eta=90 - zrot,
-                        chi=180,
+                        nu=pi / 3,
+                        eta=pi / 2 - zrot,
+                        chi=pi,
                         phi=0,
                     ),
                     zrot,
@@ -1847,11 +1858,11 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
                     "100-->001",
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
-                        mu=120 + 4 - yrot,
+                        mu=pi * 2 / 3 + radians(4) - yrot,
                         delta=0,
-                        nu=60,
-                        eta=90 - zrot,
-                        chi=180,
+                        nu=pi / 3,
+                        eta=pi / 2 - zrot,
+                        chi=pi,
                         phi=0,
                     ),
                     zrot,
@@ -1862,11 +1873,11 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=-zrot,
-                        chi=180,
+                        chi=pi,
                         phi=0,
                     ),
                     zrot,
@@ -1877,10 +1888,10 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=30 - yrot,
+                        mu=pi / 6 - yrot,
                         delta=0,
-                        nu=60,
-                        eta=90 + zrot,
+                        nu=pi / 3,
+                        eta=pi / 2 + zrot,
                         chi=0,
                         phi=0,
                     ),
@@ -1892,10 +1903,10 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
                     "001-->100",
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
-                        mu=30 - 4 - yrot,
+                        mu=radians(30 - 4) - yrot,
                         delta=0,
-                        nu=60,
-                        eta=90 + zrot,
+                        nu=pi / 3,
+                        eta=pi / 2 + zrot,
                         chi=0,
                         phi=0,
                     ),
@@ -1922,18 +1933,18 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
                 "001-->100",
             ],
             [
-                -1,
-                1,
+                radians(-1),
+                radians(1),
             ],
-            [2],
+            [radians(2)],
             [
                 {"delta": 0, "psi": 0, "phi": 0},
-                {"nu": 60, "psi": 0, "phi": 0},
+                {"nu": pi / 3, "psi": 0, "phi": 0},
             ],
         ),
     )
     def test_hkl_to_angles_zrot_yrot(self, name, zrot, yrot, constraint, make_cases):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         case = make_cases(zrot, yrot)
         self.case_generator(case[name])
 
@@ -1941,7 +1952,7 @@ class TestCubic_FixedDeltaRefPhi0Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "phi": 0}
+        self.hklcalc.constraints = Constraints({"eta": 0, "delta": 0, "phi": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -1952,11 +1963,11 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=-90 - yrot,
+                        chi=-pi / 2 - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -1967,11 +1978,11 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                     "100-->001",
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=-90 + 4 - yrot,
+                        chi=radians(-90 + 4) - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -1982,9 +1993,9 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
                         phi=0,
@@ -1997,9 +2008,9 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0 - yrot,
                         phi=0,
@@ -2012,11 +2023,11 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                     "001-->100",
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=0 - 4 - yrot,
+                        chi=radians(0 - 4) - yrot,
                         phi=0,
                     ),
                     zrot,
@@ -2041,7 +2052,7 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
                 "001",
                 "001-->100",
             ],
-            [0, 2, -2, 45, -45, 90, -90],
+            [0, radians(2), radians(-2), pi / 4, -pi / 4, pi / 2, -pi / 2],
         ),
     )
     def test_pairs_various_zrot0_and_yrot(self, name, yrot, make_cases):
@@ -2056,7 +2067,7 @@ class TestCubic_FixedDeltaEtaPhi0Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "phi": 30}
+        self.hklcalc.constraints = Constraints({"eta": 0, "delta": 0, "phi": pi / 6})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2069,10 +2080,10 @@ class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
                     Position(
                         mu=0,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=-90 - yrot,
-                        phi=30,
+                        chi=-pi / 2 - yrot,
+                        phi=pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -2082,12 +2093,12 @@ class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=90,
+                        mu=pi / 2,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=-90 - yrot,
-                        phi=30,
+                        chi=-pi / 2 - yrot,
+                        phi=pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -2097,12 +2108,12 @@ class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0 - yrot,
-                        phi=30,
+                        phi=pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -2125,7 +2136,7 @@ class TestCubic_FixedDeltaEtaPhi30Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "chi": 0}
+        self.hklcalc.constraints = Constraints({"eta": 0, "delta": 0, "chi": 0})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2136,12 +2147,12 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
-                        phi=-90 + zrot,
+                        phi=-pi / 2 + zrot,
                     ),
                     zrot,
                     yrot,
@@ -2151,12 +2162,12 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                     "100-->001",
                     (cos(radians(4)), 0, sin(radians(4))),
                     Position(
-                        mu=120 - 4,
+                        mu=radians(120 - 4),
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
-                        phi=-90 + zrot,
+                        phi=-pi / 2 + zrot,
                     ),
                     zrot,
                     yrot,
@@ -2166,9 +2177,9 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
                         phi=zrot,
@@ -2181,9 +2192,9 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                     "001",
                     (0, 0, 1),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
                         phi=0,
@@ -2196,12 +2207,12 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                     "001-->100",
                     (cos(radians(86)), 0, sin(radians(86))),
                     Position(
-                        mu=30 - 4,
+                        mu=radians(30 - 4),
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
                         chi=0,
-                        phi=90 + zrot,
+                        phi=pi / 2 + zrot,
                     ),
                     zrot,
                     yrot,
@@ -2225,7 +2236,7 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
                 "001",
                 "001-->100",
             ],
-            [0, 2, -2],
+            [0, radians(2), radians(-2)],
         ),
     )
     def test_pairs_various_zrot_and_yrot0(self, name, zrot, make_cases):
@@ -2240,7 +2251,7 @@ class TestCubic_FixedDeltaEtaChi0Mode(_TestCubic):
 class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"eta": 0, "delta": 0, "chi": 30}
+        self.hklcalc.constraints = Constraints({"eta": 0, "delta": 0, "chi": pi / 6})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2251,12 +2262,12 @@ class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
                     "100",
                     (1, 0, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=30,
-                        phi=-90,
+                        chi=pi / 6,
+                        phi=-pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -2266,11 +2277,11 @@ class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
                     "010",
                     (0, 1, 0),
                     Position(
-                        mu=120,
+                        mu=pi * 2 / 3,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=30,
+                        chi=pi / 6,
                         phi=0,
                     ),
                     zrot,
@@ -2279,13 +2290,13 @@ class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
                 ),
                 Pair(
                     "100-->001",
-                    (-sin(radians(30)), 0, cos(radians(30))),
+                    (-sin(pi / 6), 0, cos(pi / 6)),
                     Position(
-                        mu=30,
+                        mu=pi / 6,
                         delta=0,
-                        nu=60,
+                        nu=pi / 3,
                         eta=0,
-                        chi=30,
+                        chi=pi / 6,
                         phi=0,
                     ),
                     zrot,
@@ -2309,7 +2320,7 @@ class TestCubic_FixedDeltaEtaChi30Mode(_TestCubic):
 class TestCubic_FixedGamMuChi90Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "chi": 90}
+        self.hklcalc.constraints = Constraints({"mu": 0, "nu": 0, "chi": pi / 2})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2321,11 +2332,11 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=90,
-                        phi=-90 + zrot,
+                        eta=pi * 2 / 3,
+                        chi=pi / 2,
+                        phi=-pi / 2 + zrot,
                     ),
                     zrot,
                     yrot,
@@ -2336,11 +2347,11 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                     (sin(radians(4)), cos(radians(4)), 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=90,
-                        phi=-4 + zrot,
+                        eta=pi * 2 / 3,
+                        chi=pi / 2,
+                        phi=radians(-4) + zrot,
                     ),
                     zrot,
                     yrot,
@@ -2351,10 +2362,10 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=90,
+                        eta=pi * 2 / 3,
+                        chi=pi / 2,
                         phi=zrot,
                     ),
                     zrot,
@@ -2366,10 +2377,10 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                     (0, 0, 1),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=30,
-                        chi=90,
+                        eta=pi / 6,
+                        chi=pi / 2,
                         phi=0,
                     ),
                     zrot,
@@ -2381,11 +2392,11 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                     (sin(radians(86)), cos(radians(86)), 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=90,
-                        phi=-90 + 4 + zrot,
+                        eta=pi * 2 / 3,
+                        chi=pi / 2,
+                        phi=radians(-90 + 4) + zrot,
                     ),
                     zrot,
                     yrot,
@@ -2409,7 +2420,7 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
                 "001",
                 "100-->010",
             ],
-            [0, 2, -2],
+            [0, radians(2), radians(-2)],
         ),
     )
     def test_pairs_various_zrot_and_yrot0(self, name, zrot, make_cases):
@@ -2424,7 +2435,7 @@ class TestCubic_FixedGamMuChi90Mode(_TestCubic):
 class TestCubic_FixedGamMuChi30Mode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "chi": 30}
+        self.hklcalc.constraints = Constraints({"mu": 0, "nu": 0, "chi": pi / 6})
 
     @pytest.fixture(scope="class")
     def make_cases(self):
@@ -2436,11 +2447,11 @@ class TestCubic_FixedGamMuChi30Mode(_TestCubic):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=30,
-                        phi=-90,
+                        eta=pi * 2 / 3,
+                        chi=pi / 6,
+                        phi=-pi / 2,
                     ),
                     zrot,
                     yrot,
@@ -2451,10 +2462,10 @@ class TestCubic_FixedGamMuChi30Mode(_TestCubic):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=30,
+                        eta=pi * 2 / 3,
+                        chi=pi / 6,
                         phi=0,
                     ),
                     zrot,
@@ -2463,14 +2474,14 @@ class TestCubic_FixedGamMuChi30Mode(_TestCubic):
                 ),
                 Pair(
                     "100-->010",
-                    (sin(radians(30)), cos(radians(30)), 0),
+                    (sin(pi / 6), cos(pi / 6), 0),
                     Position(
                         mu=0,
-                        delta=60,
+                        delta=pi / 3,
                         nu=0,
-                        eta=120,
-                        chi=30,
-                        phi=-30,
+                        eta=pi * 2 / 3,
+                        chi=pi / 6,
+                        phi=-pi / 6,
                     ),
                     zrot,
                     yrot,
@@ -2496,7 +2507,7 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.hklcalc.constraints.asdict = {"a_eq_b": True, "mu": 0, "nu": 0}
+        self.hklcalc.constraints = Constraints({"a_eq_b": True, "mu": 0, "nu": 0})
         self.places = 2
 
     def _configure_ub(self):
@@ -2520,11 +2531,11 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
                     (0.7, 0.9, 1.3),
                     Position(
                         mu=0,
-                        delta=27.352179,
+                        delta=radians(27.352179),
                         nu=0,
-                        eta=13.676090,
-                        chi=37.774500,
-                        phi=53.965500,
+                        eta=radians(13.676090),
+                        chi=radians(37.774500),
+                        phi=radians(53.965500),
                     ),
                     zrot,
                     yrot,
@@ -2535,11 +2546,11 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
                     (1, 0, 0),
                     Position(
                         mu=0,
-                        delta=18.580230,
+                        delta=radians(18.580230),
                         nu=0,
-                        eta=9.290115,
-                        chi=-2.403500,
-                        phi=3.589000,
+                        eta=radians(9.290115),
+                        chi=radians(-2.403500),
+                        phi=radians(3.589000),
                     ),
                     zrot,
                     yrot,
@@ -2550,11 +2561,11 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
                     (0, 1, 0),
                     Position(
                         mu=0,
-                        delta=18.580230,
+                        delta=radians(18.580230),
                         nu=0,
-                        eta=9.290115,
-                        chi=0.516000,
-                        phi=93.567000,
+                        eta=radians(9.290115),
+                        chi=radians(0.516000),
+                        phi=radians(93.567000),
                     ),
                     zrot,
                     yrot,
@@ -2565,11 +2576,11 @@ class TestAgainstSpecSixcB16_270608(_BaseTest):
                     (1, 1, 0),
                     Position(
                         mu=0,
-                        delta=26.394192,
+                        delta=radians(26.394192),
                         nu=0,
-                        eta=13.197096,
-                        chi=-1.334500,
-                        phi=48.602000,
+                        eta=radians(13.197096),
+                        chi=radians(-1.334500),
+                        phi=radians(48.602000),
                     ),
                     zrot,
                     yrot,
@@ -2601,7 +2612,7 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
 
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.hklcalc.constraints.asdict = {"phi": -90, "nu": 0, "mu": 0}
+        self.hklcalc.constraints = Constraints({"phi": -pi / 2, "nu": 0, "mu": 0})
         self.wavelength = 12.39842 / 1.650
 
     def _configure_ub(self):
@@ -2612,11 +2623,11 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
         hkl = (0, 0, 1)
         pos = Position(
             mu=0,
-            delta=33.07329403295449,
+            delta=radians(33.07329403295449),
             nu=0,
-            eta=16.536647016477247,
-            chi=90,
-            phi=-90,
+            eta=radians(16.536647016477247),
+            chi=pi / 2,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("001", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("001", 999, 999, hkl, pos, self.wavelength, {})
@@ -2625,11 +2636,11 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
         hkl = (1, 0, 0)
         pos = Position(
             mu=0,
-            delta=89.42926563609406,
+            delta=radians(89.42926563609406),
             nu=0,
-            eta=134.71463281804702,
+            eta=radians(134.71463281804702),
             chi=0,
-            phi=-90,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("100", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
@@ -2638,11 +2649,11 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
         hkl = (1, 0, 1)
         pos = Position(
             mu=0,
-            delta=98.74666191021282,
+            delta=radians(98.74666191021282),
             nu=0,
-            eta=117.347760720783,
-            chi=90,
-            phi=-90,
+            eta=radians(117.347760720783),
+            chi=pi / 2,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("101", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("101", 999, 999, hkl, pos, self.wavelength, {})
@@ -2651,7 +2662,7 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
 class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.hklcalc.constraints.asdict = {"phi": -90, "delta": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"phi": -pi / 2, "delta": 0, "eta": 0})
         self.wavelength = 12.39842 / 1.650
 
     def _configure_ub(self):
@@ -2661,12 +2672,12 @@ class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
     def testHkl001(self):
         hkl = (0, 0, 1)
         pos = Position(
-            mu=16.536647016477247,
+            mu=radians(16.536647016477247),
             delta=0,
-            nu=33.07329403295449,
+            nu=radians(33.07329403295449),
             eta=0,
             chi=0,
-            phi=-90,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("001", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("001", 999, 999, hkl, pos, self.wavelength, {})
@@ -2675,12 +2686,12 @@ class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
     def testHkl100(self):
         hkl = (1, 0, 0)
         pos = Position(
-            mu=134.71463281804702,
+            mu=radians(134.71463281804702),
             delta=0,
-            nu=89.42926563609406,
+            nu=radians(89.42926563609406),
             eta=0,
             chi=0,
-            phi=-90,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("100", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
@@ -2688,12 +2699,12 @@ class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
     def testHkl101(self):
         hkl = (1, 0, 1)
         pos = Position(
-            mu=117.347760720783,
+            mu=radians(117.347760720783),
             delta=0,
-            nu=98.74666191021282,
+            nu=radians(98.74666191021282),
             eta=0,
             chi=0,
-            phi=-90,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("101", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("101", 999, 999, hkl, pos, self.wavelength, {})
@@ -2704,19 +2715,19 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
 ):
     def setup_method(self):
         _BaseTest.setup_method(self)
-        self.hklcalc.constraints.asdict = {"phi": -90, "chi": 0, "delta": 0}
+        self.hklcalc.constraints = Constraints({"phi": -pi / 2, "chi": 0, "delta": 0})
         self.wavelength = 12.39842 / 1.650
 
     @pytest.mark.xfail(raises=DiffcalcException)  # q || eta
     def testHkl001(self):
         hkl = (0, 0, 1)
         pos = Position(
-            mu=16.536647016477247,
+            mu=radians(16.536647016477247),
             delta=0,
-            nu=33.07329403295449,
+            nu=radians(33.07329403295449),
             eta=0,
             chi=0,
-            phi=-90,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("001", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("001", 999, 999, hkl, pos, self.wavelength, {})
@@ -2724,12 +2735,12 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
     def testHkl100(self):
         hkl = (1, 0, 0)
         pos = Position(
-            mu=134.71463281804702,
+            mu=radians(134.71463281804702),
             delta=0,
-            nu=89.42926563609406,
+            nu=radians(89.42926563609406),
             eta=0,
             chi=0,
-            phi=-90,
+            phi=-pi / 2,
         )
         self._check_angles_to_hkl("100", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
@@ -2738,7 +2749,7 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
 class TestFixedNazPsiEtaMode(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"naz": 90, "psi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"naz": pi / 2, "psi": 0, "eta": 0})
         self.wavelength = 1
 
     def _configure_ub(self):
@@ -2754,11 +2765,11 @@ class TestFixedNazPsiEtaMode(_TestCubic):
             (
                 (1, 0, 0),
                 Position(
-                    mu=-90,
-                    delta=60,
+                    mu=-pi / 2,
+                    delta=pi / 3,
                     nu=0,
                     eta=0,
-                    chi=30,
+                    chi=pi / 6,
                     phi=0,
                 ),
                 4,
@@ -2766,46 +2777,46 @@ class TestFixedNazPsiEtaMode(_TestCubic):
             (
                 (0, 1, 0),
                 Position(
-                    mu=90,
-                    delta=60,
+                    mu=pi / 2,
+                    delta=pi / 3,
                     nu=0,
                     eta=0,
-                    chi=150,
-                    phi=-90,
+                    chi=radians(150),
+                    phi=-pi / 2,
                 ),
                 4,
             ),
             (
                 (1, 1, 0),
                 Position(
-                    mu=-90,
-                    delta=90,
+                    mu=-pi / 2,
+                    delta=pi / 2,
                     nu=0,
                     eta=0,
-                    chi=45,
-                    phi=45,
+                    chi=pi / 4,
+                    phi=pi / 4,
                 ),
                 4,
             ),
             (
                 (1, 1, 1),
                 Position(
-                    mu=90,
-                    delta=120,
+                    mu=pi / 2,
+                    delta=pi * 2 / 3,
                     nu=0,
                     eta=0,
-                    chi=84.7356,
-                    phi=-135,
+                    chi=radians(84.7356),
+                    phi=-radians(135),
                 ),
                 4,
             ),
             pytest.param(
                 (0, 0, 1),
                 Position(
-                    mu=30,
+                    mu=pi / 6,
                     delta=0,
-                    nu=60,
-                    eta=90,
+                    nu=pi / 3,
+                    eta=pi / 2,
                     chi=0,
                     phi=0,
                 ),
@@ -2827,7 +2838,7 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
 
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "a_eq_b": True})
         self.wavelength = 1
 
     def _configure_ub(self):
@@ -2843,10 +2854,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             pytest.param(
                 (0, 0, 1),
                 Position(
-                    mu=30,
+                    mu=pi / 6,
                     delta=0,
-                    nu=60,
-                    eta=90,
+                    nu=pi / 3,
+                    eta=pi / 2,
                     chi=0,
                     phi=0,
                 ),
@@ -2857,9 +2868,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
                 (0, 1, 0),  # betaout=0
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=120,
+                    eta=pi * 2 / 3,
                     chi=0,
                     phi=0,
                 ),
@@ -2868,10 +2879,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (0, 1, 1),  # betaout=30
                 Position(
-                    mu=30,
-                    delta=54.7356,
-                    nu=90,
-                    eta=125.2644,
+                    mu=pi / 6,
+                    delta=radians(54.7356),
+                    nu=pi / 2,
+                    eta=radians(125.2644),
                     chi=0,
                     phi=0,
                 ),
@@ -2881,9 +2892,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
                 (1, 0, 0),  # betaout=0
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=30,
+                    eta=pi / 6,
                     chi=0,
                     phi=0,
                 ),
@@ -2892,10 +2903,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (1, 0, 1),  # betaout=30
                 Position(
-                    mu=30,
-                    delta=54.7356,
-                    nu=90,
-                    eta=35.2644,
+                    mu=pi / 6,
+                    delta=radians(54.7356),
+                    nu=pi / 2,
+                    eta=radians(35.2644),
                     chi=0,
                     phi=0,
                 ),
@@ -2905,9 +2916,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
                 (1, 1, 0),  # betaout=0
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
+                    eta=pi / 2,
                     chi=0,
                     phi=0,
                 ),
@@ -2916,10 +2927,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (1, 1, 0.0001),  # betaout=0
                 Position(
-                    mu=0.0029,
-                    delta=89.9971,
-                    nu=90.0058,
-                    eta=90,
+                    mu=radians(0.0029),
+                    delta=radians(89.9971),
+                    nu=radians(90.0058),
+                    eta=pi / 2,
                     chi=0,
                     phi=0,
                 ),
@@ -2928,10 +2939,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (1, 1, 1),  # betaout=30
                 Position(
-                    mu=30,
-                    delta=54.7356,
-                    nu=150,
-                    eta=99.7356,
+                    mu=pi / 6,
+                    delta=radians(54.7356),
+                    nu=radians(150),
+                    eta=radians(99.7356),
                     chi=0,
                     phi=0,
                 ),
@@ -2941,9 +2952,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
                 (1.1, 0, 0),  # betaout=0
                 Position(
                     mu=0,
-                    delta=66.7340,
+                    delta=radians(66.7340),
                     nu=0,
-                    eta=33.3670,
+                    eta=radians(33.3670),
                     chi=0,
                     phi=0,
                 ),
@@ -2953,9 +2964,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
                 (0.9, 0, 0),  # betaout=0
                 Position(
                     mu=0,
-                    delta=53.4874,
+                    delta=radians(53.4874),
                     nu=0,
-                    eta=26.7437,
+                    eta=radians(26.7437),
                     chi=0,
                     phi=0,
                 ),
@@ -2964,10 +2975,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (0.7, 0.8, 0.8),  # betaout=23.5782
                 Position(
-                    mu=23.5782,
-                    delta=59.9980,
-                    nu=76.7037,
-                    eta=84.2591,
+                    mu=radians(23.5782),
+                    delta=radians(59.9980),
+                    nu=radians(76.7037),
+                    eta=radians(84.2591),
                     chi=0,
                     phi=0,
                 ),
@@ -2976,10 +2987,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (0.7, 0.8, 0.9),  # betaout=26.7437
                 Position(
-                    mu=26.74368,
-                    delta=58.6754,
-                    nu=86.6919,
-                    eta=85.3391,
+                    mu=radians(26.74368),
+                    delta=radians(58.6754),
+                    nu=radians(86.6919),
+                    eta=radians(85.3391),
                     chi=0,
                     phi=0,
                 ),
@@ -2988,10 +2999,10 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
             (
                 (0.7, 0.8, 1),  # betaout=30
                 Position(
-                    mu=30,
-                    delta=57.0626,
-                    nu=96.86590,
-                    eta=86.6739,
+                    mu=pi / 6,
+                    delta=radians(57.0626),
+                    nu=radians(96.86590),
+                    eta=radians(86.6739),
                     chi=0,
                     phi=0,
                 ),
@@ -3008,7 +3019,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
 class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints = Constraints(
+            {"chi": pi / 2, "phi": 0, "a_eq_b": True}
+        )
         self.wavelength = 1
         self.places = 4
 
@@ -3021,10 +3034,10 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             pytest.param(
                 (0, 0, 1),
                 Position(
-                    mu=30,
+                    mu=pi / 6,
                     delta=0,
-                    nu=60,
-                    eta=90,
+                    nu=pi / 3,
+                    eta=pi / 2,
                     chi=0,
                     phi=0,
                 ),
@@ -3034,11 +3047,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (0, 1, 0),  # betaout=0
                 Position(
-                    mu=120,
+                    mu=pi * 2 / 3,
                     delta=0,
-                    nu=60,
+                    nu=pi / 3,
                     eta=0,
-                    chi=90,
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3046,11 +3059,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (0, 1, 1),  # betaout=30
                 Position(
-                    mu=45,
+                    mu=pi / 4,
                     delta=0,
-                    nu=-90,
-                    eta=135,
-                    chi=90,
+                    nu=-pi / 2,
+                    eta=radians(135),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3058,11 +3071,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (1, 0, 0),  # betaout=0
                 Position(
-                    mu=-30,
+                    mu=-pi / 6,
                     delta=0,
-                    nu=-60,
+                    nu=-pi / 3,
                     eta=0,
-                    chi=90,
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3070,11 +3083,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (1, 0, 1),  # betaout=30
                 Position(
-                    mu=-30,
-                    delta=54.7356,
-                    nu=-90,
-                    eta=35.2644,
-                    chi=90,
+                    mu=-pi / 6,
+                    delta=radians(54.7356),
+                    nu=-pi / 2,
+                    eta=radians(35.2644),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3082,11 +3095,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             pytest.param(
                 (1, -1, 0),  # betaout=0
                 Position(
-                    mu=-90,
+                    mu=-pi / 2,
                     delta=0,
-                    nu=90,
+                    nu=pi / 2,
                     eta=0,
-                    chi=90,
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3096,10 +3109,10 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
                 (1, 1, 0.0001),  # betaout=0
                 Position(
                     mu=0,
-                    delta=-0.00286,
-                    nu=-90,
-                    eta=179.997,
-                    chi=90,
+                    delta=-radians(0.00286),
+                    nu=-pi / 2,
+                    eta=radians(179.997),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3107,11 +3120,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (1, 1, 1),  # betaout=30
                 Position(
-                    mu=-171.5789,
-                    delta=20.9410,
-                    nu=122.3684,
-                    eta=-30.3612,
-                    chi=90,
+                    mu=-radians(171.5789),
+                    delta=radians(20.9410),
+                    nu=radians(122.3684),
+                    eta=-radians(30.3612),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3119,11 +3132,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (1.1, 0, 0),  # betaout=0
                 Position(
-                    mu=-146.6330,
+                    mu=-radians(146.6330),
                     delta=0,
-                    nu=66.7340,
+                    nu=radians(66.7340),
                     eta=0,
-                    chi=90,
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3131,11 +3144,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (0.9, 0, 0),  # betaout=0
                 Position(
-                    mu=-153.2563,
+                    mu=-radians(153.2563),
                     delta=0,
-                    nu=53.4874,
+                    nu=radians(53.4874),
                     eta=0,
-                    chi=90,
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3143,11 +3156,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (0.7, 0.8, 0.8),  # betaout=23.5782
                 Position(
-                    mu=167.7652,
-                    delta=23.7336,
-                    nu=82.7832,
-                    eta=-24.1606,
-                    chi=90,
+                    mu=radians(167.7652),
+                    delta=radians(23.7336),
+                    nu=radians(82.7832),
+                    eta=-radians(24.1606),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3155,11 +3168,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (0.7, 0.8, 0.9),  # betaout=26.7437
                 Position(
-                    mu=169.0428,
-                    delta=25.6713,
-                    nu=88.0926,
-                    eta=-27.2811,
-                    chi=90,
+                    mu=radians(169.0428),
+                    delta=radians(25.6713),
+                    nu=radians(88.0926),
+                    eta=-radians(27.2811),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3167,11 +3180,11 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
             (
                 (0.7, 0.8, 1),  # betaout=30
                 Position(
-                    mu=170.5280,
-                    delta=27.1595,
-                    nu=94.1895,
-                    eta=-30.4583,
-                    chi=90,
+                    mu=radians(170.5280),
+                    delta=radians(27.1595),
+                    nu=radians(94.1895),
+                    eta=-radians(30.4583),
+                    chi=pi / 2,
                     phi=0,
                 ),
                 4,
@@ -3189,7 +3202,7 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
 
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"chi": 90, "psi": 90, "phi": 0}
+        self.hklcalc.constraints = Constraints({"chi": pi / 2, "psi": pi / 2, "phi": 0})
         self.wavelength = 1
         self.places = 4
 
@@ -3202,11 +3215,11 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
             pytest.param(
                 (1, 1, 0),  # Any qaz can be set in [0, 90] with eta and delta
                 Position(
-                    mu=90,
+                    mu=pi / 2,
                     delta=0,
-                    nu=90,
+                    nu=pi / 2,
                     eta=0,
-                    chi=-90,
+                    chi=-pi / 2,
                     phi=0,
                 ),
                 marks=pytest.mark.xfail(raises=DiffcalcException),
@@ -3214,44 +3227,44 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
             (
                 (1, 1, 0.001),
                 Position(
-                    mu=-89.9714,
-                    delta=90.0430,
-                    nu=-89.9618,
-                    eta=90.0143,
-                    chi=90,
+                    mu=-radians(89.9714),
+                    delta=radians(90.0430),
+                    nu=-radians(89.9618),
+                    eta=radians(90.0143),
+                    chi=pi / 2,
                     phi=0,
                 ),
             ),
             (
                 (1, 1, 0.1),
                 Position(
-                    mu=-87.1331,
-                    delta=85.6995,
-                    nu=93.8232,
-                    eta=91.4339,
-                    chi=90,
+                    mu=-radians(87.1331),
+                    delta=radians(85.6995),
+                    nu=radians(93.8232),
+                    eta=radians(91.4339),
+                    chi=pi / 2,
                     phi=0,
                 ),
             ),
             (
                 (1, 1, 0.5),
                 Position(
-                    mu=-75.3995,
-                    delta=68.0801,
-                    nu=109.5630,
-                    eta=97.3603,
-                    chi=90,
+                    mu=-radians(75.3995),
+                    delta=radians(68.0801),
+                    nu=radians(109.5630),
+                    eta=radians(97.3603),
+                    chi=pi / 2,
                     phi=0,
                 ),
             ),
             (
                 (1, 1, 1),
                 Position(
-                    mu=-58.6003,
-                    delta=42.7342,
-                    nu=132.9005,
-                    eta=106.3250,
-                    chi=90,
+                    mu=-radians(58.6003),
+                    delta=radians(42.7342),
+                    nu=radians(132.9005),
+                    eta=radians(106.3250),
+                    chi=pi / 2,
                     phi=0,
                 ),
             ),
@@ -3265,7 +3278,9 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
 class TestConstrain3Sample_ChiPhiEta(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints = Constraints(
+            {"chi": pi / 2, "phi": 0, "a_eq_b": True}
+        )
         self.wavelength = 1
         self.places = 4
 
@@ -3284,13 +3299,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_001(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, 0, 1),
             Position(
-                mu=30,
+                mu=pi / 6,
                 delta=0,
-                nu=60,
+                nu=pi / 3,
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3298,13 +3313,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_010(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, 1, 0),
             Position(
-                mu=120,
+                mu=pi * 2 / 3,
                 delta=0,
-                nu=60,
+                nu=pi / 3,
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3312,13 +3327,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_011(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, 1, 1),
             Position(
-                mu=90,
+                mu=pi / 2,
                 delta=0,
-                nu=90,
+                nu=pi / 2,
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3326,69 +3341,69 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_phi30_100(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 30, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": pi / 6, "eta": 0})
         self._check(
             (1, 0, 0),
             Position(
                 mu=0,
-                delta=60,
+                delta=pi / 3,
                 nu=0,
                 eta=0,
                 chi=0,
-                phi=30,
+                phi=pi / 6,
             ),
         )
 
     def testHkl_eta30_100(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 30}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": pi / 6})
         self._check(
             (1, 0, 0),
             Position(
                 mu=0,
-                delta=60,
+                delta=pi / 3,
                 nu=0,
-                eta=30,
+                eta=pi / 6,
                 chi=0,
                 phi=0,
             ),
         )
 
     def testHkl_phi90_110(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 90, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": pi / 2, "eta": 0})
         self._check(
             (1, 1, 0),
             Position(
                 mu=0,
-                delta=90,
+                delta=pi / 2,
                 nu=0,
                 eta=0,
                 chi=0,
-                phi=90,
+                phi=pi / 2,
             ),
         )
 
     def testHkl_eta90_110(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 90}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": pi / 2})
         self._check(
             (1, 1, 0),
             Position(
                 mu=0,
-                delta=90,
+                delta=pi / 2,
                 nu=0,
-                eta=90,
+                eta=pi / 2,
                 chi=0,
                 phi=0,
             ),
         )
 
     def testHkl_all0_1(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0.01, 0.01, 0.1),
             Position(
-                mu=8.6194,
-                delta=0.5730,
-                nu=5.7607,
+                mu=radians(8.6194),
+                delta=radians(0.5730),
+                nu=radians(5.7607),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3396,13 +3411,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_2(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, 0, 0.1),
             Position(
-                mu=2.8660,
+                mu=radians(2.8660),
                 delta=0,
-                nu=5.7320,
+                nu=radians(5.7320),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3410,13 +3425,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_all0_3(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0.1, 0, 0.01),
             Position(
-                mu=30.3314,
-                delta=5.7392,
-                nu=0.4970,
+                mu=radians(30.3314),
+                delta=radians(5.7392),
+                nu=radians(0.4970),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3424,13 +3439,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         )
 
     def testHkl_show_all_solutionsall0_3(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0.1, 0, 0.01),
             Position(
-                mu=30.3314,
-                delta=5.7392,
-                nu=0.4970,
+                mu=radians(30.3314),
+                delta=radians(5.7392),
+                nu=radians(0.4970),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3439,13 +3454,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         # print self.hklcalc.hkl_to_all_angles(.1, 0, .01, 1)
 
     def testHkl_all0_010to001(self):
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, cos(radians(4)), sin(radians(4))),
             Position(
-                mu=120 - 4,
+                mu=radians(120 - 4),
                 delta=0,
-                nu=60,
+                nu=pi / 3,
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3454,13 +3469,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 
     def testHkl_1(self):
         self.wavelength = 0.1
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, 0, 1),
             Position(
-                mu=2.8660,
+                mu=radians(2.8660),
                 delta=0,
-                nu=5.7320,
+                nu=radians(5.7320),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3469,13 +3484,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 
     def testHkl_2(self):
         self.wavelength = 0.1
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (0, 0, 1),
             Position(
-                mu=2.8660,
+                mu=radians(2.8660),
                 delta=0,
-                nu=5.7320,
+                nu=radians(5.7320),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3484,13 +3499,13 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 
     def testHkl_3(self):
         self.wavelength = 0.1
-        self.hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "eta": 0}
+        self.hklcalc.constraints = Constraints({"chi": 0, "phi": 0, "eta": 0})
         self._check(
             (1, 0, 0.1),
             Position(
-                mu=30.3314,
-                delta=5.7392,
-                nu=0.4970,
+                mu=radians(30.3314),
+                delta=radians(5.7392),
+                nu=radians(0.4970),
                 eta=0,
                 chi=0,
                 phi=0,
@@ -3501,7 +3516,9 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
 class TestConstrain3Sample_MuChiPhi(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints = Constraints(
+            {"chi": pi / 2, "phi": 0, "a_eq_b": True}
+        )
         self.wavelength = 1
         self.places = 4
 
@@ -3518,82 +3535,82 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
                 (0, 0, 1),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=30,
-                    chi=90,
+                    eta=pi / 6,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "phi": 0, "mu": 0},
+                {"chi": pi / 2, "phi": 0, "mu": 0},
             ),
             (
                 (0, 1, 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=120,
-                    chi=90,
+                    eta=pi * 2 / 3,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "phi": 0, "mu": 0},
+                {"chi": pi / 2, "phi": 0, "mu": 0},
             ),
             (
                 (0, 1, 1),
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
-                    chi=90,
+                    eta=pi / 2,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "phi": 0, "mu": 0},
+                {"chi": pi / 2, "phi": 0, "mu": 0},
             ),
             (
                 (1, 0, 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=-60,
-                    chi=90,
-                    phi=90,
+                    eta=-pi / 3,
+                    chi=pi / 2,
+                    phi=pi / 2,
                 ),
-                {"chi": 90, "phi": 90, "mu": 0},
+                {"chi": pi / 2, "phi": pi / 2, "mu": 0},
             ),
             pytest.param(
                 (-1, 1, 0),
                 Position(
-                    mu=90,
-                    delta=90,
+                    mu=pi / 2,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
-                    chi=90,
+                    eta=pi / 2,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "phi": 0, "mu": 90},
+                {"chi": pi / 2, "phi": 0, "mu": pi / 2},
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
                 (1, 0, 1),
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
                     eta=0,
-                    chi=90,
-                    phi=90,
+                    chi=pi / 2,
+                    phi=pi / 2,
                 ),
-                {"chi": 90, "phi": 90, "mu": 0},
+                {"chi": pi / 2, "phi": pi / 2, "mu": 0},
             ),
             (
                 (sin(radians(4)), cos(radians(4)), 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=120 - 4,
+                    eta=radians(120 - 4),
                     chi=0,
                     phi=0,
                 ),
@@ -3602,7 +3619,7 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
         ],
     )
     def testHkl(self, hkl, pos, constraint):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
@@ -3623,92 +3640,92 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
                 (0, 0, 1),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=30,
-                    chi=90,
+                    eta=pi / 6,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"eta": 30, "chi": 90, "mu": 0},
+                {"eta": pi / 6, "chi": pi / 2, "mu": 0},
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
                 (0, 1, 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=120,
-                    chi=90,
+                    eta=pi * 2 / 3,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "eta": 120, "mu": 0},
+                {"chi": pi / 2, "eta": pi * 2 / 3, "mu": 0},
             ),
             pytest.param(
                 (0, 1, 1),
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
-                    chi=90,
+                    eta=pi / 2,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "eta": 90, "mu": 0},
+                {"chi": pi / 2, "eta": pi / 2, "mu": 0},
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
                 (1, 0, 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=-60,
-                    chi=90,
-                    phi=90,
+                    eta=-pi / 3,
+                    chi=pi / 2,
+                    phi=pi / 2,
                 ),
-                {"chi": 90, "eta": -60, "mu": 0},
+                {"chi": pi / 2, "eta": -pi / 3, "mu": 0},
             ),
             (
                 (-1, 1, 0),
                 Position(
-                    mu=90,
-                    delta=90,
+                    mu=pi / 2,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
-                    chi=90,
+                    eta=pi / 2,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"chi": 90, "eta": 90, "mu": 90},
+                {"chi": pi / 2, "eta": pi / 2, "mu": pi / 2},
             ),
             (
                 (1, 0, 1),
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
                     eta=0,
-                    chi=90,
-                    phi=90,
+                    chi=pi / 2,
+                    phi=pi / 2,
                 ),
-                {"chi": 90, "eta": 0, "mu": 0},
+                {"chi": pi / 2, "eta": 0, "mu": 0},
             ),
             (
                 (sin(radians(4)), cos(radians(4)), 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
                     eta=0,
                     chi=0,
-                    phi=120 - 4,
+                    phi=radians(120 - 4),
                 ),
                 {"chi": 0, "eta": 0, "mu": 0},
             ),
         ],
     )
     def testHKL(self, hkl, pos, constraint):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
@@ -3716,7 +3733,9 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
 class TestConstrain3Sample_MuEtaPhi(_TestCubic):
     def setup_method(self):
         _TestCubic.setup_method(self)
-        self.hklcalc.constraints.asdict = {"chi": 90, "phi": 0, "a_eq_b": True}
+        self.hklcalc.constraints = Constraints(
+            {"chi": pi / 2, "phi": 0, "a_eq_b": True}
+        )
         self.wavelength = 1
         self.places = 4
 
@@ -3729,94 +3748,94 @@ class TestConstrain3Sample_MuEtaPhi(_TestCubic):
             (
                 (0, 0, 1),
                 Position(
-                    mu=30,
+                    mu=pi / 6,
                     delta=0,
-                    nu=60,
+                    nu=pi / 3,
                     eta=0,
                     chi=0,
                     phi=0,
                 ),
-                {"eta": 0, "phi": 0, "mu": 30},
+                {"eta": 0, "phi": 0, "mu": pi / 6},
             ),
             pytest.param(
                 (0, 1, 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=120,
-                    chi=90,
+                    eta=pi * 2 / 3,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"eta": 120, "phi": 0, "mu": 0},
+                {"eta": pi * 2 / 3, "phi": 0, "mu": 0},
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
                 (0, 1, 1),
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
-                    chi=90,
+                    eta=pi / 2,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"eta": 90, "phi": 0, "mu": 0},
+                {"eta": pi / 2, "phi": 0, "mu": 0},
             ),
             pytest.param(
                 (1, 0, 0),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=-60,
-                    chi=90,
-                    phi=90,
+                    eta=-pi / 3,
+                    chi=pi / 2,
+                    phi=pi / 2,
                 ),
-                {"eta": -60, "phi": 90, "mu": 0},
+                {"eta": -pi / 3, "phi": pi / 2, "mu": 0},
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
                 (-1, 1, 0),
                 Position(
-                    mu=90,
-                    delta=90,
+                    mu=pi / 2,
+                    delta=pi / 2,
                     nu=0,
-                    eta=90,
-                    chi=90,
+                    eta=pi / 2,
+                    chi=pi / 2,
                     phi=0,
                 ),
-                {"eta": 90, "phi": 0, "mu": 90},
+                {"eta": pi / 2, "phi": 0, "mu": pi / 2},
             ),
             pytest.param(
                 (1, 0, 1),
                 Position(
                     mu=0,
-                    delta=90,
+                    delta=pi / 2,
                     nu=0,
                     eta=0,
-                    chi=90,
-                    phi=90,
+                    chi=pi / 2,
+                    phi=pi / 2,
                 ),
-                {"eta": 0, "phi": 90, "mu": 0},
+                {"eta": 0, "phi": pi / 2, "mu": 0},
                 marks=pytest.mark.xfail(raises=DiffcalcException),
             ),
             (
                 (sin(radians(4)), 0, cos(radians(4))),
                 Position(
                     mu=0,
-                    delta=60,
+                    delta=pi / 3,
                     nu=0,
-                    eta=30,
-                    chi=90 - 4,
+                    eta=pi / 6,
+                    chi=pi / 2 - radians(4),
                     phi=0,
                 ),
-                {"eta": 30, "phi": 0, "mu": 0},
+                {"eta": pi / 6, "phi": 0, "mu": 0},
             ),
         ],
     )
     def testHKL(self, hkl, pos, constraint):
-        self.hklcalc.constraints.asdict = constraint
+        self.hklcalc.constraints = Constraints(constraint)
         self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
         self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
 
@@ -3861,61 +3880,65 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
         )
 
     def test_hkl_bisecting_works_okay_on_i16(self):
-        self.hklcalc.constraints.asdict = {"delta": 0, "a_eq_b": True, "eta": 0}
+        self.hklcalc.constraints = Constraints({"delta": 0, "a_eq_b": True, "eta": 0})
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
-                mu=26,
+                mu=radians(26),
                 delta=0,
-                nu=52,
+                nu=radians(52),
                 eta=0,
-                chi=45.2453,
-                phi=186.6933 - 360,
+                chi=radians(45.2453),
+                phi=radians(186.6933 - 360),
             ),
         )
 
     def test_hkl_psi90_works_okay_on_i16(self):
         # This is failing here but on the live one. Suggesting some extreme sensitivity?
-        self.hklcalc.constraints.asdict = {"delta": 0, "psi": -90, "eta": 0}
+        self.hklcalc.constraints = Constraints({"delta": 0, "psi": -pi / 2, "eta": 0})
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
-                mu=26,
+                mu=radians(26),
                 delta=0,
-                nu=52,
+                nu=radians(52),
                 eta=0,
-                chi=45.2453,
-                phi=186.6933 - 360,
+                chi=radians(45.2453),
+                phi=radians(186.6933 - 360),
             ),
         )
 
     def test_hkl_alpha_17_9776_used_to_fail(self):
         # This is failing here but on the live one. Suggesting some extreme sensitivity?
-        self.hklcalc.constraints.asdict = {"delta": 0, "alpha": 17.9776, "eta": 0}
+        self.hklcalc.constraints = Constraints(
+            {"delta": 0, "alpha": radians(17.9776), "eta": 0}
+        )
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
-                mu=26,
+                mu=radians(26),
                 delta=0,
-                nu=52,
+                nu=radians(52),
                 eta=0,
-                chi=45.2453,
-                phi=186.6933 - 360,
+                chi=radians(45.2453),
+                phi=radians(186.6933 - 360),
             ),
         )
 
     def test_hkl_alpha_17_9776_failing_after_bigger_small(self):
         # This is failing here but on the live one. Suggesting some extreme sensitivity?
-        self.hklcalc.constraints.asdict = {"delta": 0, "alpha": 17.8776, "eta": 0}
+        self.hklcalc.constraints = Constraints(
+            {"delta": 0, "alpha": radians(17.8776), "eta": 0}
+        )
         self._check(
             [-1.1812112493619709, -0.71251524866987204, 5.1997083010199221],
             Position(
-                mu=25.85,
+                mu=radians(25.85),
                 delta=0,
-                nu=52,
+                nu=radians(52),
                 eta=0,
-                chi=45.2453,
-                phi=-173.518,
+                chi=radians(45.2453),
+                phi=radians(-173.518),
             ),
         )
 
@@ -3939,25 +3962,32 @@ class TestAnglesToHkl_I16Examples:
         self.hklcalc.ubcalc.set_u(U)
 
     def test_anglesToHkl_mu_0_gam_0(self):
-        pos = PosFromI16sEuler(1, 1, 30, 0, 60, 0)
+        pos = PosFromI16sEuler(radians(1), radians(1), pi / 6, 0, pi / 3, 0)
         arrayeq_(self.hklcalc.get_hkl(pos, self.WL1), [1, 0, 0])
 
     def test_anglesToHkl_mu_0_gam_10(self):
-        pos = PosFromI16sEuler(1, 1, 30, 0, 60, 10)
+        pos = PosFromI16sEuler(radians(1), radians(1), pi / 6, 0, pi / 3, radians(10))
         arrayeq_(
             self.hklcalc.get_hkl(pos, self.WL1),
             [1.00379806, -0.006578435, 0.08682408],
         )
 
     def test_anglesToHkl_mu_10_gam_0(self):
-        pos = PosFromI16sEuler(1, 1, 30, 10, 60, 0)
+        pos = PosFromI16sEuler(radians(1), radians(1), pi / 6, radians(10), pi / 3, 0)
         arrayeq_(
             self.hklcalc.get_hkl(pos, self.WL1),
             [0.99620193, 0.0065784359, 0.08682408],
         )
 
     def test_anglesToHkl_arbitrary(self):
-        pos = PosFromI16sEuler(1.9, 2.9, 30.9, 0.9, 60.9, 2.9)
+        pos = PosFromI16sEuler(
+            radians(1.9),
+            radians(2.9),
+            radians(30.9),
+            radians(0.9),
+            radians(60.9),
+            radians(2.9),
+        )
         arrayeq_(
             self.hklcalc.get_hkl(pos, self.WL1),
             [1.01174189, 0.02368622, 0.06627361],
@@ -3970,7 +4000,7 @@ class TestAnglesToHkl_I16Numerical(_BaseTest):
 
         # self.UB = array(((1.11143, 0, 0), (0, 1.11143, 0), (0, 0, 1.11143)))
 
-        self.hklcalc.constraints.asdict = {"mu": 0, "nu": 0, "phi": 0}
+        self.hklcalc.constraints = Constraints({"mu": 0, "nu": 0, "phi": 0})
         self.wavelength = 1.0
         self.places = 6
 
@@ -3999,12 +4029,14 @@ class TestAnglesToHkl_I16Numerical(_BaseTest):
         self._check(
             "I16_numeric",
             [2, 0, 0.000001],
-            PosFromI16sEuler(0, 0.000029, 10.188639, 0, 20.377277, 0),
+            PosFromI16sEuler(
+                0, radians(0.000029), radians(10.188639), 0, radians(20.377277), 0
+            ),
         )
         self._check(
             "I16_numeric",
             [2, 0.000001, 0],
-            PosFromI16sEuler(0, 0, 10.188667, 0, 20.377277, 0),
+            PosFromI16sEuler(0, 0, radians(10.188667), 0, radians(20.377277), 0),
         )
 
 
@@ -4012,11 +4044,13 @@ class TestAnglesToHkl_I16GaAsExample(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.hklcalc.constraints.asdict = {
-            "qaz": 90.0,
-            "alpha": 11.0,
-            "mu": 0.0,
-        }
+        self.hklcalc.constraints = Constraints(
+            {
+                "qaz": pi / 2,
+                "alpha": radians(11.0),
+                "mu": 0.0,
+            }
+        )
         self.wavelength = 1.239842
         self.places = 3
 
@@ -4043,11 +4077,25 @@ class TestAnglesToHkl_I16GaAsExample(_BaseTest):
     def test_hkl_to_angles_given_UB(self):
         self._check(
             [1.0, 1.0, 1.0],
-            PosFromI16sEuler(10.8224, 89.8419, 11.0000, 0.0, 21.8980, 0.0),
+            PosFromI16sEuler(
+                radians(10.8224),
+                radians(89.8419),
+                radians(11.0000),
+                0.0,
+                radians(21.8980),
+                0.0,
+            ),
         )
         self._check(
             [0.0, 0.0, 2.0],
-            PosFromI16sEuler(81.2389, 35.4478, 19.2083, 0.0, 25.3375, 0.0),
+            PosFromI16sEuler(
+                radians(81.2389),
+                radians(35.4478),
+                radians(19.2083),
+                0.0,
+                radians(25.3375),
+                0.0,
+            ),
         )
 
 
@@ -4062,7 +4110,7 @@ class Test_I21ExamplesUB(_BaseTest):
 
         # B = array(((1.66222, 0.0, 0.0), (0.0, 1.66222, 0.0), (0.0, 0.0, 0.31260)))
 
-        self.hklcalc.constraints.asdict = {"psi": 10, "mu": 0, "nu": 0}
+        self.hklcalc.constraints = Constraints({"psi": radians(10), "mu": 0, "nu": 0})
         self.places = 3
 
     def _configure_ub(self):
@@ -4081,11 +4129,11 @@ class Test_I21ExamplesUB(_BaseTest):
                     (0.0, 0.2, 0.25),
                     Position(
                         mu=0,
-                        delta=62.44607,
+                        delta=radians(62.44607),
                         nu=0,
-                        eta=28.68407,
-                        chi=90.0 - 0.44753,
-                        phi=-9.99008,
+                        eta=radians(28.68407),
+                        chi=radians(90.0 - 0.44753),
+                        phi=-radians(9.99008),
                     ),
                     zrot,
                     yrot,
@@ -4096,11 +4144,11 @@ class Test_I21ExamplesUB(_BaseTest):
                     (0.25, 0.2, 0.1),
                     Position(
                         mu=0,
-                        delta=108.03033,
+                        delta=radians(108.03033),
                         nu=0,
-                        eta=3.03132,
-                        chi=90 - 7.80099,
-                        phi=87.95201,
+                        eta=radians(3.03132),
+                        chi=radians(90 - 7.80099),
+                        phi=radians(87.95201),
                     ),
                     zrot,
                     yrot,
@@ -4126,7 +4174,9 @@ class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.hklcalc.constraints.asdict = {"alpha": 12.0, "mu": 0, "chi": 90.0}
+        self.hklcalc.constraints = Constraints(
+            {"alpha": radians(12.0), "mu": 0, "chi": pi / 2}
+        )
         self.places = 4
 
     def _configure_ub(self):
@@ -4152,11 +4202,11 @@ class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
                     (2.0, 2.0, 2.0),
                     Position(
                         mu=0,
-                        delta=35.6825,
-                        nu=0.0657,
-                        eta=17.9822,
-                        chi=90.0,
-                        phi=-92.9648,
+                        delta=radians(35.6825),
+                        nu=radians(0.0657),
+                        eta=radians(17.9822),
+                        chi=pi / 2,
+                        phi=radians(-92.9648),
                     ),
                     zrot,
                     yrot,
@@ -4167,11 +4217,11 @@ class Test_FixedAlphaMuChiSurfaceNormalHorizontal(_BaseTest):
                     (2.0, 2.0, 0.0),
                     Position(
                         mu=0,
-                        delta=22.9143,
-                        nu=18.2336,
-                        eta=18.7764,
-                        chi=90.0,
-                        phi=90.9119,
+                        delta=radians(22.9143),
+                        nu=radians(18.2336),
+                        eta=radians(18.7764),
+                        chi=pi / 2,
+                        phi=radians(90.9119),
                     ),
                     zrot,
                     yrot,
@@ -4201,11 +4251,13 @@ class TestConstrainNazAlphaEta(_BaseTest):
     def setup_method(self):
         _BaseTest.setup_method(self)
 
-        self.hklcalc.constraints.asdict = {
-            "naz": 3.0,
-            "alpha": 2.0,
-            "eta": 1.0,
-        }
+        self.hklcalc.constraints = Constraints(
+            {
+                "naz": radians(3.0),
+                "alpha": radians(2.0),
+                "eta": radians(1.0),
+            }
+        )
         self.wavelength = 1
         self.places = 4
 
@@ -4213,7 +4265,7 @@ class TestConstrainNazAlphaEta(_BaseTest):
         self.hklcalc.ubcalc.set_lattice("test", [4.913, 5.405])
         self.hklcalc.ubcalc.add_reflection(
             hkl=(0, 0, 1),
-            position=Position(7.31, 0, 10.62, 0, 0, 0),
+            position=Position(radians(7.31), 0, radians(10.62), 0, 0, 0),
             energy=12.39842,
             tag="refl1",
         )
@@ -4234,16 +4286,30 @@ class TestConstrainNazAlphaEta(_BaseTest):
     def test_hkl_to_angles_given_UB(self):
         self._check(
             [1.0, 1.0, 1.0],
-            Position(90.8684, -15.0274, 12.8921, 1.0, -29.5499, -87.7027),
+            Position(
+                radians(90.8684),
+                radians(-15.0274),
+                radians(12.8921),
+                radians(1.0),
+                radians(-29.5499),
+                radians(-87.7027),
+            ),
         )
         self._check(
             [1.0, 2.0, 3.0],
-            Position(90.8265, -39.0497, 17.0693, 1.0, -30.4506, -87.6817),
+            Position(
+                radians(90.8265),
+                radians(-39.0497),
+                radians(17.0693),
+                radians(1.0),
+                radians(-30.4506),
+                radians(-87.6817),
+            ),
         )
 
     @pytest.mark.xfail(raises=DiffcalcException)
     def test_hkl_to_angles_no_solution(self):
         self._check(
             [1.0, 0.0, 0.0],
-            Position(5.8412, 0.0, 11.6823, 0.0, -90.0, 0),
+            Position(radians(5.8412), 0.0, radians(11.6823), 0.0, -pi / 2, 0),
         )

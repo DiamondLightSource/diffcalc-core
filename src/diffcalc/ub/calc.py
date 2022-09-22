@@ -9,7 +9,7 @@ import pickle
 import uuid
 from copy import deepcopy
 from itertools import product
-from math import acos, asin, cos, degrees, pi, radians, sin
+from math import acos, asin, cos, degrees, pi, sin
 from pickle import UnpicklingError
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
@@ -1110,7 +1110,7 @@ class UBCalculation:
             self.set_lattice(*lat)
         mc_angle, mc_axis = self.get_miscut_from_hkl(hkl, position)
         if mc_angle and refine_umatrix:
-            self.set_miscut(mc_axis, radians(mc_angle), True)
+            self.set_miscut(mc_axis, mc_angle, True)
 
     def fit_ub(
         self,
@@ -1227,9 +1227,9 @@ class UBCalculation:
             ax,
             bx,
             cx,
-            degrees(alpha),
-            degrees(beta),
-            degrees(gamma),
+            alpha,
+            beta,
+            gamma,
         )
 
     def get_miscut(self) -> Tuple[float, np.ndarray]:
@@ -1286,7 +1286,7 @@ class UBCalculation:
             )
         except AssertionError:
             return 0, (0, 0, 0)
-        return degrees(miscut), (axis[0, 0], axis[1, 0], axis[2, 0])
+        return miscut, (axis[0, 0], axis[1, 0], axis[2, 0])
 
     def set_miscut(
         self,

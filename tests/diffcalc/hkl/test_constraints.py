@@ -18,7 +18,7 @@
 
 
 import pytest
-from diffcalc.hkl.constraints import Constraints, ConstraintTypes, boolean_constraints
+from diffcalc.hkl.constraints import Constraints, boolean_constraints
 from diffcalc.util import DiffcalcException
 
 from tests.test_tools import eq_
@@ -121,7 +121,7 @@ def test_unconstrain_okay(cm):
     cm.delta = 1.0
     cm.mu = 2
     assert cm.asdict == {"delta": 1.0, "mu": 2}
-    cm.unset("delta")
+    cm.unconstrain("delta")
     cm.mu = None
     eq_(cm.asdict, dict())
     assert cm.delta is None
@@ -152,16 +152,16 @@ def test_unconstrain_okay(cm):
 def test_every_constraint(con_name, cm):
     boolean_constraint = con_name in [con.name.lower() for con in boolean_constraints]
     assert getattr(cm, con_name) is None
-    cm.set(con_name, 1.0)
+    cm.constrain(con_name, 1.0)
 
     if boolean_constraint:
         assert cm.asdict == {con_name: True}
-        cm.set(con_name, False)
+        cm.constrain(con_name, False)
         assert cm.asdict == {}
     else:
         assert cm.asdict == {con_name: 1.0}
 
-    cm.unset(con_name)
+    cm.unconstrain(con_name)
     assert cm.asdict == {}
 
 
@@ -176,176 +176,176 @@ def test_clear_constraints(cm):
 
 def test_constrain_det(cm, pre={}):
     assert_dict_almost_equal(cm.asdict, pre)
-    cm.set("delta", 1.0)
+    cm.constrain("delta", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"delta": 1}, pre))
-    cm.set("naz", 1.0)
+    cm.constrain("naz", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"naz": 1}, pre))
-    cm.set("delta", 1.0)
+    cm.constrain("delta", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"delta": 1}, pre))
 
 
 def test_constrain_det_one_preexisting_ref(cm):
-    cm.set("alpha", 2.0)
+    cm.constrain("alpha", 2.0)
     test_constrain_det(cm, {"alpha": 2.0})
 
 
 def test_constrain_det_one_preexisting_samp(cm):
-    cm.set("phi", 3.0)
+    cm.constrain("phi", 3.0)
     test_constrain_det(cm, {"phi": 3.0})
 
 
 def test_constrain_det_one_preexisting_samp_and_ref(cm):
-    cm.set("alpha", 2.1)
-    cm.set("phi", 3.2)
+    cm.constrain("alpha", 2.1)
+    cm.constrain("phi", 3.2)
     test_constrain_det(cm, {"alpha": 2.1, "phi": 3.2})
 
 
 def test_constrain_det_two_preexisting_samp(cm):
-    cm.set("chi", 4.3)
-    cm.set("phi", 5.6)
+    cm.constrain("chi", 4.3)
+    cm.constrain("phi", 5.6)
     test_constrain_det(cm, {"chi": 4.3, "phi": 5.6})
 
 
 def test_constrain_det_three_preexisting_other(cm):
-    cm.set("alpha", 1.0)
-    cm.set("phi", 2.0)
-    cm.set("chi", 3.0)
+    cm.constrain("alpha", 1.0)
+    cm.constrain("phi", 2.0)
+    cm.constrain("chi", 3.0)
 
     with pytest.raises(DiffcalcException):
-        cm.set("delta", 4.0)
+        cm.constrain("delta", 4.0)
 
 
 def test_constrain_det_three_preexisting_samp(cm):
-    cm.set("phi", 1.0)
-    cm.set("chi", 2.0)
-    cm.set("eta", 3.0)
+    cm.constrain("phi", 1.0)
+    cm.constrain("chi", 2.0)
+    cm.constrain("eta", 3.0)
 
     with pytest.raises(DiffcalcException):
-        cm.set("delta", 4.0)
+        cm.constrain("delta", 4.0)
 
 
 def test_constrain_ref(cm, pre={}):
     assert_dict_almost_equal(cm.asdict, pre)
-    cm.set("alpha", 1.0)
+    cm.constrain("alpha", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"alpha": 1.0}, pre))
-    cm.set("alpha", 1.0)
+    cm.constrain("alpha", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"alpha": 1.0}, pre))
-    cm.set("beta", 1.0)
+    cm.constrain("beta", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"beta": 1.0}, pre))
 
 
 def test_constrain_ref_one_preexisting_det(cm):
-    cm.set("delta", 2.0)
+    cm.constrain("delta", 2.0)
     test_constrain_ref(cm, {"delta": 2})
 
 
 def test_constrain_ref_one_preexisting_samp(cm):
-    cm.set("phi", 3)
+    cm.constrain("phi", 3)
     test_constrain_ref(cm, {"phi": 3})
 
 
 def test_constrain_ref_one_preexisting_samp_and_det(cm):
-    cm.set("delta", 1)
-    cm.set("phi", 2)
+    cm.constrain("delta", 1)
+    cm.constrain("phi", 2)
     test_constrain_ref(cm, {"delta": 1, "phi": 2})
 
 
 def test_constrain_ref_two_preexisting_samp(cm):
-    cm.set("chi", 1)
-    cm.set("phi", 2)
+    cm.constrain("chi", 1)
+    cm.constrain("phi", 2)
     test_constrain_ref(cm, {"chi": 1, "phi": 2})
 
 
 def test_constrain_ref_three_preexisting_other(cm):
-    cm.set("delta", 1)
-    cm.set("phi", 2)
-    cm.set("chi", 3)
+    cm.constrain("delta", 1)
+    cm.constrain("phi", 2)
+    cm.constrain("chi", 3)
 
     with pytest.raises(DiffcalcException):
-        cm.set("alpha", 4.0)
+        cm.constrain("alpha", 4.0)
 
 
 def test_constrain_ref_three_preexisting_samp(cm):
-    cm.set("phi", 1)
-    cm.set("chi", 2)
-    cm.set("eta", 3)
+    cm.constrain("phi", 1)
+    cm.constrain("chi", 2)
+    cm.constrain("eta", 3)
 
     with pytest.raises(DiffcalcException):
-        cm.set("delta", 1)
+        cm.constrain("delta", 1)
 
 
 def test_constrain_samp_when_one_free(cm, pre={}):
     assert_dict_almost_equal(cm.asdict, pre)
-    cm.set("phi", 1.0)
+    cm.constrain("phi", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"phi": 1.0}, pre))
-    cm.set("phi", 1.0)
+    cm.constrain("phi", 1.0)
     assert_dict_almost_equal(cm.asdict, joined({"phi": 1.0}, pre))
 
 
 def test_constrain_samp_one_preexisting_samp(cm):
-    cm.set("chi", 2.0)
+    cm.constrain("chi", 2.0)
     test_constrain_samp_when_one_free(cm, {"chi": 2.0})
 
 
 def test_constrain_samp_two_preexisting_samp(cm):
-    cm.set("chi", 1)
-    cm.set("eta", 2)
+    cm.constrain("chi", 1)
+    cm.constrain("eta", 2)
     test_constrain_samp_when_one_free(cm, {"chi": 1, "eta": 2})
 
 
 def test_constrain_samp_two_preexisting_other(cm):
-    cm.set("delta", 1)
-    cm.set("alpha", 2)
+    cm.constrain("delta", 1)
+    cm.constrain("alpha", 2)
     test_constrain_samp_when_one_free(cm, {"delta": 1, "alpha": 2})
 
 
 def test_constrain_samp_two_preexisting_one_det(cm):
-    cm.set("delta", 1)
-    cm.set("eta", 1)
+    cm.constrain("delta", 1)
+    cm.constrain("eta", 1)
     test_constrain_samp_when_one_free(cm, {"delta": 1, "eta": 1})
 
 
 def test_constrain_samp_two_preexisting_one_ref(cm):
-    cm.set("alpha", 3)
-    cm.set("eta", 2)
+    cm.constrain("alpha", 3)
+    cm.constrain("eta", 2)
     test_constrain_samp_when_one_free(cm, {"alpha": 3, "eta": 2})
 
 
 def test_constrain_samp_three_preexisting_only_one_samp(cm):
-    cm.set("delta", 3)
-    cm.set("alpha", 4)
-    cm.set("eta", 5)
-    cm.set("phi", 1)
+    cm.constrain("delta", 3)
+    cm.constrain("alpha", 4)
+    cm.constrain("eta", 5)
+    cm.constrain("phi", 1)
     assert_dict_almost_equal(cm.asdict, {"delta": 3, "alpha": 4, "phi": 1})
-    cm.set("phi", 2)
+    cm.constrain("phi", 2)
     assert_dict_almost_equal(cm.asdict, {"delta": 3, "alpha": 4, "phi": 2})
 
 
 def test_constrain_samp_three_preexisting_two_samp_one_det(cm):
-    cm.set("delta", 1)
-    cm.set("eta", 2)
-    cm.set("chi", 3)
+    cm.constrain("delta", 1)
+    cm.constrain("eta", 2)
+    cm.constrain("chi", 3)
 
     with pytest.raises(DiffcalcException):
-        cm.set("phi", 4)
+        cm.constrain("phi", 4)
 
 
 def test_constrain_samp_three_preexisting_two_samp_one_ref(cm):
-    cm.set("mu", 2)
-    cm.set("eta", 3)
-    cm.set("alpha", 4)
+    cm.constrain("mu", 2)
+    cm.constrain("eta", 3)
+    cm.constrain("alpha", 4)
 
     with pytest.raises(DiffcalcException):
-        cm.set("phi", 4)
+        cm.constrain("phi", 4)
 
 
 def test_constrain_samp_three_preexisting_samp(cm):
-    cm.set("mu", 1)
-    cm.set("eta", 2)
-    cm.set("chi", 3)
+    cm.constrain("mu", 1)
+    cm.constrain("eta", 2)
+    cm.constrain("chi", 3)
 
     with pytest.raises(DiffcalcException):
-        cm.set("phi", 4)
+        cm.constrain("phi", 4)
 
 
 def test_report_constraints_none(cm):
@@ -353,7 +353,7 @@ def test_report_constraints_none(cm):
 
 
 def test_report_constraints_one_with_value(cm):
-    cm.set("nu", 9.12343)
+    cm.constrain("nu", 9.12343)
     eq_(
         cm._report_constraints_lines(),
         ["!   2 more constraints required", "    nu   : 9.1234"],
@@ -361,7 +361,7 @@ def test_report_constraints_one_with_value(cm):
 
 
 def test_report_constraints_one_with_novalue(cm):
-    cm.set("nu", None)
+    cm.constrain("nu", None)
     eq_(
         cm._report_constraints_lines(),
         ["!   3 more constraints required"],
@@ -369,7 +369,7 @@ def test_report_constraints_one_with_novalue(cm):
 
 
 def test_report_constraints_one_with_valueless(cm):
-    cm.set("a_eq_b", True)
+    cm.constrain("a_eq_b", True)
     eq_(
         set(cm._report_constraints_lines()),
         {"!   2 more constraints required", "    a_eq_b"},
@@ -377,8 +377,8 @@ def test_report_constraints_one_with_valueless(cm):
 
 
 def test_report_constraints_one_with_two(cm):
-    cm.set("naz", 9.12343)
-    cm.set("a_eq_b", True)
+    cm.constrain("naz", 9.12343)
+    cm.constrain("a_eq_b", True)
     eq_(
         set(cm._report_constraints_lines()),
         {"!   1 more constraint required", "    naz  : 9.1234", "    a_eq_b"},
@@ -386,9 +386,9 @@ def test_report_constraints_one_with_two(cm):
 
 
 def test_report_constraints_one_with_three(cm):
-    cm.set("naz", 9.12343)
-    cm.set("a_eq_b", True)
-    cm.set("mu", 9.12343)
+    cm.constrain("naz", 9.12343)
+    cm.constrain("a_eq_b", True)
+    cm.constrain("mu", 9.12343)
 
     eq_(
         set(cm._report_constraints_lines()),
@@ -405,16 +405,16 @@ def _constrain(self, *args):
 
 
 def test_is_implemented_1_samp_naz(cm):
-    cm.set("naz", 1)
-    cm.set("alpha", 2)
-    cm.set("mu", 3)
+    cm.constrain("naz", 1)
+    cm.constrain("alpha", 2)
+    cm.constrain("mu", 3)
     eq_(cm.is_current_mode_implemented(), True)
 
 
 def test_is_implemented_1_samp_det(cm):
-    cm.set("qaz", 1)
-    cm.set("alpha", 2)
-    cm.set("mu", 3)
+    cm.constrain("qaz", 1)
+    cm.constrain("alpha", 2)
+    cm.constrain("mu", 3)
     eq_(cm.is_current_mode_implemented(), True)
 
 
@@ -422,37 +422,37 @@ def test_is_implemented_1_samp_det(cm):
 
 
 def test_is_implemented_2_samp_ref_mu_chi(cm):
-    cm.set("beta", 1)
-    cm.set("mu", 2)
-    cm.set("chi", 3)
+    cm.constrain("beta", 1)
+    cm.constrain("mu", 2)
+    cm.constrain("chi", 3)
     eq_(cm.is_current_mode_implemented(), True)
 
 
 def test_is_implemented_2_samp_ref_mu90_chi0(cm):
-    cm.set("beta", 0)
-    cm.set("mu", 0)
-    cm.set("chi", 3.14 / 2)
+    cm.constrain("beta", 0)
+    cm.constrain("mu", 0)
+    cm.constrain("chi", 3.14 / 2)
     eq_(cm.is_current_mode_implemented(), True)
 
 
 def test_is_implemented_2_samp_ref_mu_eta(cm):
-    cm.set("beta", 0)
-    cm.set("mu", 0)
-    cm.set("eta", 3.14 / 2)
+    cm.constrain("beta", 0)
+    cm.constrain("mu", 0)
+    cm.constrain("eta", 3.14 / 2)
     eq_(cm.is_current_mode_implemented(), True)
 
 
 def test_is_implemented_2_samp_ref_mu_phi(cm):
-    cm.set("beta", 0)
-    cm.set("mu", 0)
-    cm.set("phi", 3.14 / 2)
+    cm.constrain("beta", 0)
+    cm.constrain("mu", 0)
+    cm.constrain("phi", 3.14 / 2)
     eq_(cm.is_current_mode_implemented(), True)
 
 
 def test_is_implemented_2_samp_ref_eta_chi(cm):
-    cm.set("beta", 0)
-    cm.set("eta", 0)
-    cm.set("chi", 3.14 / 2)
+    cm.constrain("beta", 0)
+    cm.constrain("eta", 0)
+    cm.constrain("chi", 3.14 / 2)
     eq_(cm.is_current_mode_implemented(), True)
 
 

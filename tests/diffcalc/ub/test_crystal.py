@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import atan, radians, sqrt
+from math import atan, pi, radians, sqrt
 
 import pytest
 from diffcalc.ub.crystal import CrystalHandler
@@ -57,16 +57,32 @@ class TestCrystalUnderTest:
     @pytest.mark.parametrize(
         ("xtal_system", "unit_cell", "full_unit_cell"),
         [
-            ("Triclinic", (1, 2, 3, 10, 20, 30), (1, 2, 3, 10, 20, 30)),
-            ("Monoclinic", (1, 2, 3, 20), (1, 2, 3, 90, 20, 90)),
-            ("Orthorhombic", (1, 2, 3), (1, 2, 3, 90, 90, 90)),
-            ("Tetragonal", (1, 3), (1, 1, 3, 90, 90, 90)),
-            ("Rhombohedral", (1, 10), (1, 1, 1, 10, 10, 10)),
-            ("Cubic", (1,), (1, 1, 1, 90, 90, 90)),
+            (
+                "Triclinic",
+                (0.01, 0.02, 0.03, pi / 2, pi / 2, pi / 2),
+                (0.01, 0.02, 0.03, pi / 2, pi / 2, pi / 2),
+            ),
+            (
+                "Monoclinic",
+                (0.01, 0.02, 0.03, 0.2),
+                (0.01, 0.02, 0.03, pi / 2, 0.2, pi / 2),
+            ),
+            (
+                "Orthorhombic",
+                (0.01, 0.02, 0.03),
+                (0.01, 0.02, 0.03, pi / 2, pi / 2, pi / 2),
+            ),
+            (
+                "Tetragonal",
+                (0.01, 0.03),
+                (0.01, 0.01, 0.03, pi / 2, pi / 2, pi / 2),
+            ),
+            ("Rhombohedral", (0.01, 0.1), (0.01, 0.01, 0.01, 0.1, 0.1, 0.1)),
+            ("Cubic", (0.01,), (0.01, 0.01, 0.01, pi / 2, pi / 2, pi / 2)),
             pytest.param(
                 "Orthorhombic",
                 (1, 2, 3),
-                (1, 2, 3, 90, 90, 90),
+                (1, 2, 3, pi / 2, pi / 2, pi / 2),
                 # marks=pytest.mark.xfail(raises=TypeError),
             ),
         ],
@@ -84,7 +100,7 @@ class TestCrystalUnderTest:
         )
 
     def test_get_hkl_plane_angle(self):
-        xtal = CrystalHandler("cube", [1, 1, 1, 90, 90, 90], "Cubic")
+        xtal = CrystalHandler("cube", [1, 1, 1, pi / 2, pi / 2, pi / 2], "Cubic")
         assert xtal.get_hkl_plane_angle((0, 0, 1), (0, 0, 2)) == pytest.approx(0)
         assert xtal.get_hkl_plane_angle((0, 1, 0), (0, 0, 2)) == pytest.approx(
             radians(90)
@@ -106,7 +122,7 @@ class TestCrystalUnderTest:
         )
 
     def test__str__(self):
-        cut = CrystalHandler("HCl", [1, 2, 3, 4, 5, 6], "Triclinic")
+        cut = CrystalHandler("HCl", [0.01, 0.02, 0.03, 0.04, 0.05, 0.06], "Triclinic")
         print(cut.__str__())
 
     def test_serialisation(self):
@@ -115,6 +131,6 @@ class TestCrystalUnderTest:
                 continue
             crystal = CrystalHandler("tc", [*sess.lattice], "Triclinic")
             cut_json = crystal.asdict
-            reformed_crystal = CrystalHandler.fromdict(cut_json, True)
+            reformed_crystal = CrystalHandler.fromdict(cut_json)
 
             assert (reformed_crystal.B == crystal.B).all()

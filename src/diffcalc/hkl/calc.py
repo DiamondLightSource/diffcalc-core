@@ -34,17 +34,15 @@ class HklType(BaseModel):
     """
 
     id: str
-    indegrees: bool
     ubcalc: UbCalcType
     constraints: Dict[str, Union[bool, float]]
 
     def __eq__(self, other):
         """Compare different HklType objects."""
         same_id = self.id == other.id
-        same_units = self.indegrees == other.indegrees
         same_ubcalc = self.ubcalc == other.ubcalc
         same_constraints = self.constraints == other.constraints
-        return same_id and same_units and same_ubcalc and same_constraints
+        return same_id and same_ubcalc and same_constraints
 
 
 class HklCalculation:
@@ -347,10 +345,10 @@ class HklCalculation:
             )
 
         # constraints are dictionaries
-        ref_constraint = self.constraints._reference
-        det_constraint = self.constraints._detector
+        ref_constraint = self.constraints.reference
+        det_constraint = self.constraints.detector
         naz_constraint = None
-        samp_constraints = self.constraints._sample
+        samp_constraints = self.constraints.sample
 
         if "naz" in det_constraint:
             naz_constraint = {"naz": det_constraint.pop("naz")}
@@ -461,14 +459,11 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-
-            # get_virtual_angles will modify position based on self.indegrees. So here,
-            # it must be correctly propagated.
             pseudo_angles = self.get_virtual_angles(position)
             try:
                 for constraint in [
-                    self.constraints._reference,
-                    self.constraints._detector,
+                    self.constraints.reference,
+                    self.constraints.detector,
                 ]:
                     for constraint_name, constraint_value in constraint.items():
                         if constraint_name == "a_eq_b":
@@ -494,12 +489,12 @@ class HklCalculation:
         self, pos: Position, print_degenerate: bool = False
     ) -> Position:
 
-        detector_like_constraint = self.constraints._detector or self.constraints.naz
+        detector_like_constraint = self.constraints.detector or self.constraints.naz
         nu_constrained_to_0 = is_small(pos.nu) and detector_like_constraint
-        mu_constrained_to_0 = is_small(pos.mu) and "mu" in self.constraints._sample
+        mu_constrained_to_0 = is_small(pos.mu) and "mu" in self.constraints.sample
         delta_constrained_to_0 = is_small(pos.delta) and detector_like_constraint
-        eta_constrained_to_0 = is_small(pos.eta) and "eta" in self.constraints._sample
-        phi_not_constrained = "phi" not in self.constraints._sample
+        eta_constrained_to_0 = is_small(pos.eta) and "eta" in self.constraints.sample
+        phi_not_constrained = "phi" not in self.constraints.sample
 
         if (
             nu_constrained_to_0

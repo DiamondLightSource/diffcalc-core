@@ -16,6 +16,8 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
+from math import pi
+
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.reference import OrientationList
 
@@ -23,9 +25,9 @@ from diffcalc.ub.reference import OrientationList
 class TestOrientationList:
     def setup_method(self):
         self.orientlist = OrientationList()
-        pos = Position(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         self.orientlist.add_orientation((1, 2, 3), (0.1, 0.2, 0.3), pos, "orient1")
-        pos = Position(0.11, 0.22, 0.33, 0.44, 0.55, 0.66)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         self.orientlist.add_orientation(
             (1.1, 2.2, 3.3), (0.11, 0.12, 0.13), pos, "orient2"
         )
@@ -35,8 +37,8 @@ class TestOrientationList:
         assert (
             res
             == """         H     K     L       X     Y     Z        MU    DELTA       NU      ETA      CHI      PHI  TAG
-   1  1.00  2.00  3.00   0.10  0.20  0.30    0.1000   0.2000   0.3000   0.4000   0.5000   0.6000  orient1
-   2  1.10  2.20  3.30   0.11  0.12  0.13    0.1100   0.2200   0.3300   0.4400   0.5500   0.6600  orient2"""
+   1  1.00  2.00  3.00   0.10  0.20  0.30    1.5708   1.5708   1.5708   1.5708   1.5708   1.5708  orient1
+   2  1.10  2.20  3.30   0.11  0.12  0.13    1.5708   1.5708   1.5708   1.5708   1.5708   1.5708  orient2"""
         )
 
     def test_add_orientation(self):
@@ -45,7 +47,7 @@ class TestOrientationList:
         self.orientlist.add_orientation((10, 20, 30), (0.1, 0.2, 0.3), pos, "orient1")
 
     def test_get_orientation(self):
-        pos = Position(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         answered = self.orientlist.get_orientation(1).astuple
         desired = ((1, 2, 3), (0.1, 0.2, 0.3), pos.astuple, "orient1")
         assert answered == desired
@@ -54,7 +56,7 @@ class TestOrientationList:
 
     def testRemoveOrientation(self):
         self.orientlist.remove_orientation(1)
-        pos = Position(0.11, 0.22, 0.33, 0.44, 0.55, 0.66).astuple
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2).astuple
         answered = self.orientlist.get_orientation(1).astuple
         desired = ((1.1, 2.2, 3.3), (0.11, 0.12, 0.13), pos, "orient2")
         assert answered == desired
@@ -62,7 +64,7 @@ class TestOrientationList:
         assert self.orientlist.orientations == []
 
     def testedit_orientation(self):
-        ps = Position(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+        ps = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         self.orientlist.edit_orientation(1, (10, 20, 30), (1, 2, 3), ps, "new1")
         assert self.orientlist.get_orientation(1).astuple == (
             (10, 20, 30),
@@ -70,7 +72,7 @@ class TestOrientationList:
             ps.astuple,
             "new1",
         )
-        pos = Position(0.11, 0.22, 0.33, 0.44, 0.55, 0.66)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         assert self.orientlist.get_orientation(2).astuple == (
             (1.1, 2.2, 3.3),
             (0.11, 0.12, 0.13),
@@ -98,14 +100,14 @@ class TestOrientationList:
 
     def testSwapOrientation(self):
         self.orientlist.swap_orientations(1, 2)
-        pos = Position(0.11, 0.22, 0.33, 0.44, 0.55, 0.66)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         assert self.orientlist.get_orientation(1).astuple == (
             (1.1, 2.2, 3.3),
             (0.11, 0.12, 0.13),
             pos.astuple,
             "orient2",
         )
-        pos = Position(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         assert self.orientlist.get_orientation(2).astuple == (
             (1, 2, 3),
             (0.1, 0.2, 0.3),
@@ -113,14 +115,14 @@ class TestOrientationList:
             "orient1",
         )
         self.orientlist.swap_orientations("orient1", "orient2")
-        pos = Position(0.11, 0.22, 0.33, 0.44, 0.55, 0.66)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         assert self.orientlist.get_orientation(2).astuple == (
             (1.1, 2.2, 3.3),
             (0.11, 0.12, 0.13),
             pos.astuple,
             "orient2",
         )
-        pos = Position(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+        pos = Position(pi / 2, pi / 2, pi / 2, pi / 2, pi / 2, pi / 2)
         assert self.orientlist.get_orientation(1).astuple == (
             (1, 2, 3),
             (0.1, 0.2, 0.3),
@@ -130,7 +132,7 @@ class TestOrientationList:
 
     def test_serialisation(self):
         orig_orient_list = self.orientlist
-        orient_json = orig_orient_list.asdict
-        reformed_orient_list = OrientationList.fromdict(orient_json, True)
+        orient_json = orig_orient_list.orientations
+        reformed_orient_list = OrientationList(orient_json)
 
-        assert reformed_orient_list.asdict == orig_orient_list.asdict
+        assert reformed_orient_list.orientations == orig_orient_list.orientations

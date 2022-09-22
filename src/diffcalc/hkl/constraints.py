@@ -287,18 +287,18 @@ class Constraints:
 
         return all([con in {"mu", "eta", "chi", "phi"} for con in samp.keys()])
 
-    def set(self, attr: str, value: Optional[Union[float, bool]]):
+    def constrain(self, attr: str, value: Optional[Union[float, bool]]):
         """Set or unset a constraint value."""
         self._set_attr(attr, value)
 
-    def unset(self, attr: str):
-        self.set(attr, None)
+    def unconstrain(self, attr: str):
+        self.constrain(attr, None)
 
     def clear(self):
         active_cons = self.asdict
 
         for con_name, _ in active_cons.items():
-            self.unset(con_name)
+            self.unconstrain(con_name)
 
 
 """

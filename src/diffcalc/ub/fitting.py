@@ -191,9 +191,7 @@ def fit_crystal(crystal: CrystalHandler, refl_list: List[Reflection]) -> Crystal
     )
     vals = res.x
 
-    res_cr = CrystalHandler(
-        "trial", list(vals), xtal_system, indegrees=crystal.indegrees
-    )
+    res_cr = CrystalHandler("trial", list(vals), xtal_system)
     # res_cr._set_cell_for_system(uc_system, *vals)
     return res_cr
 

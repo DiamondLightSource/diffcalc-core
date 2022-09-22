@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import pi
+from math import pi, radians
 
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
@@ -49,13 +49,13 @@ UB1 = array(
 ) * (2 * pi)
 
 EN1 = 12.39842
-REF1a = PosFromI16sEuler(1, 1, 30, 0, 60, 0)
-REF1b = PosFromI16sEuler(1, 91, 30, 0, 60, 0)
+REF1a = PosFromI16sEuler(radians(1), radians(1), pi / 6, 0, pi / 3, 0)
+REF1b = PosFromI16sEuler(radians(1), radians(91), pi / 6, 0, pi / 3, 0)
 
 
 def testAgainstI16Results():
     ubcalc = UBCalculation("cubcalc")
-    ubcalc.set_lattice("latt", [1, 1, 1, 90, 90, 90])
+    ubcalc.set_lattice("latt", [1, 1, 1, pi / 2, pi / 2, pi / 2])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
@@ -67,7 +67,7 @@ def test_serialisation():
     ubcalc.set_lattice("test", [4.913, 5.405])
     ubcalc.add_reflection(
         hkl=(0, 0, 1),
-        position=Position(7.31, 0, 10.62, 0, 0, 0),
+        position=Position(radians(7.31), 0, radians(10.62), 0, 0, 0),
         energy=12.39842,
         tag="refl1",
     )
@@ -75,7 +75,7 @@ def test_serialisation():
     ubcalc.n_hkl = (1, 0, 0)
 
     ubcalc_json = ubcalc.asdict
-    new_ubcalc = UBCalculation.fromdict(ubcalc_json, ubcalc.indegrees)
+    new_ubcalc = UBCalculation.fromdict(ubcalc_json)
 
     ubcalc.calc_ub("refl1", "plane")
     new_ubcalc.calc_ub("refl1", "plane")

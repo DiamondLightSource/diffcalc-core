@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import asin, atan2, cos, degrees, radians, sin
+from math import asin, atan2, cos, pi, radians, sin
 
 # from diffcalc.hkl.vlieg.geometry import VliegPosition
 from diffcalc.hkl.calc import sign
@@ -37,25 +37,24 @@ def PosFromI16sEuler(phi, chi, eta, mu, delta, gamma):
 
 def VliegPos(alpha=None, delta=None, gamma=None, omega=None, chi=None, phi=None):
     """Convert six-circle Vlieg diffractometer angles into 4S+2D You geometry"""
-    sin_alpha = sin(radians(alpha))
-    cos_alpha = cos(radians(alpha))
-    sin_delta = sin(radians(delta))
-    cos_delta = cos(radians(delta))
-    sin_gamma = sin(radians(gamma))
-    cos_gamma = cos(radians(gamma))
-    asin_delta = degrees(asin(sin_delta * cos_gamma))  # Eq.(83)
-    vals_delta = [asin_delta, 180.0 - asin_delta]
+    sin_alpha = sin(alpha)
+    cos_alpha = cos(alpha)
+    sin_delta = sin(delta)
+    cos_delta = cos(delta)
+    sin_gamma = sin(gamma)
+    cos_gamma = cos(gamma)  # this was, before, assuming args were in degrees.
+    asin_delta = asin(sin_delta * cos_gamma)  # Eq.(83)
+    vals_delta = [asin_delta, pi - asin_delta]
     idx, _ = min(
         ((i, abs(delta - d)) for i, d in enumerate(vals_delta)), key=lambda x: x[1]
     )
     pos_delta = vals_delta[idx]
-    sgn = sign(cos(radians(pos_delta)))
-    pos_nu = degrees(
-        atan2(
-            sgn * (cos_delta * cos_gamma * sin_alpha + cos_alpha * sin_gamma),
-            sgn * (cos_delta * cos_gamma * cos_alpha - sin_alpha * sin_gamma),
-        )
+    sgn = sign(cos(pos_delta))
+    pos_nu = atan2(
+        sgn * (cos_delta * cos_gamma * sin_alpha + cos_alpha * sin_gamma),
+        sgn * (cos_delta * cos_gamma * cos_alpha - sin_alpha * sin_gamma),
     )  # Eq.(84)
+
     return Position(mu=alpha, delta=pos_delta, nu=pos_nu, eta=omega, chi=chi, phi=phi)
 
 
@@ -120,13 +119,20 @@ def sessions(P=VliegPos):
 
     session1 = SessionScenario()
     session1.name = "b16_270608"
-    session1.lattice = (3.8401, 3.8401, 5.43072, 90, 90, 90)
+    session1.lattice = (3.8401, 3.8401, 5.43072, pi / 2, pi / 2, pi / 2)
     session1.bmatrix = ((1.636204, 0, 0), (0, 1.636204, 0), (0, 0, 1.156971))
     session1.ref1 = Reflection(
         1,
         0,
         1.0628,
-        P(5.000, 22.790, 0.000, 1.552, 22.400, 14.255),
+        P(
+            radians(5.000),
+            radians(22.790),
+            0.000,
+            radians(1.552),
+            radians(22.400),
+            radians(14.255),
+        ),
         10,
         "ref1",
     )
@@ -134,7 +140,14 @@ def sessions(P=VliegPos):
         0,
         1,
         1.0628,
-        P(5.000, 22.790, 0.000, 4.575, 24.275, 101.320),
+        P(
+            radians(5.000),
+            radians(22.790),
+            0.000,
+            radians(4.575),
+            radians(24.275),
+            radians(101.320),
+        ),
         10,
         "ref2",
     )
@@ -150,10 +163,12 @@ def sessions(P=VliegPos):
     # cubic crystal from bliss tutorial
     session2 = SessionScenario()
     session2.name = "cubic_from_bliss_tutorial"
-    session2.lattice = (1.54, 1.54, 1.54, 90, 90, 90)
-    session2.ref1 = Reflection(1, 0, 0, P(0, 60, 0, 30, 0, 0), 12.39842 / 1.54, "ref1")
+    session2.lattice = (1.54, 1.54, 1.54, pi / 2, pi / 2, pi / 2)
+    session2.ref1 = Reflection(
+        1, 0, 0, P(0, pi / 3, 0, pi / 6, 0, 0), 12.39842 / 1.54, "ref1"
+    )
     session2.ref2 = Reflection(
-        0, 1, 0, P(0, 60, 0, 30, 0, -90), 12.39842 / 1.54, "ref2"
+        0, 1, 0, P(0, pi / 3, 0, pi / 6, 0, -pi / 2), 12.39842 / 1.54, "ref2"
     )
     session2.bmatrix = ((4.07999, 0, 0), (0, 4.07999, 0), (0, 0, 4.07999))
     session2.umatrix = ((1, 0, 0), (0, -1, 0), (0, 0, -1))
@@ -167,7 +182,14 @@ def sessions(P=VliegPos):
     # c.hklList=((0.7, 0.9, 1.3), (1,0,0), (0,1,0), (1, 1, 0))
     c.hklList = ((0.7, 0.9, 1.3),)
     c.posList.append(
-        P(0.000000, 119.669750, 0.000000, 59.834875, -48.747500, 307.874983651098)
+        P(
+            0.000000,
+            radians(119.669750),
+            0.000000,
+            radians(59.834875),
+            radians(-48.747500),
+            radians(307.874983651098),
+        )
     )
     # c.posList.append(P(0.000000, 60.000000, 0.000000, 30.000, 0.000000, 0.000000))
     # c.posList.append(P(0.000000, 60.000000, 0.000000, 30.000, 0.000000, -90.0000))
@@ -178,7 +200,7 @@ def sessions(P=VliegPos):
     # AngleCalc scenarios from SPEC sixc. using crystal and alignment
     session3 = SessionScenario()
     session3.name = "spec_sixc_b16_270608"
-    session3.lattice = (3.8401, 3.8401, 5.43072, 90, 90, 90)
+    session3.lattice = (3.8401, 3.8401, 5.43072, pi / 2, pi / 2, pi / 2)
     session3.bmatrix = ((1.636204, 0, 0), (0, 1.636204, 0), (0, 0, 1.156971))
     session3.umatrix = (
         (0.997161, -0.062217, 0.042420),
@@ -189,7 +211,14 @@ def sessions(P=VliegPos):
         1,
         0,
         1.0628,
-        P(5.000, 22.790, 0.000, 1.552, 22.400, 14.255),
+        P(
+            radians(5.000),
+            radians(22.790),
+            0.000,
+            radians(1.552),
+            radians(22.400),
+            radians(14.255),
+        ),
         12.39842 / 1.24,
         "ref1",
     )
@@ -197,7 +226,14 @@ def sessions(P=VliegPos):
         0,
         1,
         1.0628,
-        P(5.000, 22.790, 0.000, 4.575, 24.275, 101.320),
+        P(
+            radians(5.000),
+            radians(22.790),
+            0.000,
+            radians(4.575),
+            radians(24.275),
+            radians(101.320),
+        ),
         12.39842 / 1.24,
         "ref2",
     )
@@ -211,50 +247,86 @@ def sessions(P=VliegPos):
     ### with 'omega_low':-90, 'omega_high':270, 'phi_low':-180, 'phi_high':180
     ac.hklList = []
     ac.hklList.append((0.7, 0.9, 1.3))
-    ac.posList.append(P(0.0, 27.352179, 0.000000, 13.676090, 37.774500, 53.965500))
+    ac.posList.append(
+        P(
+            0.0,
+            radians(27.352179),
+            0.000000,
+            radians(13.676090),
+            radians(37.774500),
+            radians(53.965500),
+        )
+    )
     ac.paramList.append(
         {
-            "Bin": 8.3284,
-            "Bout": 8.3284,
-            "rho": 36.5258,
-            "eta": 0.1117,
-            "twotheta": 27.3557,
+            "Bin": radians(8.3284),
+            "Bout": radians(8.3284),
+            "rho": radians(36.5258),
+            "eta": radians(0.1117),
+            "twotheta": radians(27.3557),
         }
     )
 
     ac.hklList.append((1, 0, 0))
-    ac.posList.append(P(0.0, 18.580230, 0.000000, 9.290115, -2.403500, 3.589000))
+    ac.posList.append(
+        P(
+            0.0,
+            radians(18.580230),
+            0.000000,
+            radians(9.290115),
+            radians(-2.403500),
+            radians(3.589000),
+        )
+    )
     ac.paramList.append(
         {
-            "Bin": -0.3880,
-            "Bout": -0.3880,
-            "rho": -2.3721,
-            "eta": -0.0089,
-            "twotheta": 18.5826,
+            "Bin": radians(-0.3880),
+            "Bout": radians(-0.3880),
+            "rho": radians(-2.3721),
+            "eta": radians(-0.0089),
+            "twotheta": radians(18.5826),
         }
     )
 
     ac.hklList.append((0, 1, 0))
-    ac.posList.append(P(0.0, 18.580230, 0.000000, 9.290115, 0.516000, 93.567000))
+    ac.posList.append(
+        P(
+            0.0,
+            radians(18.580230),
+            0.000000,
+            radians(9.290115),
+            radians(0.516000),
+            radians(93.567000),
+        )
+    )
     ac.paramList.append(
         {
-            "Bin": 0.0833,
-            "Bout": 0.0833,
-            "rho": 0.5092,
-            "eta": -0.0414,
-            "twotheta": 18.5826,
+            "Bin": radians(0.0833),
+            "Bout": radians(0.0833),
+            "rho": radians(0.5092),
+            "eta": radians(-0.0414),
+            "twotheta": radians(18.5826),
         }
     )
 
     ac.hklList.append((1, 1, 0))
-    ac.posList.append(P(0.0, 26.394192, 0.000000, 13.197096, -1.334500, 48.602000))
+    ac.posList.append(
+        P(
+            0.0,
+            radians(26.394192),
+            0.000000,
+            radians(13.197096),
+            radians(-1.334500),
+            radians(48.602000),
+        )
+    )
     ac.paramList.append(
         {
-            "Bin": -0.3047,
-            "Bout": -0.3047,
-            "rho": -1.2992,
-            "eta": -0.0351,
-            "twotheta": 26.3976,
+            "Bin": radians(-0.3047),
+            "Bout": radians(-0.3047),
+            "rho": radians(-1.2992),
+            "eta": radians(-0.0351),
+            "twotheta": radians(26.3976),
         }
     )
 
@@ -265,14 +337,14 @@ def sessions(P=VliegPos):
 
     session4 = SessionScenario()
     session4.name = "test_orth"
-    session4.lattice = (1.41421, 1.41421, 1.00000, 90, 90, 90)
+    session4.lattice = (1.41421, 1.41421, 1.00000, pi / 2, pi / 2, pi / 2)
     session4.system = "Orthorhombic"
     session4.bmatrix = ((4.44288, 0, 0), (0, 4.44288, 0), (0, 0, 6.28319))
     session4.ref1 = Reflection(
         0,
         1,
         2,
-        P(0.0000, 122.4938, 0.0000, 80.7181, 90.0000, -45.0000),
+        P(0.0000, radians(122.4938), 0.0000, radians(80.7181), pi / 2, -pi / 4),
         15.0,
         "ref1",
     )
@@ -280,7 +352,14 @@ def sessions(P=VliegPos):
         1,
         0,
         2,
-        P(0.0000, 122.4938, 0.000, 61.2469, 70.5288, -45.0000),
+        P(
+            0.0000,
+            radians(122.4938),
+            0.000,
+            radians(61.2469),
+            radians(70.5288),
+            -pi / 4,
+        ),
         15,
         "ref2",
     )
@@ -288,7 +367,7 @@ def sessions(P=VliegPos):
         1,
         0,
         1,
-        P(0.0000, 60.8172, 0.000, 30.4086, 54.7356, -45.0000),
+        P(0.0000, radians(60.8172), 0.000, radians(30.4086), radians(54.7356), -pi / 4),
         15,
         "ref3",
     )
@@ -296,7 +375,7 @@ def sessions(P=VliegPos):
         1,
         1,
         2,
-        P(0.0000, 135.0736, 0.000, 67.5368, 63.4349, 0.0000),
+        P(0.0000, radians(135.0736), 0.000, radians(67.5368), radians(63.4349), 0.0000),
         15,
         "ref4",
     )
@@ -314,7 +393,7 @@ def sessions(P=VliegPos):
 
     session5 = SessionScenario()
     session5.name = "Dalyite"
-    session5.lattice = (7.51, 7.73, 7.00, 106.0, 113.5, 99.5)
+    session5.lattice = (7.51, 7.73, 7.00, radians(106.0), radians(113.5), radians(99.5))
     session5.system = "Triclinic"
     session5.bmatrix = (
         (0.96021, 0.27759, 0.49527),
@@ -325,7 +404,14 @@ def sessions(P=VliegPos):
         0,
         1,
         2,
-        P(0.0000, 23.7405, 0.0000, 11.8703, 46.3100, 43.1304),
+        P(
+            0.0000,
+            radians(23.7405),
+            0.0000,
+            radians(11.8703),
+            radians(46.3100),
+            radians(43.1304),
+        ),
         12.3984,
         "ref1",
     )
@@ -333,7 +419,14 @@ def sessions(P=VliegPos):
         1,
         0,
         3,
-        P(0.0000, 34.4282, 0.000, 17.2141, 46.4799, 12.7852),
+        P(
+            0.0000,
+            radians(34.4282),
+            0.000,
+            radians(17.2141),
+            radians(46.4799),
+            radians(12.7852),
+        ),
         12.3984,
         "ref2",
     )
@@ -341,7 +434,14 @@ def sessions(P=VliegPos):
         2,
         2,
         6,
-        P(0.0000, 82.8618, 0.000, 41.4309, 41.5154, 26.9317),
+        P(
+            0.0000,
+            radians(82.8618),
+            0.000,
+            radians(41.4309),
+            radians(41.5154),
+            radians(26.9317),
+        ),
         12.3984,
         "ref3",
     )
@@ -349,7 +449,14 @@ def sessions(P=VliegPos):
         4,
         1,
         4,
-        P(0.0000, 71.2763, 0.000, 35.6382, 29.5042, 14.5490),
+        P(
+            0.0000,
+            radians(71.2763),
+            0.000,
+            radians(35.6382),
+            radians(29.5042),
+            radians(14.5490),
+        ),
         12.3984,
         "ref4",
     )
@@ -357,7 +464,14 @@ def sessions(P=VliegPos):
         8,
         3,
         1,
-        P(0.0000, 97.8850, 0.000, 48.9425, 5.6693, 16.7929),
+        P(
+            0.0000,
+            radians(97.8850),
+            0.000,
+            radians(48.9425),
+            radians(5.6693),
+            radians(16.7929),
+        ),
         12.3984,
         "ref5",
     )
@@ -365,7 +479,14 @@ def sessions(P=VliegPos):
         6,
         4,
         5,
-        P(0.0000, 129.6412, 0.000, 64.8206, 24.1442, 24.6058),
+        P(
+            0.0000,
+            radians(129.6412),
+            0.000,
+            radians(64.8206),
+            radians(24.1442),
+            radians(24.6058),
+        ),
         12.3984,
         "ref6",
     )
@@ -373,7 +494,14 @@ def sessions(P=VliegPos):
         3,
         5,
         7,
-        P(0.0000, 135.9159, 0.000, 67.9579, 34.3696, 35.1816),
+        P(
+            0.0000,
+            radians(135.9159),
+            0.000,
+            radians(67.9579),
+            radians(34.3696),
+            radians(35.1816),
+        ),
         12.3984,
         "ref7",
     )
@@ -399,7 +527,7 @@ def sessions(P=VliegPos):
 
     session6 = SessionScenario()
     session6.name = "Acanthite"
-    session6.lattice = (4.229, 6.931, 7.862, 90, 99.61, 90)
+    session6.lattice = (4.229, 6.931, 7.862, pi / 2, radians(99.61), pi / 2)
     session6.system = "Monoclinic"
     session6.bmatrix = (
         (1.50688, 0.00000, 0.13532),
@@ -410,7 +538,14 @@ def sessions(P=VliegPos):
         0,
         1,
         2,
-        P(0.0000, 21.1188, 0.0000, 10.5594, 59.6447, 61.8432),
+        P(
+            0.0000,
+            radians(21.1188),
+            0.0000,
+            radians(10.5594),
+            radians(59.6447),
+            radians(61.8432),
+        ),
         10.0,
         "ref1",
     )
@@ -418,7 +553,14 @@ def sessions(P=VliegPos):
         1,
         0,
         3,
-        P(0.0000, 35.2291, 0.000, 62.4207, 87.1516, -90.0452),
+        P(
+            0.0000,
+            radians(35.2291),
+            0.000,
+            radians(62.4207),
+            radians(87.1516),
+            radians(-90.0452),
+        ),
         10.0,
         "ref2",
     )
@@ -426,7 +568,14 @@ def sessions(P=VliegPos):
         1,
         1,
         6,
-        P(0.0000, 64.4264, 0.000, 63.9009, 97.7940, -88.8808),
+        P(
+            0.0000,
+            radians(64.4264),
+            0.000,
+            radians(63.9009),
+            radians(97.7940),
+            radians(-88.8808),
+        ),
         10.0,
         "ref3",
     )
@@ -434,7 +583,14 @@ def sessions(P=VliegPos):
         1,
         2,
         2,
-        P(0.0000, 34.4369, 0.000, 72.4159, 60.1129, -29.0329),
+        P(
+            0.0000,
+            radians(34.4369),
+            0.000,
+            radians(72.4159),
+            radians(60.1129),
+            radians(-29.0329),
+        ),
         10.0,
         "ref4",
     )
@@ -442,7 +598,14 @@ def sessions(P=VliegPos):
         2,
         2,
         1,
-        P(0.0000, 43.0718, 0.000, 21.5359, 8.3873, 29.0230),
+        P(
+            0.0000,
+            radians(43.0718),
+            0.000,
+            radians(21.5359),
+            radians(8.3873),
+            radians(29.0230),
+        ),
         10.0,
         "ref5",
     )

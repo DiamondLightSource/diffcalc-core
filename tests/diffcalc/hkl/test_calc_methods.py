@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import isnan
+from math import isnan, pi, radians
 from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
@@ -93,10 +93,10 @@ class Test_position_to_virtual_angles:
         self.check_angle("qaz", 0, delta=0, nu=0)
 
     def test_qaz1(self):
-        self.check_angle("qaz", 90, delta=2, nu=0)
+        self.check_angle("qaz", pi / 2, delta=radians(2), nu=0)
 
     def test_qaz2(self):
-        self.check_angle("qaz", 90, delta=90, nu=0)
+        self.check_angle("qaz", pi / 2, delta=pi / 2, nu=0)
 
     def test_qaz3(self):
         self.check_angle(
@@ -121,19 +121,21 @@ class Test_position_to_virtual_angles:
         self.check_angle("alpha", 0, mu=0, eta=0, chi=0, phi=0)
 
     def test_alpha1(self):
-        self.check_angle("alpha", 0, mu=0, eta=0, chi=0, phi=10)
+        self.check_angle("alpha", 0, mu=0, eta=0, chi=0, phi=radians(10))
 
     def test_alpha2(self):
-        self.check_angle("alpha", 0, mu=0, eta=0, chi=0, phi=-10)
+        self.check_angle("alpha", 0, mu=0, eta=0, chi=0, phi=radians(-10))
 
     def test_alpha3(self):
-        self.check_angle("alpha", 2, mu=2, eta=0, chi=0, phi=0)
+        self.check_angle("alpha", radians(2), mu=radians(2), eta=0, chi=0, phi=0)
 
     def test_alpha4(self):
-        self.check_angle("alpha", -2, mu=-2, eta=0, chi=0, phi=0)
+        self.check_angle("alpha", radians(-2), mu=radians(-2), eta=0, chi=0, phi=0)
 
     def test_alpha5(self):
-        self.check_angle("alpha", 2, mu=0, eta=90, chi=2, phi=0)
+        self.check_angle(
+            "alpha", radians(2), mu=0, eta=radians(90), chi=radians(2), phi=0
+        )
 
     # beta
 
@@ -141,32 +143,54 @@ class Test_position_to_virtual_angles:
         self.check_angle("beta", float("nan"), delta=0, nu=0, mu=0, eta=0, chi=0, phi=0)
 
     def test_beta1(self):
-        self.check_angle("beta", 0, delta=10, nu=0, mu=0, eta=6, chi=0, phi=5)
+        self.check_angle(
+            "beta",
+            0,
+            delta=radians(10),
+            nu=0,
+            mu=0,
+            eta=radians(6),
+            chi=0,
+            phi=radians(5),
+        )
 
     def test_beta2(self):
-        self.check_angle("beta", 10, delta=0, nu=10, mu=0, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "beta", radians(10), delta=0, nu=radians(10), mu=0, eta=0, chi=0, phi=0
+        )
 
     def test_beta3(self):
-        self.check_angle("beta", -10, delta=0, nu=-10, mu=0, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "beta", radians(-10), delta=0, nu=radians(-10), mu=0, eta=0, chi=0, phi=0
+        )
 
     def test_beta4(self):
-        self.check_angle("beta", 5, delta=0, nu=10, mu=5, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "beta",
+            radians(5),
+            delta=0,
+            nu=radians(10),
+            mu=radians(5),
+            eta=0,
+            chi=0,
+            phi=0,
+        )
 
     # azimuth
     def test_naz0(self):
         self.check_angle("naz", 0, mu=0, eta=0, chi=0, phi=0)
 
     def test_naz1(self):
-        self.check_angle("naz", 0, mu=0, eta=0, chi=0, phi=10)
+        self.check_angle("naz", 0, mu=0, eta=0, chi=0, phi=radians(10))
 
     def test_naz3(self):
-        self.check_angle("naz", 0, mu=10, eta=0, chi=0, phi=10)
+        self.check_angle("naz", 0, mu=radians(10), eta=0, chi=0, phi=radians(10))
 
     def test_naz4(self):
-        self.check_angle("naz", 2, mu=0, eta=0, chi=2, phi=0)
+        self.check_angle("naz", radians(2), mu=0, eta=0, chi=radians(2), phi=0)
 
     def test_naz5(self):
-        self.check_angle("naz", -2, mu=0, eta=0, chi=-2, phi=0)
+        self.check_angle("naz", radians(-2), mu=0, eta=0, chi=radians(-2), phi=0)
 
     # tau
     def test_tau0(self):
@@ -175,27 +199,58 @@ class Test_position_to_virtual_angles:
         # nu=0, eta=0, chi=0, phi=0)
 
     def test_tau1(self):
-        self.check_angle("tau", 90, mu=0, delta=20, nu=0, eta=10, chi=0, phi=0)
+        self.check_angle(
+            "tau", pi / 2, mu=0, delta=radians(20), nu=0, eta=radians(10), chi=0, phi=0
+        )
         # self.check_angle('tau_from_dot_product', 90, mu=0, delta=20,
         # nu=0, eta=10, chi=0, phi=0)
 
     def test_tau2(self):
-        self.check_angle("tau", 90, mu=0, delta=20, nu=0, eta=10, chi=0, phi=3)
+        self.check_angle(
+            "tau",
+            pi / 2,
+            mu=0,
+            delta=radians(20),
+            nu=0,
+            eta=radians(10),
+            chi=0,
+            phi=radians(3),
+        )
         # self.check_angle('tau_from_dot_product', 90, mu=0, delta=20,
         # nu=0, eta=10, chi=0, phi=3)
 
     def test_tau3(self):
-        self.check_angle("tau", 88, mu=0, delta=20, nu=0, eta=10, chi=2, phi=0)
+        self.check_angle(
+            "tau",
+            radians(88),
+            mu=0,
+            delta=radians(20),
+            nu=0,
+            eta=radians(10),
+            chi=radians(2),
+            phi=0,
+        )
         # self.check_angle('tau_from_dot_product', 88, mu=0, delta=20,
         # nu=0, eta=10, chi=2, phi=0)
 
     def test_tau4(self):
-        self.check_angle("tau", 92, mu=0, delta=20, nu=0, eta=10, chi=-2, phi=0)
+        self.check_angle(
+            "tau",
+            radians(92),
+            mu=0,
+            delta=radians(20),
+            nu=0,
+            eta=radians(10),
+            chi=radians(-2),
+            phi=0,
+        )
         # self.check_angle('tau_from_dot_product', 92, mu=0, delta=20,
         # nu=0, eta=10, chi=-2, phi=0)
 
     def test_tau5(self):
-        self.check_angle("tau", 10, mu=0, delta=0, nu=20, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "tau", radians(10), mu=0, delta=0, nu=radians(20), eta=0, chi=0, phi=0
+        )
         # self.check_angle('tau_from_dot_product', 10, mu=0, delta=0,
         # nu=20, eta=0, chi=0, phi=0)
 
@@ -206,31 +261,66 @@ class Test_position_to_virtual_angles:
         assert isnan(self.calc.get_virtual_angles(pos)["psi"])
 
     def test_psi1(self):
-        self.check_angle("psi", 90, mu=0, delta=11, nu=0, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "psi", pi / 2, mu=0, delta=radians(11), nu=0, eta=0, chi=0, phi=0
+        )
 
     def test_psi2(self):
-        self.check_angle("psi", 100, mu=10, delta=0.001, nu=0, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "psi", radians(100), mu=radians(10), delta=0.001, nu=0, eta=0, chi=0, phi=0
+        )
 
     def test_psi3(self):
-        self.check_angle("psi", 80, mu=-10, delta=0.001, nu=0, eta=0, chi=0, phi=0)
+        self.check_angle(
+            "psi", radians(80), mu=radians(-10), delta=0.001, nu=0, eta=0, chi=0, phi=0
+        )
 
     def test_psi4(self):
-        self.check_angle("psi", 90, mu=0, delta=11, nu=0, eta=0, chi=0, phi=12.3)
+        self.check_angle(
+            "psi",
+            pi / 2,
+            mu=0,
+            delta=radians(11),
+            nu=0,
+            eta=0,
+            chi=0,
+            phi=radians(12.3),
+        )
 
     def test_psi5(self):
         # self.check_angle('psi', 0, mu=10, delta=.00000001,
         # nu=0, eta=0, chi=90, phi=0)
-        pos = Position(mu=0, delta=0, nu=0, eta=0, chi=90, phi=0)
+        pos = Position(mu=0, delta=0, nu=0, eta=0, chi=pi / 2, phi=0)
         assert isnan(self.calc.get_virtual_angles(pos)["psi"])
 
     def test_psi6(self):
-        self.check_angle("psi", 90, mu=0, delta=0.001, nu=0, eta=90, chi=0, phi=0)
+        self.check_angle(
+            "psi", pi / 2, mu=0, delta=0.001, nu=0, eta=pi / 2, chi=0, phi=0
+        )
 
     def test_psi7(self):
-        self.check_angle("psi", 92, mu=0, delta=0.001, nu=0, eta=90, chi=2, phi=0)
+        self.check_angle(
+            "psi",
+            radians(92),
+            mu=0,
+            delta=0.001,
+            nu=0,
+            eta=pi / 2,
+            chi=radians(2),
+            phi=0,
+        )
 
     def test_psi8(self):
-        self.check_angle("psi", 88, mu=0, delta=0.001, nu=0, eta=90, chi=-2, phi=0)
+        self.check_angle(
+            "psi",
+            radians(88),
+            mu=0,
+            delta=0.001,
+            nu=0,
+            eta=pi / 2,
+            chi=radians(-2),
+            phi=0,
+        )
 
     def test_serialisation(self):
         hklCalc = HklCalculation(

@@ -16,7 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import degrees, radians, sqrt
+from math import degrees, pi, radians, sqrt
 
 import numpy as np
 import pytest
@@ -146,7 +146,7 @@ CRYSTAL
    name:          xtal
 
    a, b, c:    1.00000   1.00000   1.00000
-              90.00000  90.00000  90.00000  Cubic
+               1.57080   1.57080   1.57080  Cubic
 
    B matrix:   6.28319   0.00000   0.00000
                0.00000   6.28319   0.00000
@@ -205,7 +205,7 @@ CRYSTAL
    name:          xtal
 
    a, b, c:    1.00000   1.00000   1.00000
-              90.00000  90.00000  90.00000  Cubic
+               1.57080   1.57080   1.57080  Cubic
 
    B matrix:   6.28319   0.00000   0.00000
                0.00000   6.28319   0.00000
@@ -245,27 +245,41 @@ CRYSTAL ORIENTATIONS
         with pytest.raises(TypeError):
             ubcalc.set_lattice("HCl")
         ubcalc.set_lattice("NaCl", [1.1])
-        eq_(("NaCl", "Cubic", 1.1, 1.1, 1.1, 90, 90, 90), ubcalc.crystal.get_lattice())
+        eq_(
+            ("NaCl", "Cubic", 1.1, 1.1, 1.1, pi / 2, pi / 2, pi / 2),
+            ubcalc.crystal.get_lattice(),
+        )
         ubcalc.set_lattice("NaCl", [1.1, 2.2])
         eq_(
-            ("NaCl", "Tetragonal", 1.1, 1.1, 2.2, 90, 90, 90),
+            ("NaCl", "Tetragonal", 1.1, 1.1, 2.2, pi / 2, pi / 2, pi / 2),
             ubcalc.crystal.get_lattice(),
         )
         ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3])
         eq_(
-            ("NaCl", "Orthorhombic", 1.1, 2.2, 3.3, 90, 90, 90),
+            ("NaCl", "Orthorhombic", 1.1, 2.2, 3.3, pi / 2, pi / 2, pi / 2),
             ubcalc.crystal.get_lattice(),
         )
-        ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, 91])
+        ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, radians(91)])
         eq_(
-            ("NaCl", "Monoclinic", 1.1, 2.2, 3.3, 90, 91, 90),
+            ("NaCl", "Monoclinic", 1.1, 2.2, 3.3, pi / 2, radians(91), pi / 2),
             ubcalc.crystal.get_lattice(),
         )
         with pytest.raises(DiffcalcException):
-            ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, 91, 92])
-        ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, 91, 92, 93])
+            ubcalc.set_lattice("NaCl", [1.1, 2.2, 3.3, radians(91), radians(92)])
+        ubcalc.set_lattice(
+            "NaCl", [1.1, 2.2, 3.3, radians(91), radians(92), radians(93)]
+        )
         assert_iterable_almost_equal(
-            ("NaCl", "Triclinic", 1.1, 2.2, 3.3, 91, 92, 92.99999999999999),
+            (
+                "NaCl",
+                "Triclinic",
+                1.1,
+                2.2,
+                3.3,
+                radians(91),
+                radians(92),
+                radians(92.99999999999999),
+            ),
             ubcalc.crystal.get_lattice(),
         )
 
@@ -550,17 +564,17 @@ CRYSTAL ORIENTATIONS
 
     def test_refine_ub(self):
         ubcalc = UBCalculation("testing_refine_ub")
-        ubcalc.set_lattice("xtal", [1, 1, 1, 90, 90, 90], "Cubic")
+        ubcalc.set_lattice("xtal", [1, 1, 1, pi / 2, pi / 2, pi / 2], "Cubic")
         ubcalc.set_miscut(None, 0)
         ubcalc.refine_ub(
             (1, 1, 0),
-            Position(mu=0, delta=60, nu=0, eta=30, chi=0, phi=0),
+            Position(mu=0, delta=pi / 3, nu=0, eta=pi / 6, chi=0, phi=0),
             1.0,
             True,
             True,
         )
         eq_(
-            ("xtal", "Cubic", sqrt(2.0), sqrt(2.0), 1, 90, 90, 90),
+            ("xtal", "Cubic", sqrt(2.0), sqrt(2.0), 1, pi / 2, pi / 2, pi / 2),
             ubcalc.crystal.get_lattice(),
         )
         mneq_(
@@ -571,7 +585,9 @@ CRYSTAL ORIENTATIONS
         )
 
     def test_fit_ub(self):
+        idx = 0
         for s in scenarios.sessions()[-3:]:
+            idx += 1
             ubcalc = UBCalculation("test_fit_ub_matrix")
             a, b, c, alpha, beta, gamma = s.lattice
             for r in s.reflist:
@@ -607,18 +623,16 @@ CRYSTAL ORIENTATIONS
 
     def test_get_ttheta_from_hkl(self):
         ubcalc = UBCalculation("test_get_ttheta_from_hkl")
-        ubcalc.set_lattice("cube", [1, 1, 1, 90, 90, 90])
-        assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(
-            radians(60)
-        )
+        ubcalc.set_lattice("cube", [1, 1, 1, pi / 2, pi / 2, pi / 2])
+        assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(pi / 3)
 
     def test_miscut(self):
         ubcalc = UBCalculation("testsetmiscut")
         ubcalc.reference = ReferenceVector((0, 0, 1), False)
-        ubcalc.set_lattice("cube", [1, 1, 1, 90, 90, 90])
+        ubcalc.set_lattice("cube", [1, 1, 1, pi / 2, pi / 2, pi / 2])
         beam_axis = array([[0], [1], [0]]).T.tolist()[0]
         beam_maxis = array([[0], [-1], [0]]).T.tolist()[0]
-        ubcalc.set_miscut(beam_axis, radians(30))
+        ubcalc.set_miscut(beam_axis, pi / 6)
         mneq_(
             ubcalc.n_hkl,
             array([[-0.5000000], [0.00000], [0.8660254]]),
@@ -628,17 +642,17 @@ CRYSTAL ORIENTATIONS
             ubcalc.n_hkl,
             array([[-0.7071068], [0.00000], [0.7071068]]),
         )
-        ubcalc.set_miscut(beam_maxis, radians(45), True)
+        ubcalc.set_miscut(beam_maxis, pi / 4, True)
         mneq_(ubcalc.n_hkl, array([[0.0], [0.0], [1.0]]))
 
     @pytest.mark.parametrize(
         ("axis", "angle", "hkl"),
-        [((0, 1, 0), 10, (0, 0, 1)), ((1, 0, 0), 30, (0, 1, 1))],
+        [((0, 1, 0), radians(10), (0, 0, 1)), ((1, 0, 0), radians(30), (0, 1, 1))],
     )
     def test_get_miscut_from_hkl(self, axis, angle, hkl):
         ubcalc = UBCalculation("testing_calc_miscut")
-        ubcalc.set_lattice("xtal", [1, 1, 1, 90, 90, 90])
-        ubcalc.set_miscut(axis, radians(angle))
+        ubcalc.set_lattice("xtal", [1, 1, 1, pi / 2, pi / 2, pi / 2])
+        ubcalc.set_miscut(axis, angle)
         hklcalc = HklCalculation(
             ubcalc=ubcalc, constraints=Constraints({"delta": 0, "psi": 0, "eta": 0})
         )
@@ -655,7 +669,11 @@ CRYSTAL ORIENTATIONS
 
     @pytest.mark.parametrize(
         ("axis", "angle"),
-        [((0, 1, 0), 10), ((1, 0, 0), 30), ((0.70710678, 0.70710678, 0), 50)],
+        [
+            ((0, 1, 0), radians(10)),
+            ((1, 0, 0), radians(30)),
+            ((0.70710678, 0.70710678, 0), radians(50)),
+        ],
     )
     def test_get_miscut(self, axis, angle):
         ubcalc = UBCalculation("testing_calc_miscut")
