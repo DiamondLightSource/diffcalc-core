@@ -2,9 +2,10 @@
 import dataclasses
 from enum import Enum
 from itertools import zip_longest
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from diffcalc.util import DiffcalcException
+from typing_extensions import Literal
 
 
 class ConstraintTypes(Enum):

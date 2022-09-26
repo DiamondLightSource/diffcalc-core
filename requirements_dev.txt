@@ -7,7 +7,7 @@ isort
 black
 blacken-docs
 flake8
-mypy
+git+https://github.com/python/mypy.git#egg=mypy
 pydocstyle
 tox
 coverage
