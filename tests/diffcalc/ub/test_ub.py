@@ -1,21 +1,3 @@
-###
-# Copyright 2008-2011 Diamond Light Source Ltd.
-# This file is part of Diffcalc.
-#
-# Diffcalc is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Diffcalc is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
-###
-
 from math import degrees, radians, sqrt
 
 import pytest
@@ -46,76 +28,20 @@ class TestUBCalculation:
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
 
-        assert (
-            str(ubcalc)
-            == """UBCALC
+        with open("tests/diffcalc/ub/strings/n_phi.txt", "r") as f:
+            expected_string = f.read()
 
-   name:     test_str_none
-
-REFERNCE
-
-   n_hkl:    None
-   n_phi:      0.00000   0.00000   1.00000 <- set
-
-SURFACE NORMAL
-
-   n_hkl:    None
-   n_phi:      0.00000   0.00000   1.00000 <- set
-
-CRYSTAL
-
-   <<< none specified >>>
-
-UB MATRIX
-
-   <<< none calculated >>>
-
-REFLECTIONS
-
-   <<< none specified >>>
-
-CRYSTAL ORIENTATIONS
-
-   <<< none specified >>>"""
-        )
+        assert str(ubcalc) == expected_string
 
     def test_str_none_nphi(self):
         ubcalc = UBCalculation("test_str_none")
         ubcalc.n_hkl = (0, 0, 1)
         ubcalc.surf_nhkl = (0, 0, 1)
 
-        assert (
-            str(ubcalc)
-            == """UBCALC
+        with open("tests/diffcalc/ub/strings/n_hkl.txt", "r") as f:
+            expected_string = f.read()
 
-   name:     test_str_none
-
-REFERNCE
-
-   n_hkl:      0.00000   0.00000   1.00000 <- set
-   n_phi:    None
-
-SURFACE NORMAL
-
-   n_hkl:      0.00000   0.00000   1.00000 <- set
-   n_phi:    None
-
-CRYSTAL
-
-   <<< none specified >>>
-
-UB MATRIX
-
-   <<< none calculated >>>
-
-REFLECTIONS
-
-   <<< none specified >>>
-
-CRYSTAL ORIENTATIONS
-
-   <<< none specified >>>"""
-        )
+        assert str(ubcalc) == expected_string
 
     def test_str_UB_unity(self):
         ubcalc = UBCalculation("test_str_UB_unity")
@@ -124,53 +50,10 @@ CRYSTAL ORIENTATIONS
         ubcalc.set_lattice("xtal", "Cubic", 1)
         ubcalc.set_miscut(None, 0.0)
 
-        assert (
-            str(ubcalc)
-            == """UBCALC
+        with open("tests/diffcalc/ub/strings/unitary_UB.txt", "r") as f:
+            expected_string = f.read()
 
-   name:     test_str_UB_unity
-
-REFERNCE
-
-   n_hkl:      0.00000   0.00000   1.00000
-   n_phi:      0.00000   0.00000   1.00000 <- set
-
-SURFACE NORMAL
-
-   n_hkl:      0.00000   0.00000   1.00000
-   n_phi:      0.00000   0.00000   1.00000 <- set
-
-CRYSTAL
-
-   name:          xtal
-
-   a, b, c:    1.00000   1.00000   1.00000
-              90.00000  90.00000  90.00000  Cubic
-
-   B matrix:   6.28319   0.00000   0.00000
-               0.00000   6.28319   0.00000
-               0.00000   0.00000   6.28319
-
-UB MATRIX
-
-   U matrix:   1.00000   0.00000   0.00000
-               0.00000   1.00000   0.00000
-               0.00000   0.00000   1.00000
-
-   miscut angle:  0
-
-   UB matrix:  6.28319   0.00000   0.00000
-               0.00000   6.28319   0.00000
-               0.00000   0.00000   6.28319
-
-REFLECTIONS
-
-   <<< none specified >>>
-
-CRYSTAL ORIENTATIONS
-
-   <<< none specified >>>"""
-        )
+        assert str(ubcalc) == expected_string
 
     def test_str_refl_orient_UB(self):
         ubcalc = UBCalculation("test_str")
@@ -183,57 +66,10 @@ CRYSTAL ORIENTATIONS
         )
         ubcalc.set_miscut(None, radians(2.0))
 
-        assert (
-            str(ubcalc)
-            == """UBCALC
+        with open("tests/diffcalc/ub/strings/full_info.txt", "r") as f:
+            expected_string = f.read()
 
-   name:      test_str
-
-REFERNCE
-
-   n_hkl:     -0.03490   0.00000   0.99939
-   n_phi:      0.00000   0.00000   1.00000 <- set
-
-SURFACE NORMAL
-
-   n_hkl:     -0.03490   0.00000   0.99939
-   n_phi:      0.00000   0.00000   1.00000 <- set
-
-CRYSTAL
-
-   name:          xtal
-
-   a, b, c:    1.00000   1.00000   1.00000
-              90.00000  90.00000  90.00000  Cubic
-
-   B matrix:   6.28319   0.00000   0.00000
-               0.00000   6.28319   0.00000
-               0.00000   0.00000   6.28319
-
-UB MATRIX
-
-   U matrix:   0.99939   0.00000   0.03490
-               0.00000   1.00000   0.00000
-              -0.03490   0.00000   0.99939
-
-   miscut:
-      angle:   2.00000
-       axis:   0.00000   1.00000   0.00000
-
-   UB matrix:  6.27936   0.00000   0.21928
-               0.00000   6.28319   0.00000
-              -0.21928   0.00000   6.27936
-
-REFLECTIONS
-
-     ENERGY     H     K     L        MU    DELTA       NU      ETA      CHI      PHI  TAG
-   1 12.400  0.00  0.00  1.00    0.0000  60.0000   0.0000  30.0000   0.0000   0.0000  ref1
-
-CRYSTAL ORIENTATIONS
-
-         H     K     L       X     Y     Z        MU    DELTA       NU      ETA      CHI      PHI  TAG
-   1  0.00  1.00  0.00   0.00  1.00  0.00    1.0000   0.0000   0.0000   0.0000   2.0000   0.0000  orient1"""
-        )
+        assert str(ubcalc) == expected_string
 
     def test_set_lattice(self):
         ubcalc = UBCalculation("testing_set_lattice")
