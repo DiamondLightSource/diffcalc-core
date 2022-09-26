@@ -10,7 +10,7 @@ from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, sin
 from pickle import UnpicklingError
-from typing import Dict, List, Optional, Sequence, Tuple, TypedDict, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -33,6 +33,7 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
+from typing_extensions import TypedDict
 
 
 @dataclasses.dataclass

@@ -6,9 +6,7 @@ constraints.
 
 from dataclasses import dataclass, field
 from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
-
-# from typing import Dict, Iterator, List, Optional, Tuple, Union
-from typing import Dict, Iterator, List, Optional, Tuple, TypedDict, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl import calc_func
@@ -29,6 +27,7 @@ from diffcalc.util import (
     sign,
 )
 from numpy.linalg import inv, norm
+from typing_extensions import TypedDict
 
 # @dataclass
 # class HklType:
