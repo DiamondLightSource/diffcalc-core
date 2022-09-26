@@ -19,7 +19,7 @@
 from math import atan, pi, radians, sqrt
 
 import pytest
-from diffcalc.ub.crystal import CrystalHandler
+from diffcalc.ub.crystal import Crystal
 from numpy import array
 
 from tests.diffcalc import scenarios
@@ -46,7 +46,7 @@ class TestCrystalUnderTest:
         for sess in scenarios.sessions():
             if sess.bmatrix is None:
                 continue
-            cut = CrystalHandler("tc", [*sess.lattice], "Triclinic")
+            cut = Crystal("tc", "Triclinic", *sess.lattice)
             desired = array(sess.bmatrix)
             print(desired.tolist())
             answer = cut.B
@@ -88,7 +88,7 @@ class TestCrystalUnderTest:
         ],
     )
     def test_get_lattice_params(self, xtal_system, unit_cell, full_unit_cell):
-        xtal = CrystalHandler("xtal", [*unit_cell], xtal_system)
+        xtal = Crystal("xtal", xtal_system, *unit_cell)
         test_xtal_system, test_unit_cell = xtal.get_lattice_params()
         assert test_xtal_system == xtal_system
         assert_iterable_almost_equal(test_unit_cell, unit_cell)
@@ -100,7 +100,7 @@ class TestCrystalUnderTest:
         )
 
     def test_get_hkl_plane_angle(self):
-        xtal = CrystalHandler("cube", [1, 1, 1, pi / 2, pi / 2, pi / 2], "Cubic")
+        xtal = Crystal("cube", "Cubic", 1, 1, 1, pi / 2, pi / 2, pi / 2)
         assert xtal.get_hkl_plane_angle((0, 0, 1), (0, 0, 2)) == pytest.approx(0)
         assert xtal.get_hkl_plane_angle((0, 1, 0), (0, 0, 2)) == pytest.approx(
             radians(90)
@@ -122,15 +122,5 @@ class TestCrystalUnderTest:
         )
 
     def test__str__(self):
-        cut = CrystalHandler("HCl", [0.01, 0.02, 0.03, 0.04, 0.05, 0.06], "Triclinic")
+        cut = Crystal("HCl", "Triclinic", 0.01, 0.02, 0.03, 0.04, 0.05, 0.06)
         print(cut.__str__())
-
-    def test_serialisation(self):
-        for sess in scenarios.sessions():
-            if sess.bmatrix is None:
-                continue
-            crystal = CrystalHandler("tc", [*sess.lattice], "Triclinic")
-            cut_json = crystal.asdict
-            reformed_crystal = CrystalHandler.fromdict(cut_json)
-
-            assert (reformed_crystal.B == crystal.B).all()

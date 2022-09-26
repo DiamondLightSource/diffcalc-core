@@ -10,22 +10,18 @@ from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, sin
 from pickle import UnpicklingError
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, TypedDict, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
-
-# from diffcalc.ub.crystal import Crystal, CrystalHandler
 from diffcalc.ub.crystal import Crystal
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
-
-# from diffcalc.ub.reference import (
-#     Orientation,
-#     OrientationList,
-#     Reflection,
-#     ReflectionList,
-# )
-from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
+from diffcalc.ub.reference import (
+    Orientation,
+    OrientationList,
+    Reflection,
+    ReflectionList,
+)
 from diffcalc.util import (
     SMALL,
     DiffcalcException,
@@ -37,8 +33,6 @@ from diffcalc.util import (
     zero_round,
 )
 from numpy.linalg import inv, norm
-
-# from typing_extensions import TypedDict
 
 
 @dataclasses.dataclass
@@ -142,16 +136,14 @@ class ReferenceVector:
         self.n_ref = (r1, r2, r3)
 
 
-# class UbCalcType(TypedDict):
-#     """Typed dictionary for UBCalculation object JSON storage."""
-
-#     crystal: Optional[Crystal]
-#     reflist: List[Reflection]
-#     orientlist: List[Orientation]
-#     reference: ReferenceVector
-#     surface: ReferenceVector
-#     u_matrix: Optional[List[List[float]]]
-#     ub_matrix: Optional[List[List[float]]]
+class UBDict(TypedDict):
+    crystal: Optional[Crystal]
+    reflist: List[Reflection]
+    orientlist: List[Orientation]
+    reference: ReferenceVector
+    surface: ReferenceVector
+    u_matrix: Optional[List[List[float]]]
+    ub_matrix: Optional[List[List[float]]]
 
 
 @dataclasses.dataclass
@@ -176,11 +168,17 @@ class UBCalculation:
         UB matrix as a NumPy array.
     """
 
+    # thing needs to be just callable, i.e.
+
     crystal: Optional[Crystal] = None
-    reflist: ReflectionList = ReflectionList()
-    orientlist: OrientationList = OrientationList()
-    reference: ReferenceVector = ReferenceVector((1, 0, 0), True)
-    surface: ReferenceVector = ReferenceVector((0, 0, 1), False)
+    reflist: ReflectionList = dataclasses.field(default_factory=ReflectionList)
+    orientlist: OrientationList = dataclasses.field(default_factory=OrientationList)
+    reference: ReferenceVector = dataclasses.field(
+        default_factory=lambda: ReferenceVector((1, 0, 0), True)
+    )
+    surface: ReferenceVector = dataclasses.field(
+        default_factory=lambda: ReferenceVector((0, 0, 1), False)
+    )
     U: Optional[np.ndarray] = None
     UB: Optional[np.ndarray] = None
 
@@ -1386,4 +1384,28 @@ class UBCalculation:
             name,
             [ref_a1, ref_a2, ref_a3, alpha1, alpha2, alpha3],
             system,
+        )
+
+    @property
+    def asdict(self) -> UBDict:
+        return UBDict(
+            crystal=self.crystal,
+            reflist=self.reflist.reflections,
+            orientlist=self.orientlist.orientations,
+            reference=self.reference,
+            surface=self.surface,
+            u_matrix=self.U.tolist(),
+            ub_matrix=self.UB.tolist(),
+        )
+
+    @classmethod
+    def fromdict(cls, dict: UBDict) -> "UBCalculation":
+        return cls(
+            dict["crystal"],
+            ReflectionList(dict["reflist"]),
+            OrientationList(dict["orientlist"]),
+            dict["reference"],
+            dict["surface"],
+            np.array(dict["u_matrix"]),
+            np.array(dict["ub_matrix"]),
         )

@@ -18,7 +18,6 @@
 
 from math import pi, radians
 
-from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from numpy import array
 
@@ -54,31 +53,9 @@ REF1b = PosFromI16sEuler(radians(1), radians(91), pi / 6, 0, pi / 3, 0)
 
 
 def testAgainstI16Results():
-    ubcalc = UBCalculation("cubcalc")
+    ubcalc = UBCalculation()
     ubcalc.set_lattice("latt", [1, 1, 1, pi / 2, pi / 2, pi / 2])
     ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
     ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1)
-
-
-def test_serialisation():
-    ubcalc = UBCalculation()
-    ubcalc.set_lattice("test", [4.913, 5.405])
-    ubcalc.add_reflection(
-        hkl=(0, 0, 1),
-        position=Position(radians(7.31), 0, radians(10.62), 0, 0, 0),
-        energy=12.39842,
-        tag="refl1",
-    )
-    ubcalc.add_orientation(hkl=(0, 1, 0), xyz=(0, 1, 0), tag="plane")
-    ubcalc.n_hkl = (1, 0, 0)
-
-    ubcalc_json = ubcalc.asdict
-    new_ubcalc = UBCalculation.fromdict(ubcalc_json)
-
-    ubcalc.calc_ub("refl1", "plane")
-    new_ubcalc.calc_ub("refl1", "plane")
-
-    assert (new_ubcalc.UB == ubcalc.UB).all()
-    assert (new_ubcalc.U == ubcalc.U).all()

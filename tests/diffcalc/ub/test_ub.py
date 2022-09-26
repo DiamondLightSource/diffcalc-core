@@ -43,15 +43,13 @@ class TestUBCalculation:
         )
 
     def test_str_none_nhkl(self):
-        ubcalc = UBCalculation("test_str_none")
+        ubcalc = UBCalculation()
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
 
         assert (
             str(ubcalc)
             == """UBCALC
-
-   name:     test_str_none
 
 REFERNCE
 
@@ -81,15 +79,13 @@ CRYSTAL ORIENTATIONS
         )
 
     def test_str_none_nphi(self):
-        ubcalc = UBCalculation("test_str_none")
+        ubcalc = UBCalculation()
         ubcalc.n_hkl = (0, 0, 1)
         ubcalc.surf_nhkl = (0, 0, 1)
 
         assert (
             str(ubcalc)
             == """UBCALC
-
-   name:     test_str_none
 
 REFERNCE
 
@@ -119,7 +115,7 @@ CRYSTAL ORIENTATIONS
         )
 
     def test_str_UB_unity(self):
-        ubcalc = UBCalculation("test_str_UB_unity")
+        ubcalc = UBCalculation()
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
         ubcalc.set_lattice("xtal", [1], "Cubic")
@@ -128,8 +124,6 @@ CRYSTAL ORIENTATIONS
         assert (
             str(ubcalc)
             == """UBCALC
-
-   name:     test_str_UB_unity
 
 REFERNCE
 
@@ -174,7 +168,7 @@ CRYSTAL ORIENTATIONS
         )
 
     def test_str_refl_orient_UB(self):
-        ubcalc = UBCalculation("test_str")
+        ubcalc = UBCalculation()
         ubcalc.n_phi = (0, 0, 1)
         ubcalc.surf_nphi = (0, 0, 1)
         ubcalc.set_lattice("xtal", [1], "Cubic")
@@ -187,8 +181,6 @@ CRYSTAL ORIENTATIONS
         assert (
             str(ubcalc)
             == """UBCALC
-
-   name:      test_str
 
 REFERNCE
 
@@ -285,7 +277,7 @@ CRYSTAL ORIENTATIONS
 
     def test_add_reflection(self):
         # start new ubcalc
-        ubcalc = UBCalculation("testing_add_reflection")
+        ubcalc = UBCalculation()
         reflist = ubcalc.reflist  # for convenience
 
         pos1 = Position(1.1, 1.2, 1.3, 1.4, 1.5, 1.6)
@@ -349,7 +341,7 @@ CRYSTAL ORIENTATIONS
         assert tag == "tag1"
 
     def test_swap_reflections(self):
-        ubcalc = UBCalculation("testing_swapref")
+        ubcalc = UBCalculation()
         pos = Position(1.1, 1.2, 1.3, 1.4, 1.5, 1.6)
         ubcalc.add_reflection((1, 2, 3), pos, 10, "tag1")
         ubcalc.add_reflection((1, 2, 3), pos, 10, "tag2")
@@ -371,7 +363,7 @@ CRYSTAL ORIENTATIONS
         eq_(tag2, "tag3")
 
     def test_delref(self):
-        ubcalc = UBCalculation("testing_swapref")
+        ubcalc = UBCalculation()
         pos = Position(1.1, 1.2, 1.3, 1.4, 1.5, 1.6)
         ubcalc.add_reflection((1, 2, 3), pos, 10, "tag1")
         reflist = ubcalc.reflist
@@ -383,7 +375,7 @@ CRYSTAL ORIENTATIONS
             ubcalc.del_reflection(1)
 
     def test_add_orientation(self):
-        ubcalc = UBCalculation("testing_add_orientation")
+        ubcalc = UBCalculation()
         orientlist = ubcalc.orientlist  # for convenience
 
         hkl1 = (1.1, 1.2, 1.3)
@@ -425,7 +417,7 @@ CRYSTAL ORIENTATIONS
         eq_(result.tag, "newtag")
 
     def test_swap_orientations(self):
-        ubcalc = UBCalculation("testing_swap_orientations")
+        ubcalc = UBCalculation()
         hkl = (1.1, 1.2, 1.3)
         orient = (1.4, 1.5, 1.6)
         ubcalc.add_orientation(hkl, orient, tag="tag1")
@@ -448,7 +440,7 @@ CRYSTAL ORIENTATIONS
         eq_(tag2, "tag3")
 
     def test_del_orientation(self):
-        ubcalc = UBCalculation("testing_del_orientation")
+        ubcalc = UBCalculation()
         hkl = (1.1, 1.2, 1.3)
         pos = (1.4, 1.5, 1.6)
         ubcalc.add_orientation(hkl, pos, tag="tag1")
@@ -463,7 +455,7 @@ CRYSTAL ORIENTATIONS
     def test_setu(self):
         # just test calling this method
         # self.ub.setu([[1,2,3],[1,2,3],[1,2,3]])
-        ubcalc = UBCalculation("test_setu")
+        ubcalc = UBCalculation()
         setu = ubcalc.set_u
         with pytest.raises(TypeError):
             setu(1, 2)
@@ -481,7 +473,7 @@ CRYSTAL ORIENTATIONS
 
     def test_setub(self):
         # just test calling this method
-        ubcalc = UBCalculation("test_setub")
+        ubcalc = UBCalculation()
         setub = ubcalc.set_ub
         with pytest.raises(TypeError):
             setub(1)
@@ -496,12 +488,12 @@ CRYSTAL ORIENTATIONS
 
     def test_calcub(self):
         # not enough reflections:
-        ubcalc = UBCalculation("test_calcub")
+        ubcalc = UBCalculation()
         with pytest.raises(DiffcalcException):
             ubcalc.calc_ub()
 
         for s in scenarios.sessions():
-            ubcalc = UBCalculation("test_calcub")
+            ubcalc = UBCalculation()
             ubcalc.set_lattice(s.name, [*s.lattice])
             r = s.ref1
             ubcalc.add_reflection((r.h, r.k, r.l), r.pos, r.energy, r.tag)
@@ -650,11 +642,11 @@ CRYSTAL ORIENTATIONS
         [((0, 1, 0), radians(10), (0, 0, 1)), ((1, 0, 0), radians(30), (0, 1, 1))],
     )
     def test_get_miscut_from_hkl(self, axis, angle, hkl):
-        ubcalc = UBCalculation("testing_calc_miscut")
+        ubcalc = UBCalculation()
         ubcalc.set_lattice("xtal", [1, 1, 1, pi / 2, pi / 2, pi / 2])
         ubcalc.set_miscut(axis, angle)
         hklcalc = HklCalculation(
-            ubcalc=ubcalc, constraints=Constraints({"delta": 0, "psi": 0, "eta": 0})
+            "testing_calc_miscut", ubcalc, Constraints({"delta": 0, "psi": 0, "eta": 0})
         )
         pos, _ = hklcalc.get_position(*hkl, 1.0)[0]
         ubcalc.set_miscut(None, 0)

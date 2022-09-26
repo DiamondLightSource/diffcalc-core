@@ -4,11 +4,11 @@ Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
 
 # from typing import Dict, Iterator, List, Optional, Tuple, Union
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 from diffcalc.hkl import calc_func
@@ -16,7 +16,7 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
 
 # from diffcalc.ub.calc import UbCalcType, UBCalculation
-from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.calc import UBCalculation, UBDict
 from diffcalc.util import (
     DiffcalcException,
     I,
@@ -41,6 +41,12 @@ from numpy.linalg import inv, norm
 #     constraints: Dict[str, Union[bool, float]]
 
 
+class HklDict(TypedDict):
+    name: str
+    ubcalc: UBDict
+    constraints: Dict[str, Optional[Union[float, bool]]]
+
+
 @dataclass
 class HklCalculation:
     """Class for converting between miller indices and diffractometer position.
@@ -61,8 +67,8 @@ class HklCalculation:
     """
 
     name: str
-    ubcalc: UBCalculation = UBCalculation()
-    constraints: Constraints = Constraints()
+    ubcalc: UBCalculation = field(default_factory=UBCalculation)
+    constraints: Constraints = field(default_factory=Constraints)
 
     def __str__(self):
         """Return string representing class instance.
@@ -565,9 +571,18 @@ class HklCalculation:
                     )
                     raise DiffcalcException(s)
 
-    def __eq__(self, other):
-        """Compare different HklType objects."""
-        same_name = self.name == other.name
-        same_ubcalc = self.ubcalc == other.ubcalc
-        same_constraints = self.constraints == other.constraints
-        return same_name and same_ubcalc and same_constraints
+    @property
+    def asdict(self) -> HklDict:
+        return HklDict(
+            name=self.name,
+            ubcalc=self.ubcalc.asdict,
+            constraints=self.constraints.asdict,
+        )
+
+    @classmethod
+    def fromdict(cls, dict: HklDict) -> "HklCalculation":
+        return cls(
+            dict["name"],
+            UBCalculation.fromdict(dict["ubcalc"]),
+            Constraints(dict["constraints"]),
+        )

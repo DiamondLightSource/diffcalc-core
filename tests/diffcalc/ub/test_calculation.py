@@ -50,18 +50,6 @@ def testAgainstI16Results():
     matrixeq_(ubcalc.UB, UB1)
 
 
-def test_save_and_restore_empty_ubcalc(tmpdir):
-    NAME = "test_save_and_restore_empty_ubcalc_with_one_already_started"
-    ubcalc = UBCalculation(NAME)
-
-    test_file = tmpdir / "test.pkl"
-    ubcalc.pickle(test_file)
-
-    ubcalc2 = UBCalculation.load(test_file)
-
-    eq_(ubcalc2.name, NAME)
-
-
 def test_save_and_restore_ubcalc_with_lattice(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_lattice"
     ubcalc = UBCalculation(NAME)

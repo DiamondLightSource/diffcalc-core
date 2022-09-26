@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
-
 from math import isnan, pi, radians
 from unittest.mock import Mock
 
@@ -57,7 +56,7 @@ class Test_position_to_virtual_angles:
         self.ubcalc.set_lattice("xtal", [1])
         self.ubcalc.set_u(I)
         self.ubcalc.n_phi = (0, 0, 1)
-        self.calc = HklCalculation(ubcalc=self.ubcalc, constraints=constraints)
+        self.calc = HklCalculation("test", self.ubcalc, constraints)
 
     def check_angle(
         self, name, expected, mu=-99, delta=99, nu=99, eta=99, chi=99, phi=99
@@ -324,8 +323,9 @@ class Test_position_to_virtual_angles:
 
     def test_serialisation(self):
         hklCalc = HklCalculation(
-            ubcalc=self.ubcalc,
-            constraints=Constraints({"delta": 1, "alpha": 2, "mu": 3}),
+            "test",
+            self.ubcalc,
+            Constraints({"delta": 1, "alpha": 2, "mu": 3}),
         )
         hklCalc_json = hklCalc.asdict
 

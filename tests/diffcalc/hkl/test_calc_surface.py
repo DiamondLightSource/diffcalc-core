@@ -25,7 +25,7 @@ import pytest
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.ub.crystal import CrystalHandler
+from diffcalc.ub.crystal import Crystal
 from diffcalc.util import DiffcalcException, I
 from numpy import array
 
@@ -165,7 +165,7 @@ def willmott_to_you_fixed_mu_eta(pos):
 
 class TestUBCalculationWithWillmotStrategy_Si_5_5_12_FixedMuEta:
     def testAgainstResultsFromJan_27_2010(self):
-        self.ubcalc = UBCalculation("test")
+        self.ubcalc = UBCalculation()
         self.ubcalc.set_lattice(
             "Si_5_5_12", [7.68, 53.48, 75.63, pi / 2, pi / 2, pi / 2]
         )
@@ -327,7 +327,7 @@ def willmott_to_you_fixed_mu_chi(pos):
 
 class TestUBCalculationWithWillmotStrategy_Si_5_5_12_FixedMuChi:
     def testAgainstResultsFromJan_27_2010(self):
-        self.ubcalc = UBCalculation("test")
+        self.ubcalc = UBCalculation()
         self.ubcalc.set_lattice(
             "Si_5_5_12", [7.68, 53.48, 75.63, pi / 2, pi / 2, pi / 2]
         )
@@ -505,7 +505,7 @@ Pt531_U_DIFFCALC = array(
 
 class TestUBCalculation_Pt531_FixedMuChi:
     def testAgainstResultsFromJan_28_2010(self):
-        self.ubcalc = UBCalculation("test")
+        self.ubcalc = UBCalculation()
         self.ubcalc.set_lattice(
             "Pt531", [6.204, 4.806, 23.215, pi / 2, pi / 2, radians(49.8)]
         )
@@ -535,8 +535,8 @@ class Test_Pt531_FixedMuChi(_BaseTest):
             {"alpha": radians(2), "mu": 0, "chi": pi / 2}
         )
         self.wavelength = Pt531_WAVELENGTH
-        CUT = CrystalHandler(
-            "Pt531", [6.204, 4.806, 23.215, pi / 2, pi / 2, radians(49.8)], "Triclinic"
+        CUT = Crystal(
+            "Pt531", "Triclinic", 6.204, 4.806, 23.215, pi / 2, pi / 2, radians(49.8)
         )
         B = CUT.B
         self.UB = Pt531_U_DIFFCALC @ B
@@ -625,8 +625,8 @@ class Test_Pt531_Fixed_Mu_eta_(_BaseTest):
             {"alpha": radians(2), "mu": -pi / 2, "eta": 0}
         )
         self.wavelength = Pt531_WAVELENGTH
-        CUT = CrystalHandler(
-            "Pt531", [6.204, 4.806, 23.215, pi / 2, pi / 2, radians(49.8)], "Triclinic"
+        CUT = Crystal(
+            "Pt531", "Triclinic", 6.204, 4.806, 23.215, pi / 2, pi / 2, radians(49.8)
         )
         B = CUT.B
         self.UB = Pt531_U_DIFFCALC @ B

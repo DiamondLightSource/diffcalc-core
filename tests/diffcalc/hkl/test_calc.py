@@ -3948,7 +3948,7 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
 
 class TestAnglesToHkl_I16Examples:
     def setup_method(self):
-        self.hklcalc = HklCalculation()
+        self.hklcalc = HklCalculation("test")
 
         U = array(
             (
