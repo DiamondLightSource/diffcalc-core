@@ -1,102 +1,75 @@
-from math import atan, radians, sqrt
+from math import atan, sqrt
 
+import numpy as np
 import pytest
 from diffcalc.ub.crystal import Crystal
-from numpy import array
 
 from tests.diffcalc import scenarios
-from tests.tools import assert_iterable_almost_equal, mneq_
 
 
-class TestCrystalUnderTest:
-    def setup_method(self):
-        self.tclatt = []
-        self.tcbmat = []
+def test_correct_b_matrix_from_init():
+    for scenario in scenarios.sessions():
+        cut = Crystal("tc", *scenario.lattice)
 
-        # From the dif_init.mat next to dif_dos.exe on Vlieg's cd
-        # self.tclatt.append([4.0004, 4.0004, 2.270000, 90, 90, 90])
-        # self.tcbmat.append([[1.570639, 0, 0] ,[0.0, 1.570639, 0] ,
-        #                    [0.0, 0.0, 2.767923]])
-
-        # From b16 on 27June2008 (From Chris Nicklin)
-        # self.tclatt.append([3.8401, 3.8401, 5.43072, 90, 90, 90])
-        # self.tcbmat.append([[1.636204, 0, 0],[0, 1.636204, 0],
-        #                     [0, 0, 1.156971]])
-
-    def testGetBMatrix(self):
-        # Check the calculated B Matrix
-        for sess in scenarios.sessions():
-            if sess.bmatrix is None:
-                continue
-            cut = Crystal("tc", *sess.lattice)
-            desired = array(sess.bmatrix)
-            print(desired.tolist())
-            answer = cut.B
-            print(answer.tolist())
-            note = "Incorrect B matrix calculation for scenario " + sess.name
-            mneq_(answer, desired, 4, note=note)
-
-    @pytest.mark.parametrize(
-        ("xtal_system", "unit_cell", "full_unit_cell"),
-        [
-            ("Triclinic", (1, 2, 3, 10, 20, 30), (1, 2, 3, 10, 20, 30)),
-            ("Monoclinic", (1, 2, 3, 20), (1, 2, 3, 90, 20, 90)),
-            ("Orthorhombic", (1, 2, 3), (1, 2, 3, 90, 90, 90)),
-            ("Tetragonal", (1, 3), (1, 1, 3, 90, 90, 90)),
-            ("Rhombohedral", (1, 10), (1, 1, 1, 10, 10, 10)),
-            ("Cubic", (1,), (1, 1, 1, 90, 90, 90)),
-            pytest.param(
-                "Orthorombic",
-                (1, 2, 3),
-                (1, 2, 3, 90, 90, 90),
-                marks=pytest.mark.xfail(raises=TypeError),
-            ),
-        ],
-    )
-    def test_get_lattice_params(self, xtal_system, unit_cell, full_unit_cell):
-        xtal = Crystal("xtal", xtal_system, *unit_cell)
-        test_xtal_system, test_unit_cell = xtal.get_lattice_params()
-        assert test_xtal_system == xtal_system
-        assert_iterable_almost_equal(test_unit_cell, unit_cell)
-
-        xtal_name, a1, a2, a3, alpha1, alpha2, alpha3 = xtal.get_lattice()
-        assert xtal_name == "xtal"
-        assert_iterable_almost_equal(
-            (a1, a2, a3, alpha1, alpha2, alpha3), full_unit_cell
+        assert np.all(np.round(cut.B, 4) == np.round(scenario.bmatrix, 4)), (
+            "Incorrect B matrix calculation for scenario " + scenario.name
         )
 
-    def test_get_hkl_plane_angle(self):
-        xtal = Crystal("cube", 1, 1, 1, 90, 90, 90)
-        assert xtal.get_hkl_plane_angle((0, 0, 1), (0, 0, 2)) == pytest.approx(0)
-        assert xtal.get_hkl_plane_angle((0, 1, 0), (0, 0, 2)) == pytest.approx(
-            radians(90)
-        )
-        assert xtal.get_hkl_plane_angle((1, 0, 0), (0, 0, 2)) == pytest.approx(
-            radians(90)
-        )
-        assert xtal.get_hkl_plane_angle((1, 1, 0), (0, 0, 2)) == pytest.approx(
-            radians(90)
-        )
-        assert xtal.get_hkl_plane_angle((0, 1, 1), (0, 0, 2)) == pytest.approx(
-            radians(45)
-        )
-        assert xtal.get_hkl_plane_angle((1, 0, 1), (0, 0, 2)) == pytest.approx(
-            radians(45)
-        )
-        assert xtal.get_hkl_plane_angle((1, 1, 1), (0, 0, 2)) == pytest.approx(
-            atan(sqrt(2.0))
-        )
 
-    def test__str__(self):
-        cut = Crystal("HCl", 1, 2, 3, 4, 5, 6)
-        print(cut.__str__())
+@pytest.mark.parametrize(
+    ("xtal_system", "unit_cell", "full_unit_cell"),
+    [
+        ("Triclinic", (1, 2, 3, 10, 20, 30), (1, 2, 3, 10, 20, 30)),
+        ("Monoclinic", (1, 2, 3, 20), (1, 2, 3, 90, 20, 90)),
+        ("Orthorhombic", (1, 2, 3), (1, 2, 3, 90, 90, 90)),
+        ("Tetragonal", (1, 3), (1, 1, 3, 90, 90, 90)),
+        ("Rhombohedral", (1, 10), (1, 1, 1, 10, 10, 10)),
+        ("Cubic", (1,), (1, 1, 1, 90, 90, 90)),
+        pytest.param(
+            "Orthorombic",
+            (1, 2, 3),
+            (1, 2, 3, 90, 90, 90),
+            marks=pytest.mark.xfail(raises=TypeError),
+        ),
+    ],
+)
+def test_get_lattice_and_get_lattice_params(xtal_system, unit_cell, full_unit_cell):
+    xtal = Crystal("xtal", xtal_system, *unit_cell)
+    test_xtal_system, test_unit_cell = xtal.get_lattice_params()
 
-    def test_serialisation(self):
-        for sess in scenarios.sessions():
-            if sess.bmatrix is None:
-                continue
-            crystal = Crystal("tc", *sess.lattice)
-            cut_json = crystal.asdict
-            reformed_crystal = Crystal(**cut_json)
+    assert test_xtal_system == xtal_system
+    assert np.all(np.round(test_unit_cell, 5) == np.round(unit_cell, 5))
+    assert np.all(np.round(xtal.get_lattice()[1:], 5) == np.round(full_unit_cell, 5))
 
-            assert (reformed_crystal.B == crystal.B).all()
+
+@pytest.mark.parametrize(
+    ("hkl1", "hkl2", "angle"),
+    [
+        ([0, 0, 1], [0, 0, 2], 0),
+        ([0, 1, 0], [0, 0, 2], np.pi / 2),
+        ([1, 0, 1], [0, 0, 2], np.pi / 4),
+        ([1, 1, 1], [0, 0, 2], atan(sqrt(2.0))),
+    ],
+)
+def test_get_hkl_plane_angle(hkl1, hkl2, angle):
+    xtal = Crystal("cube", 1, 1, 1, 90, 90, 90)
+
+    assert xtal.get_hkl_plane_angle(hkl1, hkl2) == pytest.approx(angle)
+
+
+def test_string():
+    cut = Crystal("HCl", 1, 2, 3, 4, 5, 6)
+
+    with open(f"tests/diffcalc/ub/strings/crystal/crystal_cut.txt", "r") as f:
+        expected_string = f.read()
+
+    assert str(cut) == expected_string
+
+
+def test_serialisation():
+    for sess in scenarios.sessions():
+        crystal = Crystal("tc", *sess.lattice)
+        cut_json = crystal.asdict
+        reformed_crystal = Crystal(**cut_json)
+
+        assert (reformed_crystal.B == crystal.B).all()

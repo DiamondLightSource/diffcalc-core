@@ -1,0 +1,2 @@
+     ENERGY     H     K     L        MU    DELTA       NU      ETA      CHI      PHI  TAG
+   1 12.000  0.00  1.00  0.00    1.0000   2.0000   3.0000   4.0000   5.0000   6.0000  ref1

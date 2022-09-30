@@ -7,14 +7,14 @@ from diffcalc.ub.crystal import Crystal
 from diffcalc.util import DiffcalcException, I
 from numpy import array
 
-from tests.diffcalc.hkl.test_calc import _BaseTest
+from tests.diffcalc.hkl.test_calc import BaseTest
 from tests.tools import matrixeq_
 
 
-class TestSurfaceNormalVerticalCubic(_BaseTest):
+class TestSurfaceNormalVerticalCubic(BaseTest):
     def setup_method(self):
 
-        _BaseTest.setup_method(self)
+        BaseTest.setup_method(self)
         self.constraints.asdict = {"a_eq_b": True, "mu": -90, "eta": 0}
         self.wavelength = 1
 
@@ -157,9 +157,9 @@ class TestUBCalculationWithWillmotStrategy_Si_5_5_12_FixedMuEta:
         matrixeq_(self.ubcalc.U, U_DIFFCALC)
 
 
-class TestFixedMuEta(_BaseTest):
+class TestFixedMuEta(BaseTest):
     def setup_method(self):
-        _BaseTest.setup_method(self)
+        BaseTest.setup_method(self)
         self._configure_constraints()
         self.wavelength = 0.6358
 
@@ -390,9 +390,9 @@ class TestUBCalculation_Pt531_FixedMuChi:
         matrixeq_(self.ubcalc.U, Pt531_U_DIFFCALC)
 
 
-class Test_Pt531_FixedMuChi(_BaseTest):
+class Test_Pt531_FixedMuChi(BaseTest):
     def setup_method(self):
-        _BaseTest.setup_method(self)
+        BaseTest.setup_method(self)
         self._configure_constraints()
         self.wavelength = Pt531_WAVELENGTH
         CUT = Crystal("Pt531", 6.204, 4.806, 23.215, 90, 90, 49.8)
