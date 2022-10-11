@@ -60,7 +60,7 @@ def test_get_hkl_plane_angle(hkl1, hkl2, angle):
 def test_string():
     cut = Crystal("HCl", 1, 2, 3, 4, 5, 6)
 
-    with open(f"tests/diffcalc/ub/strings/crystal/crystal_cut.txt", "r") as f:
+    with open(f"tests/diffcalc/ub/strings/crystal/crystal_cut.txt") as f:
         expected_string = f.read()
 
     assert str(cut) == expected_string

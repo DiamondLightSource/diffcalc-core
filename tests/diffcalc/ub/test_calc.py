@@ -2,7 +2,7 @@
 
 from math import degrees, radians, sqrt
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pytest
@@ -16,13 +16,12 @@ from tests.diffcalc import scenarios
 # Integration tests
 
 
-@pytest.mark.integtest
 class TestStrings:
     def create(self, name: str) -> None:
         self.ubcalc = UBCalculation(name)
 
     def retrieve_expected_string(self, name: str) -> str:
-        with open(f"tests/diffcalc/ub/strings/calc/{name}.txt", "r") as f:
+        with open(f"tests/diffcalc/ub/strings/calc/{name}.txt") as f:
             expected_string = f.read()
 
         return expected_string
@@ -70,7 +69,6 @@ class TestStrings:
         assert str(self.ubcalc) == self.retrieve_expected_string("full_info")
 
 
-@pytest.mark.integtest
 class TestPersistenceMethods:
     ubcalc = UBCalculation("test_persistence")
     ubcalc.n_phi = (0, 0, 1)
@@ -106,25 +104,23 @@ class TestPersistenceMethods:
 @pytest.fixture
 def ubcalc_ref_orient() -> UBCalculation:
     ubcalc = UBCalculation("test")
-    ubcalc.add_reflection([0, 1, 0], Position(1, 2, 3, 4, 5, 6), 12, "refl")
-    ubcalc.add_orientation([0, 1, 0], [0, 1, 0], Position(0, 0, 0, 0, 0, 0), "orient")
+    ubcalc.add_reflection((0, 1, 0), Position(1, 2, 3, 4, 5, 6), 12, "refl")
+    ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(0, 0, 0, 0, 0, 0), "orient")
     return ubcalc
 
 
-@pytest.mark.integtest
 def test_edit_and_retrieve_reflection(ubcalc_ref_orient: UBCalculation):
     orig_reflection = ubcalc_ref_orient.get_reflection(1)
-    new_hkl = [0, 2, 0]
+    new_hkl = (0, 2, 0)
 
     ubcalc_ref_orient.edit_reflection(
         1, new_hkl, orig_reflection.pos, orig_reflection.energy
     )
     new_reflection = ubcalc_ref_orient.get_reflection(1)
 
-    assert np.all([new_reflection.h, new_reflection.k, new_reflection.l] == new_hkl)
+    assert np.all((new_reflection.h, new_reflection.k, new_reflection.l) == new_hkl)
 
 
-@pytest.mark.integtest
 def test_delete_reflection(ubcalc_ref_orient: UBCalculation):
     ubcalc_ref_orient.del_reflection(1)
 
@@ -132,29 +128,26 @@ def test_delete_reflection(ubcalc_ref_orient: UBCalculation):
         ubcalc_ref_orient.get_reflection(1)
 
 
-@pytest.mark.integtest
 def test_swap_reflection(ubcalc_ref_orient: UBCalculation):
     orig_reflection = ubcalc_ref_orient.get_reflection(1)
 
-    ubcalc_ref_orient.add_reflection([0, 1, 0], Position(1, 2, 3, 4, 5, 6), 13, "refl1")
+    ubcalc_ref_orient.add_reflection((0, 1, 0), Position(1, 2, 3, 4, 5, 6), 13, "refl1")
     ubcalc_ref_orient.swap_reflections(1, 2)
 
     assert ubcalc_ref_orient.get_reflection(2) == orig_reflection
 
 
-@pytest.mark.integtest
 def test_edit_and_retrieve_orientation(ubcalc_ref_orient: UBCalculation):
     orig_orientation = ubcalc_ref_orient.get_orientation(1)
     orig_xyz = [orig_orientation.x, orig_orientation.y, orig_orientation.z]
 
-    new_hkl = [0, 2, 0]
+    new_hkl = (0, 2, 0)
     ubcalc_ref_orient.edit_orientation(1, new_hkl, orig_xyz, orig_orientation.pos)
     new_orientation = ubcalc_ref_orient.get_orientation(1)
 
-    assert np.all([new_orientation.h, new_orientation.k, new_orientation.l] == new_hkl)
+    assert np.all((new_orientation.h, new_orientation.k, new_orientation.l) == new_hkl)
 
 
-@pytest.mark.integtest
 def test_delete_orientation(ubcalc_ref_orient: UBCalculation):
     ubcalc_ref_orient.del_orientation(1)
 
@@ -162,12 +155,11 @@ def test_delete_orientation(ubcalc_ref_orient: UBCalculation):
         ubcalc_ref_orient.get_orientation(1)
 
 
-@pytest.mark.integtest
 def test_swap_orientation(ubcalc_ref_orient: UBCalculation):
     orig_orientation = ubcalc_ref_orient.get_orientation(1)
 
     ubcalc_ref_orient.add_orientation(
-        [0, 1, 0], [0, 3, 0], Position(1, 2, 3, 4, 5, 6), "orient1"
+        (0, 1, 0), (0, 3, 0), Position(1, 2, 3, 4, 5, 6), "orient1"
     )
     ubcalc_ref_orient.swap_orientations(1, 2)
 
@@ -376,7 +368,7 @@ def test_get_ttheta_from_hkl(ubcalc):
     ("miscut_xyzs", "miscut_angles", "add_miscuts", "expected_n_hkls"),
     [
         (
-            [[0, 1, 0], [0, 1, 0], [0, -1, 0]],
+            [(0, 1, 0), (0, 1, 0), (0, -1, 0)],
             [np.pi / 6, np.pi / 12, np.pi / 4],
             [False, True, True],
             [
@@ -388,7 +380,7 @@ def test_get_ttheta_from_hkl(ubcalc):
     ],
 )
 def test_set_miscut(
-    miscut_xyzs: List[List[float]],
+    miscut_xyzs: List[Tuple[float, float, float]],
     miscut_angles: List[float],
     add_miscuts: List[bool],
     expected_n_hkls: List[np.ndarray],
@@ -405,15 +397,15 @@ def test_set_miscut(
 @pytest.mark.parametrize(
     ("axis", "angle", "hkl", "pos"),
     [
-        ([0, 1, 0], 10, [0, 0, 1], Position(40, 0, 60, 0, 0, -90)),
-        ([1, 0, 0], 30, [0, 1, 1], Position(45, 0, 90, 0, 15, -90)),
+        ((0, 1, 0), 10, (0, 0, 1), Position(40, 0, 60, 0, 0, -90)),
+        ((1, 0, 0), 30, (0, 1, 1), Position(45, 0, 90, 0, 15, -90)),
     ],
 )
 def test_get_miscut_from_hkl(
     ubcalc: UBCalculation,
-    axis: List[float],
+    axis: Tuple[float, float, float],
     angle: float,
-    hkl: List[float],
+    hkl: Tuple[float, float, float],
     pos: Position,
 ):
     ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)

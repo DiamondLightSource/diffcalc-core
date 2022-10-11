@@ -17,21 +17,21 @@ def reflist() -> ReflectionList:
 
 def add_example_reflection(reflist: ReflectionList, tag: Optional[str] = None) -> None:
     reflist.add_reflection(
-        [0, 1, 0], Position(1, 2, 3, 4, 5, 6), 12, "" if tag is None else tag
+        (0, 1, 0), Position(1, 2, 3, 4, 5, 6), 12, "" if tag is None else tag
     )
 
 
 def test_str_reflection(reflist: ReflectionList):
     add_example_reflection(reflist, "ref1")
 
-    with open(f"tests/diffcalc/ub/strings/reference/reflection.txt", "r") as f:
+    with open(f"tests/diffcalc/ub/strings/reference/reflection.txt") as f:
         expected_string = f.read()
 
     assert str(reflist) == expected_string
 
 
 def test_add_reflection_and_get_reflection_with_no_tag(reflist: ReflectionList):
-    hkl = [0, 2, 0]
+    hkl = (0, 2, 0)
     pos = Position(1, 2, 3, 4, 5, 6)
     energy = 13
 
@@ -42,7 +42,7 @@ def test_add_reflection_and_get_reflection_with_no_tag(reflist: ReflectionList):
 
 
 def test_add_reflection_and_get_reflection_with_tag(reflist: ReflectionList):
-    hkl = [0, 1, 0]
+    hkl = (0, 1, 0)
     pos = Position(1, 2, 3, 4, 5, 6)
     energy = 12
     tag = "refl"
@@ -54,12 +54,12 @@ def test_add_reflection_and_get_reflection_with_tag(reflist: ReflectionList):
 
 
 def test_add_reflection_raises_error_for_invalid_params(reflist: ReflectionList):
-    hkl = [0, 1, 0]
+    hkl = (0, 1, 0)
     pos = (1, 2, 3, 4, 5, 6)
     energy = 12
 
     with pytest.raises(TypeError):
-        reflist.add_reflection(hkl, pos, energy, "")
+        reflist.add_reflection(hkl, pos, energy, "")  # type: ignore
 
 
 def test_get_reflection_raises_error_for_invalid_params(reflist: ReflectionList):
@@ -73,7 +73,7 @@ def test_get_reflection_raises_error_for_invalid_params(reflist: ReflectionList)
 def test_edit_reflection_and_get_reflection(reflist: ReflectionList):
     add_example_reflection(reflist)
 
-    new_hkl = [1, 0, 1]
+    new_hkl = (1, 0, 1)
     new_pos = Position(7, 8, 9, 10, 11, 12)
     new_energy = 13
     new_tag = "refl"
@@ -87,7 +87,7 @@ def test_edit_reflection_and_get_reflection(reflist: ReflectionList):
 
 
 def test_swap_reflections(reflist: ReflectionList):
-    hkl_two = [1, 0, 1]
+    hkl_two = (1, 0, 1)
     pos_two = Position(7, 8, 9, 10, 11, 12)
     energy_two = 13
     tag_two = "two"
@@ -134,22 +134,22 @@ def add_example_orientation(
     orientlist: OrientationList, tag: Optional[str] = None
 ) -> None:
     orientlist.add_orientation(
-        [0, 1, 0], [0, 1, 0], Position(1, 2, 3, 4, 5, 6), "" if tag is None else tag
+        (0, 1, 0), (0, 1, 0), Position(1, 2, 3, 4, 5, 6), "" if tag is None else tag
     )
 
 
 def test_str(orientlist: OrientationList):
     add_example_orientation(orientlist, "orient")
 
-    with open(f"tests/diffcalc/ub/strings/reference/orientation.txt", "r") as f:
+    with open(f"tests/diffcalc/ub/strings/reference/orientation.txt") as f:
         expected_string = f.read()
 
     assert str(orientlist) == expected_string
 
 
 def test_add_orientation_and_get_orientation_with_no_tag(orientlist: OrientationList):
-    hkl = [0, 1, 0]
-    xyz = [0, 1, 0]
+    hkl = (0, 1, 0)
+    xyz = (0, 1, 0)
     pos = Position(1, 2, 3, 4, 5, 6)
 
     orientlist.add_orientation(hkl, xyz, pos, "")
@@ -159,8 +159,8 @@ def test_add_orientation_and_get_orientation_with_no_tag(orientlist: Orientation
 
 
 def test_add_orientation_and_get_orientation_with_tag(orientlist: OrientationList):
-    hkl = [0, 1, 0]
-    xyz = [0, 1, 0]
+    hkl = (0, 1, 0)
+    xyz = (0, 1, 0)
     pos = Position(1, 2, 3, 4, 5, 6)
     tag = "orient"
 
@@ -171,12 +171,12 @@ def test_add_orientation_and_get_orientation_with_tag(orientlist: OrientationLis
 
 
 def test_add_orientation_raises_error_for_invalid_params(orientlist: OrientationList):
-    hkl = [0, 1, 0]
-    xyz = [0, 1, 0]
+    hkl = (0, 1, 0)
+    xyz = (0, 1, 0)
     pos = (1, 2, 3, 4, 5, 6)
 
     with pytest.raises(TypeError):
-        orientlist.add_orientation(hkl, xyz, pos, "")
+        orientlist.add_orientation(hkl, xyz, pos, "")  # type: ignore
 
 
 def test_get_orientation_raises_error_for_invalid_params(orientlist: OrientationList):
@@ -190,8 +190,8 @@ def test_get_orientation_raises_error_for_invalid_params(orientlist: Orientation
 def test_edit_orientation_and_get_orientation(orientlist: OrientationList):
     add_example_orientation(orientlist)
 
-    new_hkl = [1, 0, 1]
-    new_xyz = [1, 0, 1]
+    new_hkl = (1, 0, 1)
+    new_xyz = (1, 0, 1)
     new_pos = Position(7, 8, 9, 10, 11, 12)
     new_tag = "refl"
 
@@ -204,8 +204,8 @@ def test_edit_orientation_and_get_orientation(orientlist: OrientationList):
 
 
 def test_swap_orientations(orientlist: OrientationList):
-    hkl_two = [1, 0, 1]
-    xyz_two = [1, 0, 1]
+    hkl_two = (1, 0, 1)
+    xyz_two = (1, 0, 1)
     pos_two = Position(7, 8, 9, 10, 11, 12)
     tag_two = "two"
 
