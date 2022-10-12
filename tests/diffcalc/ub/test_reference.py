@@ -77,13 +77,15 @@ def test_edit_reflection_and_get_reflection(reflist: ReflectionList):
     new_pos = Position(7, 8, 9, 10, 11, 12)
     new_energy = 13
     new_tag = "refl"
-
-    new_refl = Reflection(*new_hkl, new_pos, new_energy, new_tag)
+    newer_tag = "someref"
 
     reflist.edit_reflection(1, new_hkl, new_pos, new_energy, new_tag)
+    reflist.edit_reflection(new_tag, new_hkl, new_pos, new_energy, newer_tag)
 
-    assert reflist.get_reflection(1) == new_refl
-    assert reflist.get_reflection(new_tag) == new_refl
+    updated_refl = Reflection(*new_hkl, new_pos, new_energy, newer_tag)
+
+    assert reflist.get_reflection(1) == updated_refl
+    assert reflist.get_reflection(newer_tag) == updated_refl
 
 
 def test_swap_reflections(reflist: ReflectionList):
@@ -109,6 +111,9 @@ def test_swap_reflections(reflist: ReflectionList):
 def test_delete_reflection(reflist: ReflectionList):
     add_example_reflection(reflist)
     reflist.remove_reflection(1)
+
+    add_example_reflection(reflist, "some_ref")
+    reflist.remove_reflection("some_ref")
 
     with pytest.raises(IndexError):
         reflist.get_reflection(1)
@@ -190,17 +195,22 @@ def test_get_orientation_raises_error_for_invalid_params(orientlist: Orientation
 def test_edit_orientation_and_get_orientation(orientlist: OrientationList):
     add_example_orientation(orientlist)
 
+    assert orientlist.get_orientation(1).tag == ""
+
     new_hkl = (1, 0, 1)
     new_xyz = (1, 0, 1)
     new_pos = Position(7, 8, 9, 10, 11, 12)
     new_tag = "refl"
-
-    new_orientation = Orientation(*new_hkl, *new_xyz, new_pos, new_tag)
+    newer_tag = "some_orient"
 
     orientlist.edit_orientation(1, new_hkl, new_xyz, new_pos, new_tag)
 
-    assert orientlist.get_orientation(1) == new_orientation
-    assert orientlist.get_orientation(new_tag) == new_orientation
+    assert orientlist.get_orientation(1).tag == new_tag
+
+    orientlist.edit_orientation(new_tag, new_hkl, new_xyz, new_pos, newer_tag)
+    updated_orientation = Orientation(*new_hkl, *new_xyz, new_pos, newer_tag)
+
+    assert orientlist.get_orientation(newer_tag) == updated_orientation
 
 
 def test_swap_orientations(orientlist: OrientationList):
@@ -226,6 +236,9 @@ def test_swap_orientations(orientlist: OrientationList):
 def test_delete_orientation(orientlist: OrientationList):
     add_example_orientation(orientlist)
     orientlist.remove_orientation(1)
+
+    add_example_orientation(orientlist, "some tag")
+    orientlist.remove_orientation("some tag")
 
     with pytest.raises(IndexError):
         orientlist.get_orientation(1)

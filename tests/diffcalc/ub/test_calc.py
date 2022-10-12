@@ -1,5 +1,6 @@
 """Test the UBCalculation and ReferenceVector objects."""
 
+import pickle
 from math import degrees, radians, sqrt
 from pathlib import Path
 from typing import List, Tuple
@@ -97,6 +98,15 @@ class TestPersistenceMethods:
         with pytest.raises(DiffcalcException):
             UBCalculation.load("requirements_dev.txt")
 
+    def test_unpickling_invalid_object(self):
+        with open("test", "wb") as fp:
+            pickle.dump(obj=np.array([1, 2, 3, 4, 5]), file=fp)
+
+        with pytest.raises(DiffcalcException):
+            UBCalculation.load("test")
+
+        Path("test").unlink()
+
 
 # Test Reflections and Orientations
 
@@ -119,6 +129,16 @@ def test_edit_and_retrieve_reflection(ubcalc_ref_orient: UBCalculation):
     new_reflection = ubcalc_ref_orient.get_reflection(1)
 
     assert np.all((new_reflection.h, new_reflection.k, new_reflection.l) == new_hkl)
+
+
+def test_get_tag_refl_num_gets_correct_idx_and_raises_error_for_nonexistent_refl(
+    ubcalc_ref_orient: UBCalculation,
+):
+    number = ubcalc_ref_orient.get_tag_refl_num("refl")
+    assert number == 1
+
+    with pytest.raises(ValueError):
+        ubcalc_ref_orient.get_tag_refl_num("nonexistent")
 
 
 def test_delete_reflection(ubcalc_ref_orient: UBCalculation):
@@ -146,6 +166,16 @@ def test_edit_and_retrieve_orientation(ubcalc_ref_orient: UBCalculation):
     new_orientation = ubcalc_ref_orient.get_orientation(1)
 
     assert np.all((new_orientation.h, new_orientation.k, new_orientation.l) == new_hkl)
+
+
+def test_get_tag_orient_num_gets_correct_idx_and_raises_error_for_nonexistent_orient(
+    ubcalc_ref_orient: UBCalculation,
+):
+    number = ubcalc_ref_orient.get_tag_orient_num("orient")
+    assert number == 1
+
+    with pytest.raises(ValueError):
+        ubcalc_ref_orient.get_tag_orient_num("nonexistent")
 
 
 def test_delete_orientation(ubcalc_ref_orient: UBCalculation):
@@ -182,63 +212,43 @@ def test_get_tag_gets_correct_value(ubcalc_ref_orient: UBCalculation):
 
 
 @pytest.fixture
-def ubcalc():
+def ubcalc() -> UBCalculation:
     return UBCalculation("test")
 
 
-def test_set_lattice_one_argument_guesses_cubic(ubcalc):
-    ubcalc.set_lattice("NaCl", 1.1)
+@pytest.mark.parametrize(
+    ("short_params", "full_params", "system_name"),
+    [
+        ([1.1], [1.1, 1.1, 1.1, 90, 90, 90], "Cubic"),
+        ([1.1, 2.2], [1.1, 1.1, 2.2, 90, 90, 90], "Tetragonal"),
+        ([1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 90, 90, 90], "Orthorhombic"),
+        ([1.1, 2.2, 3.3, 91], [1.1, 2.2, 3.3, 90, 91, 90], "Monoclinic"),
+        ([1.1, 2.2, 3.3, 91, 92, 93], [1.1, 2.2, 3.3, 91, 92, 93], "Triclinic"),
+    ],
+)
+def test_set_lattice_with_various_arguments_guesses_system_correctly(
+    ubcalc: UBCalculation,
+    short_params: List[float],
+    full_params: List[float],
+    system_name: str,
+):
+    ubcalc.set_lattice("test", *short_params)
 
-    assert ("NaCl", 1.1, 1.1, 1.1, 90, 90, 90) == ubcalc.crystal.get_lattice()
-
-    assert ubcalc.crystal.system == "Cubic"
-
-
-def test_set_lattice_two_arguments_guesses_tetragonal(ubcalc):
-    ubcalc.set_lattice("NaCl", 1.1, 2.2)
-
-    assert ("NaCl", 1.1, 1.1, 2.2, 90, 90, 90) == ubcalc.crystal.get_lattice()
-
-    assert ubcalc.crystal.system == "Tetragonal"
-
-
-def test_set_lattice_three_arguments_guesses_orthorhombic(ubcalc):
-    ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3)
-
-    assert ("NaCl", 1.1, 2.2, 3.3, 90, 90, 90) == ubcalc.crystal.get_lattice()
-
-    assert ubcalc.crystal.system == "Orthorhombic"
+    assert ("test", *full_params) == ubcalc.crystal.get_lattice()
+    assert ubcalc.crystal.system == system_name
 
 
-def test_set_lattice_four_arguments_guesses_monoclinic(ubcalc):
-    ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91)
-    assert ("NaCl", 1.1, 2.2, 3.3, 90, 91, 90) == ubcalc.crystal.get_lattice()
-
-    assert ubcalc.crystal.system == "Monoclinic"
-
-
-def test_set_lattice_five_arguments_raises_error(ubcalc):
+def test_set_lattice_five_arguments_raises_error(ubcalc: UBCalculation):
     with pytest.raises(TypeError):
-        ubcalc.set_lattice(("NaCl", 1.1, 2.2, 3.3, 91, 92))
+        ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91, 92)
 
 
-def test_set_lattice_six_arguments_guesses_triclinic(ubcalc):
-    ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91, 92, 93)
-
-    assert (
-        "NaCl",
-        1.1,
-        2.2,
-        3.3,
-        91,
-        92,
-        93,
-    ) == ubcalc.crystal.get_lattice()
-
-    assert ubcalc.crystal.system == "Triclinic"
+def test_set_lattice_no_arguments_raises_error(ubcalc: UBCalculation):
+    with pytest.raises(TypeError):
+        ubcalc.set_lattice("NaCl")
 
 
-def test_setu_and_setub(ubcalc):
+def test_setu_and_setub(ubcalc: UBCalculation):
     with pytest.raises(TypeError):
         ubcalc.set_u([[1, 2], [3, 4]])
 
@@ -250,7 +260,7 @@ def test_setu_and_setub(ubcalc):
     ubcalc.set_ub([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
 
-def test_calc_ub(ubcalc):
+def test_calc_ub(ubcalc: UBCalculation):
     with pytest.raises(DiffcalcException):
         ubcalc.calc_ub()
 
@@ -269,39 +279,48 @@ def test_calc_ub(ubcalc):
         ), "wrong UB matrix after calculating U"
 
 
-def test_calc_ub_for_mixture_of_orientations_and_reflections(ubcalc):
+@pytest.fixture
+def session1_ubcalc() -> UBCalculation:
     scenario = scenarios.sessions()[1]
-    ubcalc.set_lattice(scenario.name, *scenario.lattice)
+    ubcalc = UBCalculation("test")
 
     for idx, orient in enumerate([scenario.ref1, scenario.ref2]):
         xyz = list(scenario.umatrix[idx])
         hkl = [orient.h, orient.k, orient.l]
         ubcalc.add_orientation(hkl, xyz, tag=f"or{idx+1}")
 
-    ubcalc.calc_ub()
-
-    assert np.all(
-        np.round(ubcalc.UB, 4)
-        == np.round(np.array(scenario.umatrix) @ np.array(scenario.bmatrix), 4)
-    ), "wrong UB matrix after calculating U"
-
-    ubcalc.calc_ub("or1", "or2")
-    assert np.all(
-        np.round(ubcalc.UB, 4)
-        == np.round(np.array(scenario.umatrix) @ np.array(scenario.bmatrix), 4)
-    ), "wrong UB matrix after calculating U"
-
     for ref in [scenario.ref1, scenario.ref2]:
         ubcalc.add_reflection((ref.h, ref.k, ref.l), ref.pos, ref.energy, ref.tag)
 
-    ubcalc.calc_ub("or1", scenario.ref2.tag)
+    ubcalc.set_lattice(scenario.name, *scenario.lattice)
+    return ubcalc
+
+
+@pytest.mark.parametrize(("calc_ub_params"), [[], ["or1", "or2"], ["or1", "ref2"]])
+def test_calc_ub_for_mixture_of_orientations_and_reflections(
+    session1_ubcalc: UBCalculation, calc_ub_params: List[str]
+):
+    scenario = scenarios.sessions()[1]
+
+    session1_ubcalc.calc_ub(*calc_ub_params)
+
     assert np.all(
-        np.round(ubcalc.UB, 4)
+        np.round(session1_ubcalc.UB, 4)
         == np.round(np.array(scenario.umatrix) @ np.array(scenario.bmatrix), 4)
     ), "wrong UB matrix after calculating U"
 
 
-def test_refine_ub(ubcalc):
+def test_calc_ub_for_one_reflection_only(session1_ubcalc: UBCalculation):
+    session1_ubcalc.del_reflection(2)
+
+    session1_ubcalc.calc_ub()
+    assert np.all(
+        session1_ubcalc.U
+        == np.array([[1.0, 0.0, 0.0], [0.0, 1.0, -0.0], [-0.0, 0.0, 1.0]])
+    )
+
+
+def test_refine_ub(ubcalc: UBCalculation):
     ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
     ubcalc.set_miscut(None, 0)
     ubcalc.refine_ub(
@@ -359,7 +378,7 @@ def test_fit_ub():
         ), "wrong U matrix after fitting UB"
 
 
-def test_get_ttheta_from_hkl(ubcalc):
+def test_get_ttheta_from_hkl(ubcalc: UBCalculation):
     ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
     assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(radians(60))
 

@@ -83,15 +83,16 @@ def convert_position_to_hkl_and_hkl_to_position(
     case: Case,
     places: int = 5,
     expected_virtual: Dict[str, float] = {},
+    asdegrees: bool = True,
 ) -> None:
 
-    position: Position = Position(*case.position)
+    position: Position = Position(*case.position, indegrees=asdegrees)
     hkl = hklcalc.get_hkl(position, case.wavelength)
 
     assert np.all(np.round(hkl, places) == np.round(case.hkl, places))
 
     pos_virtual_angles_pairs_in_degrees = hklcalc.get_position(
-        case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength
+        case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength, asdegrees=asdegrees
     )
 
     pos = [result[0] for result in pos_virtual_angles_pairs_in_degrees]

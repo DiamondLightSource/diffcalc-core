@@ -1,10 +1,11 @@
 import itertools
-from math import cos, radians, sin, sqrt
+from math import cos, pi, radians, sin, sqrt
 from typing import Dict, Union
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
+from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException
 
@@ -23,6 +24,75 @@ def cubic() -> UBCalculation:
 
     ubcalc.set_lattice("Cubic", 1.0)
     return ubcalc
+
+
+def test_get_position_with_radians(cubic: UBCalculation):
+    hklcalc = HklCalculation(cubic, Constraints({"delta": 60, "a_eq_b": True, "mu": 0}))
+    case = Case("100", (1, 0, 0), (0, pi / 3, 0, pi / 6, 0, 0))
+
+    configure_ub(hklcalc, 0, 0)
+    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, asdegrees=False)
+
+
+@pytest.mark.parametrize(
+    ("constraints"),
+    [{}, {"mu": 1, "eta": 1, "bisect": True}, {"bisect": True, "eta": 34, "naz": 3}],
+)
+def test_get_position_raises_exception_if_badly_constrained(
+    cubic: UBCalculation, constraints: Dict[str, Union[float, bool]]
+):
+    hklcalc = HklCalculation(cubic, Constraints(constraints))
+
+    configure_ub(hklcalc, 0, 0)
+
+    with pytest.raises(DiffcalcException):
+        hklcalc.get_position(1, 0, 0, 1)
+
+
+@pytest.mark.parametrize(
+    ("constraints"),
+    [
+        {"mu": 2, "eta": 2, "delta": 2},
+        {"omega": 2, "bisect": True, "delta": 2},
+        {"mu": 2, "bisect": True, "delta": 2},
+        {"eta": 2, "bisect": True, "delta": 2},
+        {"chi": 2, "phi": 2, "delta": 2},
+        {"mu": 2, "phi": 2, "delta": 2},
+        # {"mu": 2, "chi": 0, "delta": 0},
+        {"eta": 2, "phi": 2, "delta": 2},
+        {"eta": 2, "chi": 2, "delta": 2},
+    ],
+)
+def test_get_position_for_two_samp_one_det_constraints(
+    cubic: UBCalculation, constraints: Dict[str, Union[float, bool]]
+):
+    hklcalc = HklCalculation(cubic, Constraints(constraints))
+
+    configure_ub(hklcalc, 0, 0)
+
+    hklcalc.get_position(1, 0, 0, 1)
+
+
+@pytest.mark.parametrize(
+    ("constraints"),
+    ({"naz": 3, "alpha": 1, "phi": 45}, {"eta": 20, "phi": 34, "delta": 10000}),
+)
+def test_get_position_raises_exception_if_no_solutions_found(
+    constraints: Dict[str, Union[float, bool]]
+):
+    ubcalc = UBCalculation()
+    ubcalc.set_lattice("cube", 1)
+    ubcalc.add_reflection((0, 0, 1), Position(1, 2, 3, 4, 5, 6), 12)
+    ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 2, 3, 4, 5, 6), "orient")
+    ubcalc.calc_ub(0, "orient")
+
+    hklcalc = HklCalculation(ubcalc, Constraints(constraints))
+
+    with pytest.raises(DiffcalcException):
+        hklcalc.get_position(1, 0, 0, 1)
+
+
+# need one more test to see what happens if ub not configured...
 
 
 @pytest.mark.parametrize(
