@@ -18,8 +18,8 @@ from tests.diffcalc.hkl.test_calc import (
 @pytest.fixture
 def hklcalc() -> HklCalculation:
     ubcalc = UBCalculation()
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
+    ubcalc.n_phi = (0, 0, 1)  # type: ignore
+    ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
     return HklCalculation(ubcalc, Constraints())
 
 

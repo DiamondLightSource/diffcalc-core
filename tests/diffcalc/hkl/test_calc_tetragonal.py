@@ -20,7 +20,7 @@ def tetragonal() -> UBCalculation:
     ),
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), tag="plane")
 
-    ubcalc.n_hkl = (1.0, 0, 0)
+    ubcalc.n_hkl = (1.0, 0, 0)  # type: ignore
 
     return ubcalc
 

@@ -18,7 +18,7 @@ def cubic() -> HklCalculation:
     ubcalc = UBCalculation()
     ubcalc.set_lattice("xtal", 1)
     ubcalc.set_u(I)
-    ubcalc.n_phi = (0, 0, 1)
+    ubcalc.n_phi = (0, 0, 1)  # type: ignore
 
     return HklCalculation(ubcalc, constraints)
 

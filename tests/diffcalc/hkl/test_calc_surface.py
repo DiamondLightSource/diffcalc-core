@@ -18,8 +18,8 @@ from tests.tools import matrixeq_
 @pytest.fixture
 def hklcalc() -> HklCalculation:
     ubcalc = UBCalculation()
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
+    ubcalc.n_phi = (0, 0, 1)  # type: ignore
+    ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
     return HklCalculation(ubcalc, Constraints())
 
@@ -27,8 +27,8 @@ def hklcalc() -> HklCalculation:
 @pytest.fixture
 def cubic() -> HklCalculation:
     ubcalc = UBCalculation()
-    ubcalc.n_phi = (1, 0, 0)
-    ubcalc.surf_nphi = (0, 0, 1)
+    ubcalc.n_phi = (1, 0, 0)  # type: ignore
+    ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
     ubcalc.set_lattice("xtal", 1)
     ubcalc.set_u(I)

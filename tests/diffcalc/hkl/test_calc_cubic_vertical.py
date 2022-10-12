@@ -19,8 +19,8 @@ from tests.diffcalc.hkl.test_calc import (
 @pytest.fixture
 def cubic() -> UBCalculation:
     ubcalc = UBCalculation()
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
+    ubcalc.n_phi = (0, 0, 1)  # type: ignore
+    ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
     ubcalc.set_lattice("Cubic", 1.0)
     return ubcalc
@@ -291,7 +291,7 @@ def test_alpha_90(cubic: UBCalculation, constraints: Dict[str, float]):
 
 
 def test_ttheta_180(cubic: UBCalculation):
-    cubic.n_hkl = (1, -1, 0)
+    cubic.n_hkl = (1, -1, 0)  # type: ignore
     hklcalc = HklCalculation(cubic, Constraints({"nu": 0, "chi": 0, "phi": 0}))
     case = Case("200", (2, 0, 0), (0, 180, 0, 90, 0, 0))
 

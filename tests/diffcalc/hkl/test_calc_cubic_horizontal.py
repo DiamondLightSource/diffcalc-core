@@ -18,8 +18,8 @@ from tests.diffcalc.hkl.test_calc import (
 @pytest.fixture
 def cubic() -> UBCalculation:
     ubcalc = UBCalculation()
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
+    ubcalc.n_phi = (0, 0, 1)  # type: ignore
+    ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
     ubcalc.set_lattice("Cubic", 1.0)
     return ubcalc

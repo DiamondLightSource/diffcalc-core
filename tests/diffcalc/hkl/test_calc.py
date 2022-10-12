@@ -28,8 +28,8 @@ class Case:
 @pytest.fixture
 def cubic() -> HklCalculation:
     ubcalc = UBCalculation("test_str")
-    ubcalc.n_phi = (0, 0, 1)
-    ubcalc.surf_nphi = (0, 0, 1)
+    ubcalc.n_phi = (0, 0, 1)  # type: ignore
+    ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
     ubcalc.set_lattice("xtal", "Cubic", 1)
     ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1")
