@@ -1,3 +1,4 @@
+import itertools
 from dataclasses import dataclass
 from math import isnan, pi, radians, sqrt
 from typing import Dict, List, Optional, Tuple, Union
@@ -36,6 +37,21 @@ def cubic() -> HklCalculation:
     configure_ub(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())
+
+
+@pytest.fixture
+def tetragonal_ub() -> UBCalculation:
+    ubcalc = UBCalculation()
+
+    ubcalc.set_lattice(name="test", a=4.913, c=5.405)
+    ubcalc.add_reflection(
+        (0, 0, 1), Position(7.31, 0, 10.62, 0, 0, 0), 12.39842, "refl1"
+    ),
+    ubcalc.add_orientation((0, 1, 0), (0, 1, 0), tag="plane")
+
+    ubcalc.n_hkl = (1.0, 0, 0)  # type: ignore
+
+    return ubcalc
 
 
 @pytest.fixture
@@ -185,102 +201,31 @@ def test_get_position_raises_exception_if_no_solutions_found(
 
 
 @pytest.mark.parametrize(
-    ("expected_position", "constraints"),
-    [
-        ((0, 0, 90, 0, 0, 180), {"mu": 0, "eta": 0, "delta": 0}),
-        ((45, 0, 90, 0, -45, 90), {"omega": 0, "bisect": True, "delta": 0}),
-        ((0, 0, 90, 0, 0, 180), {"mu": 0, "bisect": True, "delta": 0}),
-        ((45, 0, 90, 0, -45, 90), {"eta": 0, "bisect": True, "delta": 0}),
-        ((0, 0, 90, -180, 0, 0), {"chi": 0, "phi": 0, "delta": 0}),
-        ((0, 0, 90, 180, 0, 0), {"mu": 0, "phi": 0, "delta": 0}),
-        ((0, 90, 0.0, 90.0, 90.0, 0.0), {"mu": 0, "chi": 90.0, "phi": 0.0}),
-        ((180, 0, 90, 0, 180, 0), {"eta": 0, "phi": 0, "delta": 0}),
-        ((0, 0, 90, 0, 0, 180), {"eta": 0, "chi": 0, "delta": 0}),
-        ((0, 0, 90, 0, 0, 180), {"mu": 0, "eta": 0, "delta": 0}),
-        ((0, 90, 0, 0, 90, 180), {"mu": 0, "eta": 0, "nu": 0}),
-        ((0, 0, 90, 0, 0, 180), {"mu": 0, "eta": 0, "qaz": 0}),
-    ],
+    ("zrot", "constraints"),
+    itertools.product(
+        [0, 2, -2, 45, -45, 90, -90],
+        [
+            {"delta": 60, "a_eq_b": True, "mu": 0},
+            {"a_eq_b": True, "mu": 0, "nu": 0},
+            {"psi": 90, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": 90},
+        ],
+    ),
 )
-def test_get_position_one_det_two_samp(
-    cubic: HklCalculation,
-    expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
+def test_fails_for_parallel_vectors(
+    cubic_ub: UBCalculation, zrot: float, constraints: Dict[str, Union[float, bool]]
 ):
-    cubic.constraints = Constraints(constraints)
+    """Confirm that a hkl of (0,0,1) fails for a_eq_b=True.
+    By default, the reference vector is (0,0,1). A parallel vector to this should
+    cause failure
+    """
+    configure_ub(cubic_ub, zrot, 0)
+    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
 
-    all_positions = cubic.get_position(0, 1, 1, 1)
+    case = Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0 + zrot))
 
-    assert all_positions[0][0].astuple == pytest.approx(expected_position)
-
-
-@pytest.mark.parametrize(
-    ("expected_position", "constraints"),
-    [
-        ((0, 0, 90, 0, 0, -180), {"psi": 0, "mu": 0, "delta": 0}),
-        ((0, 90, 0, 0, 90, -180), {"psi": 0, "mu": 0, "nu": 0}),
-        ((0, 0, 90, 0, 0, -180), {"psi": 0, "mu": 0, "qaz": 0}),
-        ((0, 0, 90, 0, 0, -180), {"psi": 0, "mu": 0, "naz": 0}),
-        ((180, 0, 90, 0, 180, 0), {"psi": 0, "phi": 0, "delta": 0}),
-        ((0, 0, 90, 0, 0, -180), {"psi": 0, "eta": 0, "delta": 0}),
-        ((-10, 0, 90, 90, 10, 90), {"psi": 0, "chi": 10, "delta": 0}),
-        ((0, 0, 90, 90, 90, -90), {"betaout": 0, "mu": 0, "delta": 0}),
-    ],
-)
-def test_get_position_one_det_one_ref_one_samp(
-    cubic: HklCalculation,
-    expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
-):
-    cubic.constraints = Constraints(constraints)
-
-    all_positions = cubic.get_position(0, 1, 1, 1)
-
-    assert all_positions[0][0].astuple == pytest.approx(expected_position)
-
-
-@pytest.mark.parametrize(
-    ("expected_position", "constraints"),
-    [
-        ((0, -90, 0, -180, 90, 0), {"chi": 90, "phi": 0, "psi": 0}),
-        ((90, 90, 0, 0, 90, -90), {"mu": 90, "eta": 0, "psi": 0}),
-        ((0, 0, 90, 0, 0, -180), {"chi": 0, "eta": 0, "psi": 0}),
-        ((0, 90, 0, 0, 90, -180), {"chi": 90, "mu": 0, "psi": 0}),
-        ((0, 0, 90, 90, 0, 90), {"mu": 0, "phi": 90, "psi": 0}),
-        ((90, -90, 0, 0, -90, 90), {"eta": 0, "phi": 90, "psi": 0}),
-        ((-45, -90, 0, -180, 90, 45), {"chi": 90, "phi": 45, "betain": 0}),
-    ],
-)
-def test_get_position_one_ref_two_samp(
-    cubic: HklCalculation,
-    expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
-):
-    cubic.constraints = Constraints(constraints)
-
-    all_positions = cubic.get_position(0, 1, 1, 1)
-
-    assert all_positions[0][0].astuple == pytest.approx(expected_position)
-
-
-@pytest.mark.parametrize(
-    ("expected_position", "constraints"),
-    [
-        ((90, 90, 0, 90, 0, 0), {"eta": 90, "chi": 0, "phi": 0}),
-        ((45, 45, -90, 90, 45, 45), {"mu": 45, "chi": 45, "phi": 45}),
-        ((45, 0, 90, 90, -45, 90), {"mu": 45, "eta": 90, "phi": 90}),
-        ((90, 90, 0, 0, 90, 270), {"mu": 90, "eta": 0, "chi": 90}),
-    ],
-)
-def test_get_position_three_samp(
-    cubic: HklCalculation,
-    expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
-):
-    cubic.constraints = Constraints(constraints)
-
-    all_positions = cubic.get_position(0, 1, 1, 1)
-
-    assert all_positions[0][0].astuple == pytest.approx(expected_position)
+    with pytest.raises(DiffcalcException):
+        convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
 
 
 def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
@@ -292,25 +237,6 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
 
     virtual_angles = hklcalc.get_virtual_angles(Position(0, 180, 0, 90, 0, 0))
     assert isnan(virtual_angles["psi"])
-
-
-@pytest.mark.parametrize(
-    ("constraints"),
-    [
-        {"delta": 60, "a_eq_b": True, "mu": 0},
-        {"psi": 90, "mu": 0, "nu": 0},
-        {"bin_eq_bout": True, "mu": 0, "qaz": 90},
-    ],
-)
-def test_fails_for_parallel_vectors(
-    cubic: HklCalculation, constraints: Dict[str, Union[float, bool]]
-):
-    cubic.constraints.asdict = constraints
-
-    case = Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0))
-
-    with pytest.raises(DiffcalcException):
-        convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 @pytest.mark.parametrize(
@@ -346,6 +272,57 @@ def test_redundant_solutions_when_calculating_remaining_detector_angles(
         hklcalc.ubcalc.n_hkl = (1, -1, 0)
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
+
+
+@pytest.mark.parametrize(
+    ("case", "constraints"),
+    itertools.product(
+        [
+            Case("100", (1, 0, 0), (30, 0, 60, 0, 90, -180)),
+            Case("010", (0, 1, 0), (30, 0, 60, 0, 90, -90)),
+            Case("001", (0, 0, 1), (30, 0, 60, 0, 0, 0)),
+        ],
+        [
+            {"a_eq_b": True, "qaz": 0, "eta": 0},
+            {"a_eq_b": True, "delta": 0, "eta": 0},
+        ],
+    ),
+)
+def test_fails_when_a_eq_b_and_parallel_vectors(
+    cubic: HklCalculation,
+    case: Case,
+    constraints: Dict[str, Union[float, bool]],
+):
+    cubic.constraints = Constraints(constraints)
+
+    with pytest.raises(DiffcalcException):
+        convert_position_to_hkl_and_hkl_to_position(cubic, case)
+
+
+@pytest.mark.parametrize(
+    ("case"),
+    [
+        Case("", (1, 0, 0), (0, 60, 0, 30, 1, 1)),
+        Case("", (1.00379806, -0.006578435, 0.08682408), (0, 60, 10, 30, 1, 1)),
+        Case("", (0.99620193, 0.0065784359, 0.08682408), (10, 60, 0, 30, 1, 1)),
+        Case(
+            "", (1.01174189, 0.02368622, 0.06627361), (0.9, 60.9, 2.9, 30.9, 2.9, 1.9)
+        ),
+    ],
+)
+def test_get_hkl(cubic_ub: UBCalculation, case: Case):
+    u_matrix = np.array(
+        (
+            (0.9996954135095477, -0.01745240643728364, -0.017449748351250637),
+            (0.01744974835125045, 0.9998476951563913, -0.0003045864904520898),
+            (0.017452406437283505, -1.1135499981271473e-16, 0.9998476951563912),
+        )
+    )
+    cubic_ub.set_u(u_matrix)
+
+    hkl = HklCalculation(cubic_ub, Constraints()).get_hkl(Position(*case.position), 1.0)
+
+    assert np.all(np.round(hkl, 7) == np.round(case.hkl, 7))
 
 
 @pytest.mark.parametrize(
