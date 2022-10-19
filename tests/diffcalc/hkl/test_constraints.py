@@ -380,6 +380,30 @@ def test_set_constraint_with_wrong_type_fails():
         )
 
 
+def test_as_tuple_getter():
+    cons = Constraints({"mu": 0, "a_eq_b": True})
+
+    assert cons.astuple == ("a_eq_b", ("mu", 0))
+
+
+def test_setting_already_active_constraint():
+    cons = Constraints({"psi": 0, "mu": 0})
+
+    cons.mu = 90
+
+    assert cons.mu == 90
+
+
+def test_radian_implementation_equivalent_to_degrees():
+    con_rad = Constraints({"mu": pi, "delta": pi / 2, "eta": pi / 6}, indegrees=False)
+    con_deg = Constraints({"mu": 180, "delta": 90, "eta": 30})
+
+    new_con_deg = Constraints.asdegrees(con_rad)
+    assert np.all(
+        [True for k, v in new_con_deg.asdict.items() if (v - con_deg.asdict[k]) == 0]
+    )
+
+
 def test_serialisation(cm):
     cm.asdict = {"alpha": 1, "mu": 2, "phi": 1, "beta": 2}
     cm_json = cm.asdict
