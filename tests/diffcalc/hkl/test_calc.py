@@ -18,12 +18,12 @@
 
 import itertools
 from itertools import chain
-from math import cos, radians, sin, sqrt
+from math import cos, degrees, radians, sin, sqrt
 
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position
+from diffcalc.hkl.geometry import Position, ureg
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
 from numpy import array
@@ -121,8 +121,8 @@ class _BaseTest:
         pos = list(chain(*pos_virtual_angles_pairs_in_degrees))[::2]
         virtual = list(chain(*pos_virtual_angles_pairs_in_degrees))[1::2]
         assert_array_almost_equal_in_list(
-            pos_expected.astuple,
-            [p.astuple for p in pos],
+            tuple([degrees(float(item)) for item in pos_expected.astuple]),
+            [tuple([degrees(float(item)) for item in p.astuple]) for p in pos],
             self.places,
         )
         # assert_array_almost_equal(pos, pos_expected, self.places)
@@ -148,22 +148,30 @@ class _BaseTest:
         assert_second_dict_almost_in_first(virtual, virtual_expected)
 
     def case_generator(self, case):
-        self._check_angles_to_hkl(
+        new_case = Pair(
             case.name,
+            case.hkl,
+            Position(*case.position.astuple * ureg.deg),
             case.zrot,
             case.yrot,
-            case.hkl,
-            case.position,
             case.wavelength,
+        )
+        self._check_angles_to_hkl(
+            new_case.name,
+            new_case.zrot,
+            new_case.yrot,
+            new_case.hkl,
+            new_case.position,
+            new_case.wavelength,
             {},
         )
         self._check_hkl_to_angles(
-            case.name,
-            case.zrot,
-            case.yrot,
-            case.hkl,
-            case.position,
-            case.wavelength,
+            new_case.name,
+            new_case.zrot,
+            new_case.yrot,
+            new_case.hkl,
+            new_case.position,
+            new_case.wavelength,
             {},
         )
 
@@ -372,10 +380,10 @@ class TestCubicVertical(_TestCubic):
         hkl = (0.1, 0, 1.5)
         pos = Position(
             mu=0,
-            delta=97.46959231642,
+            delta=97.46959231642 * ureg.deg,
             nu=0,
-            eta=97.46959231642 / 2,
-            chi=86.18592516571,
+            eta=97.46959231642 / 2 * ureg.deg,
+            chi=86.18592516571 * ureg.deg,
             phi=0,
         )
         self._check_hkl_to_angles("", 0, 0, hkl, pos, wavelength)
@@ -2630,8 +2638,9 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
             chi=90,
             phi=-90,
         )
-        self._check_angles_to_hkl("001", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("001", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("001", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("001", 999, 999, hkl, new_pos, self.wavelength, {})
 
     def testHkl100(self):
         hkl = (1, 0, 0)
@@ -2643,8 +2652,9 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
             chi=0,
             phi=-90,
         )
-        self._check_angles_to_hkl("100", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("100", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("100", 999, 999, hkl, new_pos, self.wavelength, {})
 
     def testHkl101(self):
         hkl = (1, 0, 1)
@@ -2656,8 +2666,9 @@ class TestThreeTwoCircleForDiamondI06andI10(_BaseTest):
             chi=90,
             phi=-90,
         )
-        self._check_angles_to_hkl("101", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("101", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("101", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("101", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
@@ -2680,8 +2691,9 @@ class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
             chi=0,
             phi=-90,
         )
-        self._check_angles_to_hkl("001", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("001", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("001", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("001", 999, 999, hkl, new_pos, self.wavelength, {})
 
     @pytest.mark.xfail(raises=DiffcalcException)  # q || chi
     def testHkl100(self):
@@ -2694,8 +2706,9 @@ class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
             chi=0,
             phi=-90,
         )
-        self._check_angles_to_hkl("100", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("100", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("100", 999, 999, hkl, new_pos, self.wavelength, {})
 
     def testHkl101(self):
         hkl = (1, 0, 1)
@@ -2707,8 +2720,9 @@ class TestThreeTwoCircleForDiamondI06andI10Horizontal(_BaseTest):
             chi=0,
             phi=-90,
         )
-        self._check_angles_to_hkl("101", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("101", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("101", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("101", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
@@ -2730,8 +2744,9 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
             chi=0,
             phi=-90,
         )
-        self._check_angles_to_hkl("001", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("001", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("001", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("001", 999, 999, hkl, new_pos, self.wavelength, {})
 
     def testHkl100(self):
         hkl = (1, 0, 0)
@@ -2743,8 +2758,9 @@ class TestThreeTwoCircleForDiamondI06andI10ChiDeltaEta(
             chi=0,
             phi=-90,
         )
-        self._check_angles_to_hkl("100", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("100", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("100", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("100", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestFixedNazPsiEtaMode(_TestCubic):
@@ -2828,8 +2844,9 @@ class TestFixedNazPsiEtaMode(_TestCubic):
     )
     def testHKL(self, hkl, pos, places):
         self.places = places
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
@@ -3013,8 +3030,9 @@ class TestFixedChiPhiAeqBMode_DiamondI07SurfaceNormalHorizontal(_TestCubic):
     )
     def testHKL(self, hkl, pos, places):
         self.places = places
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
@@ -3192,8 +3210,9 @@ class TestFixedChiPhiAeqBModeSurfaceNormalVertical(_TestCubic):
     )
     def testHKL(self, hkl, pos, places):
         self.places = places
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
@@ -3270,8 +3289,9 @@ class TestFixedChiPhiPsiModeSurfaceNormalVerticalI16(_TestCubic):
         ],
     )
     def testHKL(self, hkl, pos):
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
 
 class TestConstrain3Sample_ChiPhiEta(_TestCubic):
@@ -3288,11 +3308,12 @@ class TestConstrain3Sample_ChiPhiEta(_TestCubic):
         # self.mock_ubcalc.n_phi = np.array([[0.087867277], [0.906307787], [0.413383038]])
 
     def _check(self, hkl, pos, virtual_expected={}):
+        new_pos = Position(*pos.astuple * ureg.deg)
         self._check_angles_to_hkl(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
         self._check_hkl_to_angles(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def testHkl_all0_001(self):
@@ -3615,8 +3636,9 @@ class TestConstrain3Sample_MuChiPhi(_TestCubic):
     )
     def testHkl(self, hkl, pos, constraint):
         self.constraints.asdict = constraint
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
     # def testHkl_all0_001(self):
     #    self.constraints.asdict = {'chi': 90 * TORAD, 'phi': 0, 'mu': 0}
@@ -3759,8 +3781,9 @@ class TestConstrain3Sample_MuEtaChi(_TestCubic):
     )
     def testHKL(self, hkl, pos, constraint):
         self.constraints.asdict = constraint
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
     # def testHkl_all0_001(self):
     #    self.constraints.asdict = {'eta': radians(30), 'chi': 90 * TORAD, 'mu': 0}
@@ -3902,8 +3925,9 @@ class TestConstrain3Sample_MuEtaPhi(_TestCubic):
     )
     def testHKL(self, hkl, pos, constraint):
         self.constraints.asdict = constraint
-        self._check_angles_to_hkl("", 999, 999, hkl, pos, self.wavelength, {})
-        self._check_hkl_to_angles("", 999, 999, hkl, pos, self.wavelength, {})
+        new_pos = Position(*pos.astuple * ureg.deg)
+        self._check_angles_to_hkl("", 999, 999, hkl, new_pos, self.wavelength, {})
+        self._check_hkl_to_angles("", 999, 999, hkl, new_pos, self.wavelength, {})
 
     # def testHkl_all0_001(self):
     #    self.constraints.asdict = {'eta': 0, 'phi': 0, 'mu': radians(30)}
@@ -3972,12 +3996,13 @@ class TestHorizontalDeltaNadeta0_JiraI16_32_failure(_BaseTest):
         self.ubcalc.set_u(U)
 
     def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
+        new_pos = Position(*pos.astuple * ureg.deg)
         if not skip_test_pair_verification:
             self._check_angles_to_hkl(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+                "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
         self._check_hkl_to_angles(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def test_hkl_bisecting_works_okay_on_i16(self):
@@ -4063,26 +4088,28 @@ class TestAnglesToHkl_I16Examples:
 
     def test_anglesToHkl_mu_0_gam_0(self):
         pos = PosFromI16sEuler(1, 1, 30, 0, 60, 0)
-        arrayeq_(self.hklcalc.get_hkl(pos, self.WL1), [1, 0, 0])
+        arrayeq_(
+            self.hklcalc.get_hkl(Position(*pos.astuple * ureg.deg), self.WL1), [1, 0, 0]
+        )
 
     def test_anglesToHkl_mu_0_gam_10(self):
         pos = PosFromI16sEuler(1, 1, 30, 0, 60, 10)
         arrayeq_(
-            self.hklcalc.get_hkl(pos, self.WL1),
+            self.hklcalc.get_hkl(Position(*pos.astuple * ureg.deg), self.WL1),
             [1.00379806, -0.006578435, 0.08682408],
         )
 
     def test_anglesToHkl_mu_10_gam_0(self):
         pos = PosFromI16sEuler(1, 1, 30, 10, 60, 0)
         arrayeq_(
-            self.hklcalc.get_hkl(pos, self.WL1),
+            self.hklcalc.get_hkl(Position(*pos.astuple * ureg.deg), self.WL1),
             [0.99620193, 0.0065784359, 0.08682408],
         )
 
     def test_anglesToHkl_arbitrary(self):
         pos = PosFromI16sEuler(1.9, 2.9, 30.9, 0.9, 60.9, 2.9)
         arrayeq_(
-            self.hklcalc.get_hkl(pos, self.WL1),
+            self.hklcalc.get_hkl(Position(*pos.astuple * ureg.deg), self.WL1),
             [1.01174189, 0.02368622, 0.06627361],
         )
 
@@ -4110,12 +4137,13 @@ class TestAnglesToHkl_I16Numerical(_BaseTest):
         virtual_expected={},
         skip_test_pair_verification=False,
     ):
+        new_pos = Position(*pos.astuple * ureg.deg)
         if not skip_test_pair_verification:
             self._check_angles_to_hkl(
-                testname, 999, 999, hkl, pos, self.wavelength, virtual_expected
+                testname, 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
         self._check_hkl_to_angles(
-            testname, 999, 999, hkl, pos, self.wavelength, virtual_expected
+            testname, 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def test_hkl_to_angles_given_UB(self):
@@ -4163,12 +4191,13 @@ class TestAnglesToHkl_I16GaAsExample(_BaseTest):
         self.ubcalc.set_u(U)
 
     def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
+        new_pos = Position(*pos.astuple * ureg.deg)
         if not skip_test_pair_verification:
             self._check_angles_to_hkl(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+                "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
         self._check_hkl_to_angles(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def test_hkl_to_angles_given_UB(self):
@@ -4344,7 +4373,7 @@ class TestConstrainNazAlphaEta(_BaseTest):
         self.ubcalc.set_lattice(name="test", a=4.913, c=5.405)
         self.ubcalc.add_reflection(
             hkl=(0, 0, 1),
-            position=Position(7.31, 0, 10.62, 0, 0, 0),
+            position=Position(7.31 * ureg.deg, 0, 10.62 * ureg.deg, 0, 0, 0),
             energy=12.39842,
             tag="refl1",
         )
@@ -4354,12 +4383,13 @@ class TestConstrainNazAlphaEta(_BaseTest):
         self.ubcalc.n_hkl = (1.0, 0.0, 0.0)
 
     def _check(self, hkl, pos, virtual_expected={}, skip_test_pair_verification=False):
+        new_pos = Position(*pos.astuple * ureg.deg)
         if not skip_test_pair_verification:
             self._check_angles_to_hkl(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+                "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
         self._check_hkl_to_angles(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def test_hkl_to_angles_given_UB(self):

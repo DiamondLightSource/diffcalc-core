@@ -21,7 +21,7 @@ from unittest.mock import Mock
 
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position
+from diffcalc.hkl.geometry import Position, ureg
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import I
 from numpy import array
@@ -48,24 +48,22 @@ class TestPosition:
             == "Position(mu: 1.1234, delta: 2.3456, nu: 3.4567, eta: 4.5678, chi: 5.6789, phi: 6.7891)"
         )
 
-        pos4 = Position(
-            pi / 1.0, pi / 2.0, pi / 3.0, pi / 4.0, pi / 5.0, pi / 6.0, indegrees=False
-        )
+        pos4 = Position(pi / 1.0, pi / 2.0, pi / 3.0, pi / 4.0, pi / 5.0, pi / 6.0)
         assert (
             str(pos4)
-            == f"Position(mu: {degrees(pi / 1.0):.4f}, delta: {degrees(pi / 2.0):.4f}, nu: {degrees(pi / 3.0):.4f}, eta: {degrees(pi / 4.0):.4f}, chi: {degrees(pi / 5.0):.4f}, phi: {degrees(pi / 6.0):.4f})"
+            == f"Position(mu: {(pi / 1.0):.4f}, delta: {(pi / 2.0):.4f}, nu: {(pi / 3.0):.4f}, eta: {(pi / 4.0):.4f}, chi: {(pi / 5.0):.4f}, phi: {(pi / 6.0):.4f})"
         )
 
     def test_getter_setter(self):
         pos_deg = Position()
-        pos_rad = Position(indegrees=False)
+        pos_rad = Position()
         for i, field in enumerate(pos_deg.fields, 1):
-            setattr(pos_deg, field, float(i))
+            setattr(pos_deg, field, float(i) * ureg.deg)
             setattr(pos_rad, field, pi / float(i))
 
         for i, field in enumerate(pos_deg.fields, 1):
-            assert_almost_equal(getattr(pos_deg, field), float(i))
-            assert_almost_equal(getattr(pos_rad, field), pi / float(i))
+            assert_almost_equal(degrees(float(getattr(pos_deg, field))), i)
+            assert_almost_equal(float(getattr(pos_rad, field)), pi / i)
 
 
 class Test_position_to_virtual_angles:
@@ -82,7 +80,14 @@ class Test_position_to_virtual_angles:
         self, name, expected, mu=-99, delta=99, nu=99, eta=99, chi=99, phi=99
     ):
         """All in degrees"""
-        pos = Position(mu=mu, delta=delta, nu=nu, eta=eta, chi=chi, phi=phi)
+        pos = Position(
+            mu * ureg.deg,
+            delta * ureg.deg,
+            nu * ureg.deg,
+            eta * ureg.deg,
+            chi * ureg.deg,
+            phi * ureg.deg,
+        )
         calculated = self.calc.get_virtual_angles(pos, False)[name]
         if isnan(expected):
             assert isnan(calculated)

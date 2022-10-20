@@ -75,8 +75,7 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-        pos_in_rad = Position.asradians(pos)
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -102,12 +101,11 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
-        pos_in_rad = Position.asradians(pos)
         theta, qaz = self.__theta_and_qaz_from_detector_angles(
-            pos_in_rad.delta, pos_in_rad.nu
+            float(pos.delta), float(pos.nu)
         )  # (19)
 
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
 
@@ -395,8 +393,7 @@ class HklCalculation:
             )
 
         tidy_solutions = [
-            self.__tidy_degenerate_solutions(Position(*pos, False))
-            for pos in solution_tuples
+            self.__tidy_degenerate_solutions(Position(*pos)) for pos in solution_tuples
         ]
 
         # def _find_duplicate_angles(el):
@@ -492,7 +489,6 @@ class HklCalculation:
                 desired_eta,
                 pos.chi,
                 pos.phi - eta_diff,
-                False,
             )
 
         elif (
@@ -519,7 +515,6 @@ class HklCalculation:
                 pos.eta,
                 pos.chi,
                 pos.phi + mu_diff,
-                False,
             )
         else:
             newpos = pos

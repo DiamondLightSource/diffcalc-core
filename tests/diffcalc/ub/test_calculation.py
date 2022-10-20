@@ -20,6 +20,7 @@ import pickle
 from math import pi
 
 import pytest
+from diffcalc.hkl.geometry import Position, ureg
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException
 from numpy import array, save
@@ -44,8 +45,8 @@ REF1b = PosFromI16sEuler(1, 91, 30, 0, 60, 0)
 def testAgainstI16Results():
     ubcalc = UBCalculation("cubcalc")
     ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
-    ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
-    ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
+    ubcalc.add_reflection((1, 0, 0), Position(*REF1a.astuple * ureg.deg), EN1, "100")
+    ubcalc.add_reflection((0, 0, 1), Position(*REF1b.astuple * ureg.deg), EN1, "001")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1)
 
@@ -78,9 +79,11 @@ def test_save_and_restore_ubcalc_with_lattice(tmpdir):
 def test_save_and_restore_ubcalc_with_reflections(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_reflections"
     ubcalc = UBCalculation(NAME)
-    ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
-    ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
-    ubcalc.add_reflection((0, 0, 1.5), REF1b, EN1, "001_5")
+    ubcalc.add_reflection((1, 0, 0), Position(*REF1a.astuple * ureg.deg), EN1, "100")
+    ubcalc.add_reflection((0, 0, 1), Position(*REF1b.astuple * ureg.deg), EN1, "001")
+    ubcalc.add_reflection(
+        (0, 0, 1.5), Position(*REF1b.astuple * ureg.deg), EN1, "001_5"
+    )
     ref1 = ubcalc.get_reflection(1)
     ref2 = ubcalc.get_reflection(2)
     ref3 = ubcalc.get_reflection(3)
@@ -99,8 +102,8 @@ def test_save_and_restore_ubcalc_with_UB_from_two_ref(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_UB_from_two_ref"
     ubcalc = UBCalculation(NAME)
     ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
-    ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
-    ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
+    ubcalc.add_reflection((1, 0, 0), Position(*REF1a.astuple * ureg.deg), EN1, "100")
+    ubcalc.add_reflection((0, 0, 1), Position(*REF1b.astuple * ureg.deg), EN1, "001")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1)
 
@@ -115,7 +118,7 @@ def test_save_and_restore_ubcalc_with_UB_from_one_ref(tmpdir):
     NAME = "test_save_and_restore_ubcalc_with_UB_from_one_ref"
     ubcalc = UBCalculation(NAME)
     ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
-    ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
+    ubcalc.add_reflection((1, 0, 0), Position(*REF1a.astuple * ureg.deg), EN1, "100")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1, places=2)
 

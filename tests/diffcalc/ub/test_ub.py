@@ -21,7 +21,7 @@ from math import degrees, radians, sqrt
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position
+from diffcalc.hkl.geometry import Position, ureg
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.util import DiffcalcException
 from numpy import array
@@ -456,9 +456,13 @@ CRYSTAL ORIENTATIONS
             ubcalc = UBCalculation("test_calcub")
             ubcalc.set_lattice(s.name, *s.lattice)
             r = s.ref1
-            ubcalc.add_reflection((r.h, r.k, r.l), r.pos, r.energy, r.tag)
+            ubcalc.add_reflection(
+                (r.h, r.k, r.l), Position(*r.pos.astuple * ureg.deg), r.energy, r.tag
+            )
             r = s.ref2
-            ubcalc.add_reflection((r.h, r.k, r.l), r.pos, r.energy, r.tag)
+            ubcalc.add_reflection(
+                (r.h, r.k, r.l), Position(*r.pos.astuple * ureg.deg), r.energy, r.tag
+            )
             ubcalc.calc_ub(s.ref1.tag, s.ref2.tag)
             mneq_(
                 ubcalc.UB,
@@ -497,7 +501,9 @@ CRYSTAL ORIENTATIONS
             4,
             note="wrong UB matrix after calculating U",
         )
-        ubcalc.add_reflection((r1.h, r1.k, r1.l), r1.pos, r1.energy, r1.tag)
+        ubcalc.add_reflection(
+            (r1.h, r1.k, r1.l), Position(*r1.pos.astuple * ureg.deg), r1.energy, r1.tag
+        )
         ubcalc.calc_ub(r1.tag, tag2)
         mneq_(
             ubcalc.UB,
@@ -505,7 +511,9 @@ CRYSTAL ORIENTATIONS
             4,
             note="wrong UB matrix after calculating U",
         )
-        ubcalc.add_reflection((r2.h, r2.k, r2.l), r2.pos, r2.energy, r2.tag)
+        ubcalc.add_reflection(
+            (r2.h, r2.k, r2.l), Position(*r2.pos.astuple * ureg.deg), r2.energy, r2.tag
+        )
         ubcalc.calc_ub(tag1, r2.tag)
         mneq_(
             ubcalc.UB,
@@ -520,7 +528,7 @@ CRYSTAL ORIENTATIONS
         ubcalc.set_miscut(None, 0)
         ubcalc.refine_ub(
             (1, 1, 0),
-            Position(mu=0, delta=60, nu=0, eta=30, chi=0, phi=0),
+            Position(0, 60 * ureg.deg, 0, 30 * ureg.deg, 0, 0),
             1.0,
             True,
             True,
@@ -538,7 +546,12 @@ CRYSTAL ORIENTATIONS
             ubcalc = UBCalculation("test_fit_ub_matrix")
             a, b, c, alpha, beta, gamma = s.lattice
             for r in s.reflist:
-                ubcalc.add_reflection((r.h, r.k, r.l), r.pos, r.energy, r.tag)
+                ubcalc.add_reflection(
+                    (r.h, r.k, r.l),
+                    Position(*r.pos.astuple * ureg.deg),
+                    r.energy,
+                    r.tag,
+                )
             ubcalc.set_lattice(s.name, s.system, *s.lattice)
             ubcalc.calc_ub(s.ref1.tag, s.ref2.tag)
 

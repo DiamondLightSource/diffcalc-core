@@ -18,7 +18,7 @@
 
 from math import pi
 
-from diffcalc.hkl.geometry import Position
+from diffcalc.hkl.geometry import Position, ureg
 from diffcalc.ub.calc import UBCalculation
 from numpy import array
 
@@ -56,8 +56,8 @@ REF1b = PosFromI16sEuler(1, 91, 30, 0, 60, 0)
 def testAgainstI16Results():
     ubcalc = UBCalculation("cubcalc")
     ubcalc.set_lattice("latt", 1, 1, 1, 90, 90, 90)
-    ubcalc.add_reflection((1, 0, 0), REF1a, EN1, "100")
-    ubcalc.add_reflection((0, 0, 1), REF1b, EN1, "001")
+    ubcalc.add_reflection((1, 0, 0), Position(*REF1a.astuple * ureg.deg), EN1, "100")
+    ubcalc.add_reflection((0, 0, 1), Position(*REF1b.astuple * ureg.deg), EN1, "001")
     ubcalc.calc_ub()
     matrixeq_(ubcalc.UB, UB1)
 

@@ -12,8 +12,12 @@ from math import degrees, radians
 from typing import Dict, Tuple, Union
 
 import numpy as np
-from diffcalc.util import I, x_rotation, y_rotation, z_rotation
+from diffcalc.util import DiffcalcException, I, x_rotation, y_rotation, z_rotation
 from numpy.linalg import inv
+from pint import Quantity, UnitRegistry
+
+Angle = Union[float, Quantity]
+ureg = UnitRegistry()
 
 
 class Position:
@@ -53,21 +57,31 @@ class Position:
 
     def __init__(
         self,
-        mu: float = 0.0,
-        delta: float = 0.0,
-        nu: float = 0.0,
-        eta: float = 0.0,
-        chi: float = 0.0,
-        phi: float = 0.0,
-        indegrees: bool = True,
+        mu: Angle = 0.0,
+        delta: Angle = 0.0,
+        nu: Angle = 0.0,
+        eta: Angle = 0.0,
+        chi: Angle = 0.0,
+        phi: Angle = 0.0,
     ):
-        self._mu: float = radians(mu) if indegrees else mu
-        self._delta: float = radians(delta) if indegrees else delta
-        self._nu: float = radians(nu) if indegrees else nu
-        self._eta: float = radians(eta) if indegrees else eta
-        self._chi: float = radians(chi) if indegrees else chi
-        self._phi: float = radians(phi) if indegrees else phi
-        self.indegrees: bool = indegrees
+        self.mu: Angle = mu
+        self.delta: Angle = delta
+        self.nu: Angle = nu
+        self.eta: Angle = eta
+        self.chi: Angle = chi
+        self.phi: Angle = phi
+
+        quantities_dimensionless = [
+            getattr(self, field).dimensionless
+            for field in self.fields
+            if isinstance(getattr(self, field), Quantity)
+        ]
+
+        if False in quantities_dimensionless:
+            raise DiffcalcException(
+                "found non dimensionless field for Position object. If using pint to "
+                + "define quantities, use either .deg or .rad on unit registry."
+            )
 
     def __str__(self):
         """Represent Position object information as a string.
@@ -77,9 +91,9 @@ class Position:
         str
             Position object string representation.
         """
-        if self.indegrees:
-            return f"Position({', '.join((f'{k}: {v:.4f}' for k, v in self.asdict.items()))})"
-        return f"Position({', '.join((f'{k}: {degrees(v):.4f}' for k, v in self.asdict.items()))})"
+        return (
+            f"Position({', '.join((f'{k}: {v:.4f}' for k, v in self.asdict.items()))})"
+        )
 
     @classmethod
     def asdegrees(cls, pos: "Position") -> "Position":
@@ -95,9 +109,8 @@ class Position:
         Position
             New Position object with angles in degrees.
         """
-        res = cls(**pos.asdict, indegrees=pos.indegrees)
-        res.indegrees = True
-        return res
+        pos_in_deg = {k: degrees(v) * ureg.deg for k, v in pos.asdict.items()}
+        return cls(**pos_in_deg)
 
     @classmethod
     def asradians(cls, pos: "Position") -> "Position":
@@ -113,123 +126,8 @@ class Position:
         Position
             New Position object with angles in radians.
         """
-        res = cls(**pos.asdict, indegrees=pos.indegrees)
-        res.indegrees = False
-        return res
-
-    @property
-    def mu(self) -> Union[float, None]:
-        """Value of of mu angle."""
-        if self.indegrees:
-            return degrees(self._mu)
-        else:
-            return self._mu
-
-    @mu.setter
-    def mu(self, val):
-        if self.indegrees:
-            self._mu = radians(val)
-        else:
-            self._mu = val
-
-    @mu.deleter
-    def mu(self):
-        self._mu = None
-
-    @property
-    def delta(self) -> Union[float, None]:
-        """Value of of delta angle."""
-        if self.indegrees:
-            return degrees(self._delta)
-        else:
-            return self._delta
-
-    @delta.setter
-    def delta(self, val):
-        if self.indegrees:
-            self._delta = radians(val)
-        else:
-            self._delta = val
-
-    @delta.deleter
-    def delta(self):
-        self._delta = None
-
-    @property
-    def nu(self) -> Union[float, None]:
-        """Value of of nu angle."""
-        if self.indegrees:
-            return degrees(self._nu)
-        else:
-            return self._nu
-
-    @nu.setter
-    def nu(self, val):
-        if self.indegrees:
-            self._nu = radians(val)
-        else:
-            self._nu = val
-
-    @nu.deleter
-    def nu(self):
-        self._nu = None
-
-    @property
-    def eta(self) -> Union[float, None]:
-        """Value of of eta angle."""
-        if self.indegrees:
-            return degrees(self._eta)
-        else:
-            return self._eta
-
-    @eta.setter
-    def eta(self, val):
-        if self.indegrees:
-            self._eta = radians(val)
-        else:
-            self._eta = val
-
-    @eta.deleter
-    def eta(self):
-        self._eta = None
-
-    @property
-    def chi(self) -> Union[float, None]:
-        """Value of of chi angle."""
-        if self.indegrees:
-            return degrees(self._chi)
-        else:
-            return self._chi
-
-    @chi.setter
-    def chi(self, val):
-        if self.indegrees:
-            self._chi = radians(val)
-        else:
-            self._chi = val
-
-    @chi.deleter
-    def chi(self):
-        self._chi = None
-
-    @property
-    def phi(self) -> Union[float, None]:
-        """Value of of phi angle."""
-        if self.indegrees:
-            return degrees(self._phi)
-        else:
-            return self._phi
-
-    @phi.setter
-    def phi(self, val):
-        if self.indegrees:
-            self._phi = radians(val)
-        else:
-            self._phi = val
-
-    @phi.deleter
-    def phi(self):
-        self._phi = None
+        pos_in_rad = {k: radians(v) for k, v in pos.asdict.items()}
+        return cls(**pos_in_rad)
 
     @property
     def asdict(self) -> Dict[str, float]:
@@ -275,8 +173,7 @@ def get_rotation_matrices(
         Tuple containing set of rotation matrices corresponding to
         input diffractometer angle values.
     """
-    pos_in_rad = Position.asradians(pos)
-    mu, delta, nu, eta, chi, phi = pos_in_rad.astuple
+    mu, delta, nu, eta, chi, phi = pos.astuple
     return (
         rot_MU(mu),
         rot_DELTA(delta),
@@ -398,8 +295,7 @@ def get_q_phi(pos: Position) -> np.ndarray:
     matrix:
         Scattering vector coordinates corresponding to the input position.
     """
-    pos_in_rad = Position.asradians(pos)
-    [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+    [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
     # Equation 12: Compute the momentum transfer vector in the lab  frame
     y = np.array([[0], [1], [0]])
     q_lab = (NU @ DELTA - I) @ y

@@ -21,7 +21,7 @@
 from collections import namedtuple
 
 import pytest
-from diffcalc.hkl.geometry import Position
+from diffcalc.hkl.geometry import Position, ureg
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import Crystal
 from diffcalc.util import DiffcalcException, I
@@ -44,12 +44,13 @@ class TestSurfaceNormalVerticalCubic(_BaseTest):
         self.ubcalc.set_u(I)
 
     def _check(self, hkl, pos, virtual_expected={}):
+        new_pos = Position(*pos.astuple * ureg.deg) if pos is not None else None
         if pos is not None:
             self._check_angles_to_hkl(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+                "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
         self._check_hkl_to_angles(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def testHkl001(self):
@@ -161,13 +162,13 @@ class TestUBCalculationWithWillmotStrategy_Si_5_5_12_FixedMuEta:
         self.ubcalc.set_lattice("Si_5_5_12", 7.68, 53.48, 75.63, 90, 90, 90)
         self.ubcalc.add_reflection(
             HKL0,
-            willmott_to_you_fixed_mu_eta(REF0),
+            Position(*willmott_to_you_fixed_mu_eta(REF0).astuple * ureg.deg),
             ENERGY,
             "ref0",
         )
         self.ubcalc.add_reflection(
             HKL1,
-            willmott_to_you_fixed_mu_eta(REF1),
+            Position(*willmott_to_you_fixed_mu_eta(REF1).astuple * ureg.deg),
             ENERGY,
             "ref1",
         )
@@ -194,11 +195,12 @@ class TestFixedMuEta(_BaseTest):
         self.ubcalc.set_u(U_DIFFCALC)
 
     def _check(self, hkl, pos, virtual_expected={}):
+        new_pos = Position(*pos.astuple * ureg.deg)
         self._check_angles_to_hkl(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
         self._check_hkl_to_angles(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
 
     def testHkl_2_19_32_found_orientation_setting(self):
@@ -209,7 +211,7 @@ class TestFixedMuEta(_BaseTest):
             999,
             999,
             HKL0,
-            self._convert_willmott_pos(REF0),
+            Position(*self._convert_willmott_pos(REF0).astuple * ureg.deg),
             self.wavelength,
             {"alpha": 2},
         )
@@ -222,7 +224,7 @@ class TestFixedMuEta(_BaseTest):
             999,
             999,
             HKL1,
-            self._convert_willmott_pos(REF1),
+            Position(*self._convert_willmott_pos(REF1).astuple * ureg.deg),
             self.wavelength,
             {"alpha": 2},
         )
@@ -283,13 +285,13 @@ class TestUBCalculationWithWillmotStrategy_Si_5_5_12_FixedMuChi:
         self.ubcalc.set_lattice("Si_5_5_12", 7.68, 53.48, 75.63, 90, 90, 90)
         self.ubcalc.add_reflection(
             HKL0,
-            willmott_to_you_fixed_mu_chi(REF0),
+            Position(*willmott_to_you_fixed_mu_chi(REF0).astuple * ureg.deg),
             ENERGY,
             "ref0",
         )
         self.ubcalc.add_reflection(
             HKL1,
-            willmott_to_you_fixed_mu_chi(REF1),
+            Position(*willmott_to_you_fixed_mu_chi(REF1).astuple * ureg.deg),
             ENERGY,
             "ref1",
         )
@@ -394,13 +396,13 @@ class TestUBCalculation_Pt531_FixedMuChi:
 
         self.ubcalc.add_reflection(
             Pt531_HKL0,
-            willmott_to_you_fixed_mu_chi(Pt531_REF0),
+            Position(*willmott_to_you_fixed_mu_chi(Pt531_REF0).astuple * ureg.deg),
             12.39842 / Pt531_WAVELENGTH,
             "ref0",
         )
         self.ubcalc.add_reflection(
             Pt531_HKL1,
-            willmott_to_you_fixed_mu_chi(Pt531_REF1),
+            Position(*willmott_to_you_fixed_mu_chi(Pt531_REF1).astuple * ureg.deg),
             12.39842 / Pt531_WAVELENGTH,
             "ref1",
         )
@@ -430,16 +432,17 @@ class Test_Pt531_FixedMuChi(_BaseTest):
         self.ubcalc.set_u(Pt531_U_DIFFCALC)
 
     def _check(self, hkl, pos, virtual_expected={}, fails=False):
+        new_pos = Position(*pos.astuple * ureg.deg)
         self._check_angles_to_hkl(
-            "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+            "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
         )
         if fails:
             self._check_hkl_to_angles_fails(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+                "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
         else:
             self._check_hkl_to_angles(
-                "", 999, 999, hkl, pos, self.wavelength, virtual_expected
+                "", 999, 999, hkl, new_pos, self.wavelength, virtual_expected
             )
 
     def testHkl_0_found_orientation_setting(self):
@@ -450,7 +453,7 @@ class Test_Pt531_FixedMuChi(_BaseTest):
             999,
             999,
             Pt531_HKL0,
-            self._convert_willmott_pos(Pt531_REF0),
+            Position(*self._convert_willmott_pos(Pt531_REF0).astuple * ureg.deg),
             self.wavelength,
             {"alpha": 2},
         )
@@ -463,7 +466,7 @@ class Test_Pt531_FixedMuChi(_BaseTest):
             999,
             999,
             Pt531_HKL1,
-            self._convert_willmott_pos(Pt531_REF1),
+            Position(*self._convert_willmott_pos(Pt531_REF1).astuple * ureg.deg),
             self.wavelength,
             {"alpha": 2},
         )
