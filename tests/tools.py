@@ -46,7 +46,7 @@ def assert_array_almost_equal(first, second, places=7, msg=None, note=None):
         #    format_note(note),
         # )
         # assert_almost_equal(f, s, places, msg or default_msg)
-        assert degrees_equivalent(f, s, pow(10, -places))
+        assert radians_equivalent(f, s, pow(10, -places))
 
 
 def assert_array_almost_equal_in_list(expected, vals, places=7, msg=None):

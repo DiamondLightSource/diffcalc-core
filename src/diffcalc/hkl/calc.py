@@ -190,14 +190,14 @@ class HklCalculation:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
             if asdegrees:
-                res_pos = Position.asdegrees(pos)
+                use_pos = Position.asdegrees(pos)
                 res_virtual_angles = {
                     key: degrees(val) for key, val in virtual_angles.items()
                 }
             else:
-                res_pos = Position.asradians(pos)
+                use_pos = pos
                 res_virtual_angles = copy(virtual_angles)
-            results.append((res_pos, res_virtual_angles))
+            results.append((use_pos, res_virtual_angles))
 
         return results
 

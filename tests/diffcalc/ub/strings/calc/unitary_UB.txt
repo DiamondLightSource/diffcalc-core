@@ -1,0 +1,44 @@
+UBCALC
+
+   name:     test_str_UB_unity
+
+REFERNCE
+
+   n_hkl:      0.00000   0.00000   1.00000
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+SURFACE NORMAL
+
+   n_hkl:      0.00000   0.00000   1.00000
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+CRYSTAL
+
+   name:          xtal
+
+   a, b, c:    1.00000   1.00000   1.00000
+              90.00000  90.00000  90.00000  Cubic
+
+   B matrix:   6.28319   0.00000   0.00000
+               0.00000   6.28319   0.00000
+               0.00000   0.00000   6.28319
+
+UB MATRIX
+
+   U matrix:   1.00000   0.00000   0.00000
+               0.00000   1.00000   0.00000
+               0.00000   0.00000   1.00000
+
+   miscut angle:  0
+
+   UB matrix:  6.28319   0.00000   0.00000
+               0.00000   6.28319   0.00000
+               0.00000   0.00000   6.28319
+
+REFLECTIONS
+
+   <<< none specified >>>
+
+CRYSTAL ORIENTATIONS
+
+   <<< none specified >>>

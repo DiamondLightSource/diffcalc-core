@@ -91,9 +91,28 @@ class Position:
         str
             Position object string representation.
         """
-        return (
-            f"Position({', '.join((f'{k}: {v:.4f}' for k, v in self.asdict.items()))})"
-        )
+        values = {
+            key: value.magnitude if isinstance(value, Quantity) else value
+            for key, value in self.asdict.items()
+        }
+        return f"Position({', '.join((f'{k}: {v:.4f}' for k, v in values.items()))})"
+
+    def __eq__(self, other):
+        """Check if two Position objects are equivalent.
+        This compares their underlying angle values, which are stored in radians,
+        rather than the "public" variables the user can set/get.
+        """
+        if isinstance(other, Position):
+            return (
+                (self.mu == other.mu)
+                & (self.delta == other.delta)
+                & (self.nu == other.nu)
+                & (self.eta == other.eta)
+                & (self.chi == other.chi)
+                & (self.phi == other.phi)
+            )
+
+        return False
 
     @classmethod
     def asdegrees(cls, pos: "Position") -> "Position":
