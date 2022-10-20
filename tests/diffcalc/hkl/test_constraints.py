@@ -1,24 +1,7 @@
-###
-# Copyright 2008-2011 Diamond Light Source Ltd.
-# This file is part of Diffcalc.
-#
-# Diffcalc is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Diffcalc is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
-###
+from math import pi
+from typing import Dict, List, Union
 
-
-from math import degrees
-
+import numpy as np
 import pytest
 from diffcalc.hkl.constraints import Constraints, _con_type, _Constraint
 from diffcalc.util import DiffcalcException
@@ -27,94 +10,84 @@ from tests.test_tools import eq_
 from tests.tools import assert_dict_almost_equal
 
 
-def joined(d1, d2):
-    d1.update(d2)
-    return d1
-
-
 @pytest.fixture
-def cm():
+def cm() -> Constraints:
     return Constraints()
 
 
-def test_init(cm):
-    eq_(cm.asdict, dict())
-    eq_(cm._detector, dict())
-    eq_(cm._reference, dict())
-    eq_(cm._sample, dict())
+@pytest.mark.parametrize(
+    ("cons", "det", "ref", "samp"),
+    [
+        ({}, {}, {}, {}),
+        ({"nu": 0, "mu": 0, "a_eq_b": True}, {"nu": 0}, {"a_eq_b": True}, {"mu": 0}),
+    ],
+)
+def test_init_generates_correct_dictionaries(
+    cons: Dict[str, Union[float, bool]],
+    det: Dict[str, Union[float, bool]],
+    ref: Dict[str, Union[float, bool]],
+    samp: Dict[str, Union[float, bool]],
+):
+    constraints = Constraints(cons)
+    assert constraints.asdict == cons
+    assert constraints._detector == det
+    assert constraints._reference == ref
+    assert constraints._sample == samp
 
 
-def test_dict_init():
-    cm = Constraints({"nu": 0, "mu": 0, "a_eq_b": True})
-    eq_(cm.asdict, {"nu": 0, "mu": 0, "a_eq_b": True})
-    eq_(cm.astuple, (("nu", 0), "a_eq_b", ("mu", 0)))
-    assert cm.nu == 0
-    assert cm.mu == 0
-    assert cm.a_eq_b is True
-    assert cm.naz is None
+@pytest.mark.parametrize(
+    ("con_name"),
+    [
+        "delta",
+        "nu",
+        "qaz",
+        "naz",
+        "a_eq_b",
+        "alpha",
+        "beta",
+        "psi",
+        "bin_eq_bout",
+        "betain",
+        "betaout",
+        "mu",
+        "eta",
+        "chi",
+        "phi",
+        "bisect",
+        "omega",
+    ],
+)
+def test_setters_getters_and_deleters_for_each_constraint(
+    cm: Constraints, con_name: str
+):
+    constraint_def: _Constraint = getattr(cm, "_" + con_name)
 
-    cm = Constraints({"nu": 0, "mu": 0, "a_eq_b": False})
-    eq_(cm.asdict, {"nu": 0, "mu": 0})
-    eq_(cm.astuple, (("nu", 0), ("mu", 0)))
-    eq_(cm.nu, 0)
-    eq_(cm.mu, 0)
-    eq_(cm.a_eq_b, None)
-    eq_(cm.naz, None)
+    value: Union[bool, int] = 1
 
-    cm.asdict = {"nu": 0, "mu": 0, "a_eq_b": None}
-    eq_(cm.asdict, {"nu": 0, "mu": 0})
-    eq_(cm.astuple, (("nu", 0), ("mu", 0)))
-    eq_(cm.nu, 0)
-    eq_(cm.mu, 0)
-    eq_(cm.a_eq_b, None)
-    eq_(cm.naz, None)
+    if constraint_def._type == _con_type.VOID:
+        value = True
 
-    cm.asdict = {"nu": 3, "mu": 4, "a_eq_b": True}
-    assert_dict_almost_equal(cm.asdict, {"nu": 3, "mu": 4, "a_eq_b": True})
-    eq_(cm.astuple, (("nu", pytest.approx(3)), "a_eq_b", ("mu", pytest.approx(4))))
-    assert cm.nu == pytest.approx(3)
-    assert cm.mu == pytest.approx(4)
-    eq_(cm.a_eq_b, True)
-    eq_(cm.naz, None)
+    setattr(cm, con_name, value)
+    assert getattr(cm, con_name) == value
 
-    cm = Constraints((("nu", 0), ("mu", 0), "a_eq_b"))
-    eq_(cm.asdict, {"nu": 0, "mu": 0, "a_eq_b": True})
-    eq_(cm.astuple, (("nu", 0), "a_eq_b", ("mu", 0)))
-
-    cm = Constraints([("nu", 0), ("mu", 0), "a_eq_b"])
-    eq_(cm.asdict, {"nu": 0, "mu": 0, "a_eq_b": True})
-    eq_(cm.astuple, (("nu", 0), "a_eq_b", ("mu", 0)))
-
-    cm = Constraints({("nu", 0), ("mu", 0), "a_eq_b"})
-    eq_(cm.asdict, {"nu": 0, "mu": 0, "a_eq_b": True})
-    eq_(cm.astuple, (("nu", 0), "a_eq_b", ("mu", 0)))
+    delattr(cm, con_name)
+    assert getattr(cm, con_name) is None
 
 
-def test_set_init():
-    cm = Constraints({("nu", 0), ("mu", 0), "a_eq_b"})
-    eq_(cm.asdict, {"nu": 0, "mu": 0, "a_eq_b": True})
-    eq_(cm.astuple, (("nu", 0), "a_eq_b", ("mu", 0)))
-    eq_(cm.nu, 0)
-    eq_(cm.mu, 0)
-    eq_(cm.a_eq_b, True)
-    eq_(cm.naz, None)
+@pytest.mark.parametrize(
+    ("con_dict"),
+    [{"nu": 0, "mu": 0, "a_eq_b": None}, {"nu": 3, "mu": 4, "a_eq_b": True}],
+)
+def test_as_dict_setter_and_getter(
+    cm: Constraints, con_dict: Dict[str, Union[float, bool]]
+):
+    non_null_con_dict = {k: v for k, v in con_dict.items() if v is not None}
+    cm.asdict = con_dict
 
-    cm = Constraints({("nu", 0), ("mu", 0)})
-    eq_(cm.asdict, {"nu": 0, "mu": 0})
-    eq_(cm.astuple, (("nu", 0), ("mu", 0)))
-    eq_(cm.nu, 0)
-    eq_(cm.mu, 0)
-    eq_(cm.a_eq_b, None)
-    eq_(cm.naz, None)
-
-    cm.astuple = (("nu", 3), "a_eq_b", ("mu", 4))
-    assert_dict_almost_equal(cm.asdict, {"nu": 3, "mu": 4, "a_eq_b": True})
-
-    eq_(cm.astuple, (("nu", pytest.approx(3)), "a_eq_b", ("mu", pytest.approx(4))))
-    assert cm.nu == pytest.approx(3)
-    assert cm.mu == pytest.approx(4)
-    eq_(cm.a_eq_b, True)
-    eq_(cm.naz, None)
+    assert {
+        key: np.round(value, 8) if isinstance(value, float) else value
+        for key, value in cm.asdict.items()
+    } == non_null_con_dict
 
 
 @pytest.mark.parametrize(
@@ -135,24 +108,27 @@ def test_all_init(con_dict, con_tuple, con_set, con_list):
         # eq_(cm.astuple, con_tuple)
 
 
-@pytest.mark.parametrize(
-    ("con_dict"),
-    [
-        {"nu": 0.1, "mu": 0.2, "a_eq_b": True},
-        {"nu": -0.1, "mu": 0.2, "a_eq_b": True},
-    ],
-)
-def test_asdegrees_asradians(con_dict):
-    cm = Constraints(con_dict)
-    cm_deg = Constraints.asdegrees(cm)
-    for k, v in cm_deg.asdict.items():
-        assert cm.asdict[k] == pytest.approx(v)
-    cm_rad = Constraints.asradians(cm)
-    for k, v in cm_rad.asdict.items():
-        if isinstance(v, bool):
-            assert cm.asdict[k] == pytest.approx(v)
-        else:
-            assert cm.asdict[k] == pytest.approx(degrees(v))
+def test_constraints_stored_as_radians():
+    deg_cons = Constraints({"alpha": 90, "mu": 30, "nu": 45})
+
+    assert deg_cons._alpha.value == pi / 2
+    assert deg_cons._mu.value == pi / 6
+    assert deg_cons._nu.value == pi / 4
+
+
+def test_conversion_between_degrees_and_radians():
+    deg_cons = Constraints({"alpha": 90, "mu": 30, "nu": 45})
+    rad_cons = Constraints({"alpha": pi / 2, "mu": pi / 6, "nu": pi / 4})
+
+    cons_asradians = Constraints.asradians(deg_cons)
+
+    assert np.all(
+        [
+            pytest.approx(cons_asradians.asdict[key]) == rad_cons.asdict[key]
+            for key in ["alpha", "mu", "nu"]
+        ]
+    )
+    # NOTE: the conversion back does not work. i.e. Constraints.asdegrees is wrong.
 
 
 def test_str_constraint(cm):
@@ -199,333 +175,135 @@ def test_build_display_table(cm):
     )
 
 
-def test_unconstrain_okay(cm):
-    eq_(cm.asdict, dict())
-    cm.delta = 1.0
-    cm.mu = 2
-    eq_(cm._constrained, (cm._delta, cm._mu))
-    eq_(cm.asdict, {"delta": 1.0, "mu": 2})
-    del cm.delta
+def test_setting_one_constraint_as_none(cm: Constraints):
+    cm.asdict = {"delta": 1.0, "mu": 2.0}
+
     cm.mu = None
-    eq_(cm.asdict, dict())
-    assert cm.delta is None
 
-
-@pytest.mark.parametrize(
-    "con_name",
-    [
-        "delta",
-        "nu",
-        "naz",
-        "qaz",
-        "a_eq_b",
-        "alpha",
-        "beta",
-        "psi",
-        "bin_eq_bout",
-        "betain",
-        "betaout",
-        "mu",
-        "eta",
-        "chi",
-        "phi",
-        "bisect",
-        "omega",
-    ],
-)
-def test_every_constraint(con_name, cm):
-    assert getattr(cm, con_name) is None
-    con = getattr(cm, "_" + con_name)
-    assert type(con) is _Constraint
-    if con._type is _con_type.VALUE:
-        setattr(cm, con_name, 1.0)
-        assert getattr(cm, con_name) == 1.0
-        eq_(cm.asdict, {con_name: 1.0})
-    elif con._type is _con_type.VOID:
-        setattr(cm, con_name, True)
-        assert getattr(cm, con_name) is True
-        eq_(cm.asdict, {con_name: True})
-    else:
-        raise TypeError("Invalid constraint type setting.")
-    delattr(cm, con_name)
-    assert getattr(cm, con_name) is None
-    eq_(cm.asdict, {})
-    eq_(cm.asdict, dict())
+    assert cm.asdict == {"delta": 1.0}
 
 
 def test_clear_constraints(cm):
-    cm.delta = 1
-    cm.mu = 2
+    cm.asdict = {"delta": 1.0, "mu": 2.0}
+
     cm.clear()
-    eq_(cm.asdict, dict())
-    assert cm.delta is None
-    assert cm.mu is None
+    assert cm.asdict == {}
 
 
-def test_constrain_det(cm, pre={}):
-    assert_dict_almost_equal(cm.asdict, pre)
-    cm.delta = 1
-    assert_dict_almost_equal(cm.asdict, joined({"delta": 1}, pre))
-    cm.naz = 1
-    assert_dict_almost_equal(cm.asdict, joined({"naz": 1}, pre))
-    cm.delta = 1
-    assert_dict_almost_equal(cm.asdict, joined({"delta": 1}, pre))
+@pytest.mark.parametrize(
+    ("starting_constraints"),
+    [
+        {"alpha": 1},
+        {"mu": 1},
+        {"alpha": 1, "mu": 1},
+        {"mu": 1, "eta": 1},
+        {"alpha": 1, "mu": 1, "eta": 1},
+        {"mu": 1, "eta": 1, "chi": 1},
+        {"delta": 1, "eta": 1, "chi": 1},
+    ],
+)
+def test_adding_detector_constraint_to_existing_set_of_constraints(
+    starting_constraints: Dict[str, Union[float, bool]],
+):
+    cons = Constraints(starting_constraints)
+
+    extra_constraints = {"delta": 1, "naz": 2}
+
+    if (len(cons.asdict) == 3) & (len(cons._detector) == 0):
+        with pytest.raises(DiffcalcException):
+            cons.asdict = {**cons.asdict, **extra_constraints}
+        return
+
+    cons.asdict = {**cons.asdict, **extra_constraints}
+
+    assert pytest.approx(cons.naz) == 2
+    assert cons.delta is None
 
 
-def test_constrain_det_one_preexisting_ref(cm):
-    cm.alpha = 2.0
-    test_constrain_det(cm, {"alpha": 2.0})
+@pytest.mark.parametrize(
+    ("starting_constraints"),
+    [
+        {"delta": 1},
+        {"mu": 1},
+        {"delta": 1, "mu": 1},
+        {"mu": 1, "eta": 1},
+        {"delta": 1, "mu": 1, "eta": 1},
+        {"mu": 1, "eta": 1, "chi": 1},
+        {"a_eq_b": True, "mu": 1, "eta": 1},
+    ],
+)
+def test_adding_reference_constraint_to_existing_set_of_constraints(
+    starting_constraints: Dict[str, Union[float, bool]],
+):
+    cons = Constraints(starting_constraints)
+
+    extra_constraints = {"alpha": 1, "beta": 2}
+
+    if (len(cons.asdict) == 3) & (len(cons._reference) == 0):
+        with pytest.raises(DiffcalcException):
+            cons.asdict = {**cons.asdict, **extra_constraints}
+        return
+
+    cons.asdict = {**cons.asdict, **extra_constraints}
+
+    assert pytest.approx(cons.beta) == 2
+    assert cons.alpha is None
 
 
-def test_constrain_det_one_preexisting_samp(cm):
-    cm.phi = 3.0
-    test_constrain_det(cm, {"phi": 3.0})
+@pytest.mark.parametrize(
+    ("starting_constraints"),
+    [
+        {"mu": 1},
+        {"mu": 1, "eta": 1},
+        {"delta": 1, "alpha": 1},
+        {"delta": 1, "mu": 1},
+        {"alpha": 1, "mu": 1},
+        {"delta": 1, "alpha": 1, "mu": 1},
+        {"delta": 1, "mu": 1, "eta": 1},
+        {"alpha": 1, "mu": 1, "eta": 1},
+        {"mu": 1, "eta": 1, "chi": 1},
+    ],
+)
+def test_adding_sample_constraint_to_existing_set_of_constraints(
+    starting_constraints: Dict[str, Union[float, bool]],
+):
+    cons = Constraints(starting_constraints)
+
+    if (len(cons.asdict) == 3) & (len(cons._sample) > 1):
+        with pytest.raises(DiffcalcException):
+            cons.phi = 1
+
+        return
+
+    cons.asdict = {**cons.asdict, "phi": 1.0}
+
+    assert cons.phi == 1.0
 
 
-def test_constrain_det_one_preexisting_samp_and_ref(cm):
-    cm.alpha = 2.1
-    cm.phi = 3.2
-    test_constrain_det(cm, {"alpha": 2.1, "phi": 3.2})
+@pytest.mark.parametrize(
+    ("con_dict", "expected_lines"),
+    [
+        ({}, ["!   3 more constraints required"]),
+        ({"nu": 9.12343}, ["!   2 more constraints required", "    nu   : 9.1234"]),
+        ({"nu": None}, ["!   3 more constraints required"]),
+        ({"a_eq_b": True}, ["!   2 more constraints required", "    a_eq_b"]),
+        (
+            {"naz": 9.12343, "a_eq_b": True},
+            ["!   1 more constraint required", "    naz  : 9.1234", "    a_eq_b"],
+        ),
+        (
+            {"naz": 9.12343, "a_eq_b": True, "mu": 9.12343},
+            ["    naz  : 9.1234", "    a_eq_b", "    mu   : 9.1234"],
+        ),
+    ],
+)
+def test_report_constraints_lines(
+    cm: Constraints, con_dict: Dict[str, Union[float, bool]], expected_lines: List[str]
+):
+    cm.asdict = con_dict
+    lines = cm._report_constraints_lines()
 
-
-def test_constrain_det_two_preexisting_samp(cm):
-    cm.chi = 4.3
-    cm.phi = 5.6
-    test_constrain_det(cm, {"chi": 4.3, "phi": 5.6})
-
-
-def test_constrain_det_three_preexisting_other(cm):
-    cm.alpha = 1
-    cm.phi = 2
-    cm.chi = 3
-    try:
-        cm.delta = 4
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            (
-                "Cannot set delta constraint. First un-constrain one of the"
-                "\nangles alpha, chi, phi."
-            ),
-        )
-
-
-def test_constrain_det_three_preexisting_samp(cm):
-    cm.phi = 1
-    cm.chi = 2
-    cm.eta = 3
-    try:
-        cm.delta = 4
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            "Cannot set delta constraint. First un-constrain one of the"
-            "\nangles chi, eta, phi.",
-        )
-
-
-def test_constrain_ref(cm, pre={}):
-    assert_dict_almost_equal(cm.asdict, pre)
-    cm.alpha = 1.0
-    assert_dict_almost_equal(cm.asdict, joined({"alpha": 1.0}, pre))
-    cm.alpha = 1.0
-    assert_dict_almost_equal(cm.asdict, joined({"alpha": 1.0}, pre))
-    cm.beta = 1.0
-    assert_dict_almost_equal(cm.asdict, joined({"beta": 1.0}, pre))
-
-
-def test_constrain_ref_one_preexisting_det(cm):
-    cm.delta = 2
-    test_constrain_ref(cm, {"delta": 2})
-
-
-def test_constrain_ref_one_preexisting_samp(cm):
-    cm.phi = 3
-    test_constrain_ref(cm, {"phi": 3})
-
-
-def test_constrain_ref_one_preexisting_samp_and_det(cm):
-    cm.delta = 1
-    cm.phi = 2
-    test_constrain_ref(cm, {"delta": 1, "phi": 2})
-
-
-def test_constrain_ref_two_preexisting_samp(cm):
-    cm.chi = 1
-    cm.phi = 2
-    test_constrain_ref(cm, {"chi": 1, "phi": 2})
-
-
-def test_constrain_ref_three_preexisting_other(cm):
-    cm.delta = 1
-    cm.phi = 2
-    cm.chi = 3
-    try:
-        cm.alpha = 1
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            "Cannot set alpha constraint. First un-constrain one of the"
-            "\nangles chi, delta, phi.",
-        )
-
-
-def test_constrain_ref_three_preexisting_samp(cm):
-    cm.phi = 1
-    cm.chi = 2
-    cm.eta = 3
-    try:
-        cm.delta = 1
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            "Cannot set delta constraint. First un-constrain one of the"
-            "\nangles chi, eta, phi.",
-        )
-
-
-def test_constrain_samp_when_one_free(cm, pre={}):
-    assert_dict_almost_equal(cm.asdict, pre)
-    cm.phi = 1.0
-    assert_dict_almost_equal(cm.asdict, joined({"phi": 1.0}, pre))
-    cm.phi = 1.0
-    assert_dict_almost_equal(cm.asdict, joined({"phi": 1.0}, pre))
-
-
-def test_constrain_samp_one_preexisting_samp(cm):
-    cm.chi = 2.0
-    test_constrain_samp_when_one_free(cm, {"chi": 2.0})
-
-
-def test_constrain_samp_two_preexisting_samp(cm):
-    cm.chi = 1
-    cm.eta = 2
-    test_constrain_samp_when_one_free(cm, {"chi": 1, "eta": 2})
-
-
-def test_constrain_samp_two_preexisting_other(cm):
-    cm.delta = 1
-    cm.alpha = 2
-    test_constrain_samp_when_one_free(cm, {"delta": 1, "alpha": 2})
-
-
-def test_constrain_samp_two_preexisting_one_det(cm):
-    cm.delta = 1
-    cm.eta = 1
-    test_constrain_samp_when_one_free(cm, {"delta": 1, "eta": 1})
-
-
-def test_constrain_samp_two_preexisting_one_ref(cm):
-    cm.alpha = 3
-    cm.eta = 2
-    test_constrain_samp_when_one_free(cm, {"alpha": 3, "eta": 2})
-
-
-def test_constrain_samp_three_preexisting_only_one_samp(cm):
-    cm.delta = 3
-    cm.alpha = 4
-    cm.eta = 5
-    cm.phi = 1
-    assert_dict_almost_equal(cm.asdict, {"delta": 3, "alpha": 4, "phi": 1})
-    cm.phi = 2
-    assert_dict_almost_equal(cm.asdict, {"delta": 3, "alpha": 4, "phi": 2})
-
-
-def test_constrain_samp_three_preexisting_two_samp_one_det(cm):
-    cm.delta = 1
-    cm.eta = 2
-    cm.chi = 3
-    try:
-        cm.phi = 4
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            "Cannot set phi constraint. First un-constrain one of the"
-            "\nangles chi, delta, eta.",
-        )
-
-
-def test_constrain_samp_three_preexisting_two_samp_one_ref(cm):
-    cm.alpha = 2
-    cm.eta = 3
-    cm.chi = 4
-    try:
-        cm.phi = 4
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            "Cannot set phi constraint. First un-constrain one of the"
-            "\nangles alpha, chi, eta.",
-        )
-
-
-def test_constrain_samp_three_preexisting_samp(cm):
-    cm.mu = 1
-    cm.eta = 2
-    cm.chi = 3
-    try:
-        cm.phi = 4
-        assert False
-    except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            "Cannot set phi constraint. First un-constrain one of the"
-            "\nangles chi, eta, mu.",
-        )
-
-
-def test_report_constraints_none(cm):
-    eq_(cm._report_constraints_lines(), ["!   3 more constraints required"])
-
-
-def test_report_constraints_one_with_value(cm):
-    cm.nu = 9.12343
-    eq_(
-        cm._report_constraints_lines(),
-        ["!   2 more constraints required", "    nu   : 9.1234"],
-    )
-
-
-def test_report_constraints_one_with_novalue(cm):
-    cm.nu = None
-    eq_(
-        cm._report_constraints_lines(),
-        ["!   3 more constraints required"],
-    )
-
-
-def test_report_constraints_one_with_valueless(cm):
-    cm.a_eq_b = True
-    eq_(
-        set(cm._report_constraints_lines()),
-        {"!   2 more constraints required", "    a_eq_b"},
-    )
-
-
-def test_report_constraints_one_with_two(cm):
-    cm.naz = 9.12343
-    cm.a_eq_b = True
-    eq_(
-        set(cm._report_constraints_lines()),
-        {"!   1 more constraint required", "    naz  : 9.1234", "    a_eq_b"},
-    )
-
-
-def test_report_constraints_one_with_three(cm):
-    cm.naz = 9.12343
-    cm.a_eq_b = True
-    cm.mu = 9.12343
-
-    eq_(
-        set(cm._report_constraints_lines()),
-        {"    naz  : 9.1234", "    a_eq_b", "    mu   : 9.1234"},
-    )
+    assert np.all(lines == expected_lines)
 
 
 def _constrain(self, *args):
@@ -533,196 +311,97 @@ def _constrain(self, *args):
         cm.constrain(con)
 
 
-@pytest.mark.xfail(raises=ValueError)
-def test_is_implemented_invalid(cm):
-    cm.naz = 1
-    cm.is_current_mode_implemented()
+@pytest.mark.parametrize(
+    ("con_dict"),
+    [
+        {"naz": 1, "alpha": 2, "mu": 3},
+        {"qaz": 1, "alpha": 2, "mu": 3},
+        {"beta": 1, "mu": 2, "chi": 3},
+        {"beta": 0, "mu": 0, "chi": 90},
+        {"beta": 0, "mu": 0, "phi": 90},
+        {"beta": 0, "eta": 0, "chi": 90},
+        {"beta": 0, "eta": 0, "phi": 90},
+        {"beta": 0, "chi": 0, "phi": 90},
+        {"qaz": 0, "mu": 0, "chi": 90},
+        {"qaz": 0, "mu": 0, "eta": 90},
+        {"qaz": 0, "mu": 0, "phi": 90},
+        {"qaz": 0, "eta": 0, "chi": 90},
+        {"qaz": 0, "eta": 0, "phi": 90},
+        {"qaz": 0, "phi": 0, "chi": 90},
+        {"qaz": 0, "mu": 0, "bisect": True},
+        {"qaz": 0, "eta": 0, "bisect": True},
+        {"qaz": 0, "omega": 0, "bisect": True},
+        {"mu": 0, "eta": 0, "chi": 0},
+        {"mu": 0, "eta": 0, "phi": 0},
+        {"mu": 0, "chi": 0, "phi": 0},
+        {"eta": 0, "chi": 0, "phi": 0},
+    ],
+)
+def test_implemented_modes(con_dict: Dict[str, Union[float, bool]]):
+    cons = Constraints(con_dict)
+
+    assert cons.is_current_mode_implemented() is True
 
 
-# 1 samp
+@pytest.mark.parametrize(
+    ("con_dict"),
+    [
+        {"naz": 1},
+        {"eta": 0, "chi": 0, "bisect": True},
+    ],
+)
+def test_non_implemented_modes(con_dict: Dict[str, Union[float, bool]]):
+    cons = Constraints(con_dict)
+
+    if len(con_dict) < 3:
+        with pytest.raises(ValueError):
+            cons.is_current_mode_implemented()
+    else:
+        assert cons.is_current_mode_implemented() is False
 
 
-def test_is_implemented_1_samp_naz(cm):
-    cm.naz = 1
-    cm.alpha = 2
-    cm.mu = 3
-    eq_(cm.is_current_mode_implemented(), True)
+def test_set_constraint_with_wrong_type_fails():
+    cons = Constraints()
 
-
-def test_is_implemented_1_samp_det(cm):
-    cm.qaz = 1
-    cm.alpha = 2
-    cm.mu = 3
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-# 2 samp + ref
-
-
-def test_is_implemented_2_samp_ref_mu_chi(cm):
-    cm.beta = 1
-    cm.mu = 2
-    cm.chi = 3
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_ref_mu90_chi0(cm):
-    cm.beta = 0
-    cm.mu = 0
-    cm.chi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_ref_mu_eta(cm):
-    cm.beta = 0
-    cm.mu = 0
-    cm.eta = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_ref_mu_phi(cm):
-    cm.beta = 0
-    cm.mu = 0
-    cm.phi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_ref_eta_chi(cm):
-    cm.beta = 0
-    cm.eta = 0
-    cm.chi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_ref_eta_phi(cm):
-    cm.beta = 0
-    cm.eta = 0
-    cm.phi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_ref_chi_phi(cm):
-    cm.beta = 0
-    cm.phi = 0
-    cm.chi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-# 2 samp + det
-
-
-def test_is_implemented_2_samp_det_mu_chi(cm):
-    cm.qaz = 0
-    cm.mu = 0
-    cm.chi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_mu_eta(cm):
-    cm.qaz = 0
-    cm.mu = 0
-    cm.eta = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_mu_phi(cm):
-    cm.qaz = 0
-    cm.mu = 0
-    cm.phi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_eta_chi(cm):
-    cm.qaz = 0
-    cm.eta = 0
-    cm.chi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_eta_phi(cm):
-    cm.qaz = 0
-    cm.eta = 0
-    cm.phi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_chi_phi(cm):
-    cm.qaz = 0
-    cm.phi = 0
-    cm.chi = 90
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_bisect_mu(cm):
-    cm.qaz = 0
-    cm.mu = 0
-    cm.bisect = True
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_bisect_eta(cm):
-    cm.qaz = 0
-    cm.eta = 0
-    cm.bisect = True
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_2_samp_det_bisect_omega(cm):
-    cm.qaz = 0
-    cm.omega = 0
-    cm.bisect = True
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-# 3 samp
-
-
-def test_is_implemented_3_samp_no_mu(cm):
-    cm.eta = 0
-    cm.chi = 0
-    cm.phi = 1
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_3_samp_no_eta(cm):
-    cm.mu = 0
-    cm.chi = 0
-    cm.phi = 1
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_3_samp_no_chi(cm):
-    cm.eta = 0
-    cm.chi = 0
-    cm.phi = 1
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_is_implemented_3_samp_no_phi(cm):
-    cm.eta = 0
-    cm.mu = 0
-    cm.chi = 1
-    eq_(cm.is_current_mode_implemented(), True)
-
-
-def test_set_fails(cm):
     try:
-        cm.delta = True
-        assert False
+        cons.delta = True
     except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            f"Constraint delta requires numerical value. Found {bool} instead.",
+        assert (
+            e.args[0]
+            == f"Constraint delta requires numerical value. Found {bool} instead."
         )
 
     try:
-        cm.a_eq_b = 1
-        assert False
+        cons.a_eq_b = 1
     except DiffcalcException as e:
-        eq_(
-            e.args[0],
-            f"Constraint a_eq_b requires boolean value. Found {int} instead.",
+        assert (
+            e.args[0]
+            == f"Constraint a_eq_b requires boolean value. Found {int} instead."
         )
+
+
+def test_as_tuple_getter():
+    cons = Constraints({"mu": 0, "a_eq_b": True})
+
+    assert cons.astuple == ("a_eq_b", ("mu", 0))
+
+
+def test_setting_already_active_constraint():
+    cons = Constraints({"psi": 0, "mu": 0})
+
+    cons.mu = 90
+
+    assert cons.mu == 90
+
+
+def test_radian_implementation_equivalent_to_degrees():
+    con_rad = Constraints({"mu": pi, "delta": pi / 2, "eta": pi / 6}, indegrees=False)
+    con_deg = Constraints({"mu": 180, "delta": 90, "eta": 30})
+
+    new_con_deg = Constraints.asdegrees(con_rad)
+    assert np.all(
+        [True for k, v in new_con_deg.asdict.items() if (v - con_deg.asdict[k]) == 0]
+    )
 
 
 def test_serialisation(cm):

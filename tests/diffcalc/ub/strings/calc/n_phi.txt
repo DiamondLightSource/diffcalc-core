@@ -1,0 +1,29 @@
+UBCALC
+
+   name:     test_str_none
+
+REFERNCE
+
+   n_hkl:    None
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+SURFACE NORMAL
+
+   n_hkl:    None
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+CRYSTAL
+
+   <<< none specified >>>
+
+UB MATRIX
+
+   <<< none calculated >>>
+
+REFLECTIONS
+
+   <<< none specified >>>
+
+CRYSTAL ORIENTATIONS
+
+   <<< none specified >>>

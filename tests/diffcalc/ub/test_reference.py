@@ -1,104 +1,255 @@
-###
-# Copyright 2008-2011 Diamond Light Source Ltd.
-# This file is part of Diffcalc.
-#
-# Diffcalc is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Diffcalc is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
-###
+from typing import Optional
 
 import pytest
-from diffcalc.ub.calc import ReferenceVector
-from diffcalc.util import DiffcalcException
-from numpy import array
-from numpy.linalg import inv
-
-from tests.tools import assert_2darray_almost_equal
+from diffcalc.hkl.geometry import Position
+from diffcalc.ub.reference import (
+    Orientation,
+    OrientationList,
+    Reflection,
+    ReflectionList,
+)
 
 
 @pytest.fixture
-def reference():
-    return ReferenceVector((0, 0, 1), False)
+def reflist() -> ReflectionList:
+    return ReflectionList()
 
 
-@pytest.mark.parametrize(
-    ("vector"),
-    [
-        array([[1], [2], [3]]),
-        pytest.param([[1], [2]], marks=pytest.mark.xfail(raises=DiffcalcException)),
-        pytest.param(
-            array([[1], [2]]), marks=pytest.mark.xfail(raises=DiffcalcException)
-        ),
-    ],
-)
-def test_from_as_array(reference, vector):
-    reference.set_array(vector)
-    assert reference.n_ref == tuple(vector.T[0])
-    result = reference.get_array()
-    assert_2darray_almost_equal(vector, result)
+def add_example_reflection(reflist: ReflectionList, tag: Optional[str] = None) -> None:
+    reflist.add_reflection(
+        (0, 1, 0), Position(1, 2, 3, 4, 5, 6), 12, "" if tag is None else tag
+    )
 
 
-@pytest.mark.parametrize(
-    ("vector", "UB"),
-    [
-        (array([[1], [0], [0]]), array([[1, 0, 0], [0, 0, 1], [0, 1, 0]])),
-        pytest.param(
-            array([[1], [0], [0]]),
-            array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]]),
-            marks=pytest.mark.xfail(raises=DiffcalcException),
-        ),
-        pytest.param(
-            array([[1], [0], [0]]),
-            [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]],
-            marks=pytest.mark.xfail(raises=DiffcalcException),
-        ),
-    ],
-)
-def test_from_as_array_UB(vector, UB):
-    for rlv in (False, True):
-        reference = ReferenceVector((0, 0, 1), rlv)
-        reference.set_array(vector)
-        result = reference.get_array(UB)
-        if rlv:
-            assert_2darray_almost_equal(inv(UB) @ vector, result)
-        else:
-            assert_2darray_almost_equal(UB @ vector, result)
+def test_str_reflection(reflist: ReflectionList):
+    add_example_reflection(reflist, "ref1")
+
+    with open(f"tests/diffcalc/ub/strings/reference/reflection.txt") as f:
+        expected_string = f.read()
+
+    assert str(reflist) == expected_string
 
 
-def test_default_n_phi(reference):
-    assert_2darray_almost_equal(reference.get_array(), array([[0], [0], [1]]).tolist())
+def test_add_reflection_and_get_reflection_with_no_tag(reflist: ReflectionList):
+    hkl = (0, 2, 0)
+    pos = Position(1, 2, 3, 4, 5, 6)
+    energy = 13
+
+    reflist.add_reflection(hkl, pos, energy, "")
+    reflection = reflist.get_reflection(1)
+
+    assert reflection == Reflection(*hkl, pos, energy, "")
 
 
-def test__str__with_phi_configured(reference):
-    print(reference)
+def test_add_reflection_and_get_reflection_with_tag(reflist: ReflectionList):
+    hkl = (0, 1, 0)
+    pos = Position(1, 2, 3, 4, 5, 6)
+    energy = 12
+    tag = "refl"
+
+    reflist.add_reflection(hkl, pos, energy, tag)
+    reflection = reflist.get_reflection(tag)
+
+    assert reflection == Reflection(*hkl, pos, energy, tag)
 
 
-def test__str__with_hkl_configured(reference):
-    reference = ReferenceVector((0, 1, 1), True)
-    print(reference)
+def test_add_reflection_raises_error_for_invalid_params(reflist: ReflectionList):
+    hkl = (0, 1, 0)
+    pos = (1, 2, 3, 4, 5, 6)
+    energy = 12
+
+    with pytest.raises(TypeError):
+        reflist.add_reflection(hkl, pos, energy, "")  # type: ignore
 
 
-def test_n_phi_from_hkl_with_unity_matrix_001(reference):
-    reference = ReferenceVector((0, 0, 1), True)
-    assert_2darray_almost_equal(reference.get_array(), array([[0], [0], [1]]))
+def test_get_reflection_raises_error_for_invalid_params(reflist: ReflectionList):
+    with pytest.raises(ValueError):
+        reflist.get_reflection("non-existent")
+
+    with pytest.raises(IndexError):
+        reflist.get_reflection(1)
 
 
-def test_n_phi_from_hkl_with_unity_matrix_010(reference):
-    reference = ReferenceVector((0, 1, 0), True)
-    assert_2darray_almost_equal(reference.get_array(), array([[0], [1], [0]]))
+def test_edit_reflection_and_get_reflection(reflist: ReflectionList):
+    add_example_reflection(reflist)
+
+    new_hkl = (1, 0, 1)
+    new_pos = Position(7, 8, 9, 10, 11, 12)
+    new_energy = 13
+    new_tag = "refl"
+    newer_tag = "someref"
+
+    reflist.edit_reflection(1, new_hkl, new_pos, new_energy, new_tag)
+    reflist.edit_reflection(new_tag, new_hkl, new_pos, new_energy, newer_tag)
+
+    updated_refl = Reflection(*new_hkl, new_pos, new_energy, newer_tag)
+
+    assert reflist.get_reflection(1) == updated_refl
+    assert reflist.get_reflection(newer_tag) == updated_refl
 
 
-def test_serialisation(reference):
-    reference_json = reference.asdict
-    reformed_reference = ReferenceVector(**reference_json)
+def test_swap_reflections(reflist: ReflectionList):
+    hkl_two = (1, 0, 1)
+    pos_two = Position(7, 8, 9, 10, 11, 12)
+    energy_two = 13
+    tag_two = "two"
 
-    assert reformed_reference.asdict == reference.asdict
+    add_example_reflection(reflist, "one")
+    reflection_one = reflist.get_reflection(1)
+    reflection_two = Reflection(*hkl_two, pos_two, energy_two, tag_two)
+
+    reflist.add_reflection(hkl_two, pos_two, energy_two, tag_two)
+    reflist.swap_reflections(1, 2)
+
+    assert reflist.get_reflection(1) == reflection_two
+
+    reflist.swap_reflections("one", "two")
+
+    assert reflist.get_reflection(1) == reflection_one
+
+
+def test_delete_reflection(reflist: ReflectionList):
+    add_example_reflection(reflist)
+    reflist.remove_reflection(1)
+
+    add_example_reflection(reflist, "some_ref")
+    reflist.remove_reflection("some_ref")
+
+    with pytest.raises(IndexError):
+        reflist.get_reflection(1)
+    with pytest.raises(IndexError):
+        reflist.remove_reflection(1)
+
+
+def test_serialisation_reflection(reflist: ReflectionList):
+    add_example_reflection(reflist)
+
+    serialised = reflist.asdict
+    remade_reflist = ReflectionList.fromdict(serialised)
+
+    assert remade_reflist.asdict == reflist.asdict
+
+
+@pytest.fixture
+def orientlist() -> OrientationList:
+    return OrientationList()
+
+
+def add_example_orientation(
+    orientlist: OrientationList, tag: Optional[str] = None
+) -> None:
+    orientlist.add_orientation(
+        (0, 1, 0), (0, 1, 0), Position(1, 2, 3, 4, 5, 6), "" if tag is None else tag
+    )
+
+
+def test_str(orientlist: OrientationList):
+    add_example_orientation(orientlist, "orient")
+
+    with open(f"tests/diffcalc/ub/strings/reference/orientation.txt") as f:
+        expected_string = f.read()
+
+    assert str(orientlist) == expected_string
+
+
+def test_add_orientation_and_get_orientation_with_no_tag(orientlist: OrientationList):
+    hkl = (0, 1, 0)
+    xyz = (0, 1, 0)
+    pos = Position(1, 2, 3, 4, 5, 6)
+
+    orientlist.add_orientation(hkl, xyz, pos, "")
+    orientation = orientlist.get_orientation(1)
+
+    assert orientation == Orientation(*hkl, *xyz, pos, "")
+
+
+def test_add_orientation_and_get_orientation_with_tag(orientlist: OrientationList):
+    hkl = (0, 1, 0)
+    xyz = (0, 1, 0)
+    pos = Position(1, 2, 3, 4, 5, 6)
+    tag = "orient"
+
+    orientlist.add_orientation(hkl, xyz, pos, tag)
+    orientation = orientlist.get_orientation(tag)
+
+    assert orientation == Orientation(*hkl, *xyz, pos, tag)
+
+
+def test_add_orientation_raises_error_for_invalid_params(orientlist: OrientationList):
+    hkl = (0, 1, 0)
+    xyz = (0, 1, 0)
+    pos = (1, 2, 3, 4, 5, 6)
+
+    with pytest.raises(TypeError):
+        orientlist.add_orientation(hkl, xyz, pos, "")  # type: ignore
+
+
+def test_get_orientation_raises_error_for_invalid_params(orientlist: OrientationList):
+    with pytest.raises(ValueError):
+        orientlist.get_orientation("non-existent")
+
+    with pytest.raises(IndexError):
+        orientlist.get_orientation(1)
+
+
+def test_edit_orientation_and_get_orientation(orientlist: OrientationList):
+    add_example_orientation(orientlist)
+
+    assert orientlist.get_orientation(1).tag == ""
+
+    new_hkl = (1, 0, 1)
+    new_xyz = (1, 0, 1)
+    new_pos = Position(7, 8, 9, 10, 11, 12)
+    new_tag = "refl"
+    newer_tag = "some_orient"
+
+    orientlist.edit_orientation(1, new_hkl, new_xyz, new_pos, new_tag)
+
+    assert orientlist.get_orientation(1).tag == new_tag
+
+    orientlist.edit_orientation(new_tag, new_hkl, new_xyz, new_pos, newer_tag)
+    updated_orientation = Orientation(*new_hkl, *new_xyz, new_pos, newer_tag)
+
+    assert orientlist.get_orientation(newer_tag) == updated_orientation
+
+
+def test_swap_orientations(orientlist: OrientationList):
+    hkl_two = (1, 0, 1)
+    xyz_two = (1, 0, 1)
+    pos_two = Position(7, 8, 9, 10, 11, 12)
+    tag_two = "two"
+
+    add_example_orientation(orientlist, "one")
+    orientation_one = orientlist.get_orientation(1)
+    orientation_two = Orientation(*hkl_two, *xyz_two, pos_two, tag_two)
+
+    orientlist.add_orientation(hkl_two, xyz_two, pos_two, tag_two)
+    orientlist.swap_orientations(1, 2)
+
+    assert orientlist.get_orientation(1) == orientation_two
+
+    orientlist.swap_orientations("one", "two")
+
+    assert orientlist.get_orientation(1) == orientation_one
+
+
+def test_delete_orientation(orientlist: OrientationList):
+    add_example_orientation(orientlist)
+    orientlist.remove_orientation(1)
+
+    add_example_orientation(orientlist, "some tag")
+    orientlist.remove_orientation("some tag")
+
+    with pytest.raises(IndexError):
+        orientlist.get_orientation(1)
+    with pytest.raises(IndexError):
+        orientlist.remove_orientation(1)
+
+
+def test_serialisation_orientation(orientlist: OrientationList):
+    add_example_orientation(orientlist)
+
+    serialised = orientlist.asdict
+    remade_reflist = OrientationList.fromdict(serialised)
+
+    assert remade_reflist.asdict == orientlist.asdict
