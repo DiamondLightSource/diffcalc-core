@@ -15,7 +15,6 @@ z = array([[0], [0], [1]])
 def test_comparison_between_radian_and_degree_positions():
     pos_in_degrees = Position(*(90, 90, 90, 45, 30, 180) * ureg.deg)
     pos_in_radians = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi)
-
     assert pos_in_degrees == pos_in_radians
 
 

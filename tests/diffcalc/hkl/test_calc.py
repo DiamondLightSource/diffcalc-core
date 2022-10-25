@@ -98,7 +98,6 @@ def convert_position_to_hkl_and_hkl_to_position(
     position: Position = (
         Position(*case.position * ureg.deg) if asdegrees else Position(*case.position)
     )
-
     hkl = hklcalc.get_hkl(position, case.wavelength)
 
     assert np.all(np.round(hkl, places) == np.round(case.hkl, places))
@@ -247,7 +246,6 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
     configure_ub(cubic_ub)
     cubic_ub.n_hkl = (1, -1, 0)  # type: ignore
     hklcalc = HklCalculation(cubic_ub, Constraints({"nu": 0, "chi": 0, "phi": 0}))
-
     virtual_angles = hklcalc.get_virtual_angles(
         Position(0, 180 * ureg.deg, 0, 90 * ureg.deg, 0, 0)
     )
@@ -300,7 +298,6 @@ def test_redundant_solutions_when_calculating_remaining_detector_angles(
         [
             {"a_eq_b": True, "qaz": 0, "eta": 0},
             {"a_eq_b": True, "delta": 0, "eta": 0},
-        ],
     ),
 )
 def test_fails_when_a_eq_b_and_parallel_vectors(
