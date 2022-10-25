@@ -114,24 +114,6 @@ class Position:
 
         return False
 
-    def __eq__(self, other):
-        """Check if two Position objects are equivalent.
-
-        This compares their underlying angle values, which are stored in radians,
-        rather than the "public" variables the user can set/get.
-        """
-        if isinstance(other, Position):
-            return (
-                (self._mu == other._mu)
-                & (self._delta == other._delta)
-                & (self._nu == other._nu)
-                & (self._eta == other._eta)
-                & (self._chi == other._chi)
-                & (self._phi == other._phi)
-            )
-
-        return False
-
     @classmethod
     def asdegrees(cls, pos: "Position") -> "Position":
         """Create new Position object with angles in degrees.

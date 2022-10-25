@@ -298,6 +298,7 @@ def test_redundant_solutions_when_calculating_remaining_detector_angles(
         [
             {"a_eq_b": True, "qaz": 0, "eta": 0},
             {"a_eq_b": True, "delta": 0, "eta": 0},
+        ],
     ),
 )
 def test_fails_when_a_eq_b_and_parallel_vectors(
