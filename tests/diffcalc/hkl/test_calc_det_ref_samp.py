@@ -69,7 +69,7 @@ def test_get_position_one_det_one_ref_one_samp(
     all_positions = cubic.get_position(0, 1, 1, 1)
 
     assert tuple(
-        [degrees(item) for item in all_positions[0][0].astuple]
+        degrees(item) for item in all_positions[0][0].astuple
     ) == pytest.approx(expected_position)
 
 

@@ -1,6 +1,7 @@
 from math import cos, radians, sin
 from typing import Dict, Tuple, Union
 
+import numpy as np
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
@@ -44,9 +45,15 @@ def test_get_position_three_samp(
 
     all_positions = cubic.get_position(0, 1, 1, 1)
 
-    assert tuple(
-        [item.magnitude for item in all_positions[0][0].astuple]
-    ) == pytest.approx(expected_position)
+    calculated_pos = all_positions[0][0]
+
+    assert np.all(
+        [
+            radians(expected_position[i])
+            == pytest.approx(float(calculated_pos.astuple[i]))
+            for i in range(6)
+        ]
+    )
 
 
 @pytest.mark.parametrize(

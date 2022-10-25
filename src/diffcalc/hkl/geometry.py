@@ -99,6 +99,7 @@ class Position:
 
     def __eq__(self, other):
         """Check if two Position objects are equivalent.
+
         This compares their underlying angle values, which are stored in radians,
         rather than the "public" variables the user can set/get.
         """
@@ -149,7 +150,7 @@ class Position:
         return cls(**pos_in_rad)
 
     @property
-    def asdict(self) -> Dict[str, float]:
+    def asdict(self) -> Dict[str, Angle]:
         """Return dictionary of diffractometer angles.
 
         Returns
@@ -160,7 +161,7 @@ class Position:
         return {field: getattr(self, field) for field in self.fields}
 
     @property
-    def astuple(self) -> Tuple[float, float, float, float, float, float]:
+    def astuple(self) -> Tuple[Angle, Angle, Angle, Angle, Angle, Angle]:
         """Return tuple of diffractometer angles.
 
         Returns
@@ -194,12 +195,12 @@ def get_rotation_matrices(
     """
     mu, delta, nu, eta, chi, phi = pos.astuple
     return (
-        rot_MU(mu),
-        rot_DELTA(delta),
-        rot_NU(nu),
-        rot_ETA(eta),
-        rot_CHI(chi),
-        rot_PHI(phi),
+        rot_MU(float(mu)),
+        rot_DELTA(float(delta)),
+        rot_NU(float(nu)),
+        rot_ETA(float(eta)),
+        rot_CHI(float(chi)),
+        rot_PHI(float(phi)),
     )
 
 
