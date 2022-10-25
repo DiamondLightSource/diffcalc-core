@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 from diffcalc.hkl.geometry import Position, get_rotation_matrices, ureg
-from diffcalc.util import I
+from diffcalc.util import DiffcalcException, I
 from numpy import array
 
 x = array([[1], [0], [0]])
@@ -16,6 +16,35 @@ def test_comparison_between_radian_and_degree_positions():
     pos_in_degrees = Position(*(90, 90, 90, 45, 30, 180) * ureg.deg)
     pos_in_radians = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi)
     assert pos_in_degrees == pos_in_radians
+
+
+def test_asdegrees():
+    pos_in_radians = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi)
+    pos_in_degrees = Position.asdegrees(pos_in_radians)
+
+    assert pos_in_radians == pos_in_degrees
+
+
+def test_asradians():
+    pos_in_degrees = Position(*(90, 90, 90, 45, 30, 180) * ureg.deg)
+    pos_in_radians = Position.asradians(pos_in_degrees)
+
+    assert pos_in_radians == pos_in_degrees
+
+
+def test_position_object_throws_exception_if_init_with_wrong_units():
+    with pytest.raises(DiffcalcException):
+        Position(*(90, 90, 45, 10, 0, 0) * ureg.meter)
+
+    with pytest.raises(DiffcalcException):
+        Position(
+            0 * ureg.deg,
+            90 * ureg.deg,
+            100 * ureg.deg,
+            1 * ureg.meter,
+            0 * ureg.deg,
+            0 * ureg.deg,
+        )
 
 
 def test_comparison_between_positions():

@@ -8,7 +8,7 @@ References
 .. [1] H. You. "Angle calculations for a '4S+2D' six-circle diffractometer"
        J. Appl. Cryst. (1999). 32, 614-623.
 """
-from math import degrees, radians
+from math import degrees
 from typing import Dict, Tuple, Union
 
 import numpy as np
@@ -146,7 +146,7 @@ class Position:
         Position
             New Position object with angles in radians.
         """
-        pos_in_rad = {k: radians(v) for k, v in pos.asdict.items()}
+        pos_in_rad = {k: float(v) for k, v in pos.asdict.items()}
         return cls(**pos_in_rad)
 
     @property
