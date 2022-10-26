@@ -1,10 +1,12 @@
+from math import pi
 from typing import Dict
 
 import numpy as np
 import pytest
+from diffcalc import Q, ureg
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position, ureg
+from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I
 
@@ -39,16 +41,28 @@ def cubic() -> HklCalculation:
 @pytest.mark.parametrize(
     ("case", "expected_virtual"),
     [
-        (Case("", (0, 0, 1), (-90, 60, 0, 0, 120, 90)), {"betain": 30, "betaout": 30}),
-        (Case("", (0, 1, 1), (-90, 90, 0, 0, 90, 90)), {"betain": 0, "betaout": 90}),
-        (Case("", (0, 1, 0), (-90, 60, 0, 0, 30, 90)), {"betain": -60, "betaout": 60}),
-        (Case("", (1, 1, 0), (-90, 90, 0, 0, 45, 45)), {"alpha": 30, "beta": 30}),
+        (
+            Case("", (0, 0, 1), (-90, 60, 0, 0, 120, 90)),
+            {"betain": 30, "betaout": 30},
+        ),
+        (
+            Case("", (0, 1, 1), (-90, 90, 0, 0, 90, 90)),
+            {"betain": 0, "betaout": 90},
+        ),
+        (
+            Case("", (0, 1, 0), (-90, 60, 0, 0, 30, 90)),
+            {"betain": -60, "betaout": 60},
+        ),
+        (
+            Case("", (1, 1, 0), (-90, 90, 0, 0, 45, 45)),
+            {"alpha": 30, "beta": 30},
+        ),
     ],
 )
 def test_surface_normal_vertical_cubic(
     cubic: HklCalculation, case: Case, expected_virtual: Dict[str, float]
 ):
-    cubic.constraints.asdict = {"a_eq_b": True, "mu": -90, "eta": 0}
+    cubic.constraints.asdict = {"a_eq_b": True, "mu": -pi / 2, "eta": 0}
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 5, expected_virtual)
 
@@ -56,7 +70,7 @@ def test_surface_normal_vertical_cubic(
 def test_surface_normal_vertical_cubic_fails_for_parallel_vectors(
     cubic: HklCalculation,
 ):
-    cubic.constraints.asdict = {"a_eq_b": True, "mu": -90, "eta": 0}
+    cubic.constraints.asdict = {"a_eq_b": True, "mu": -pi / 2, "eta": 0}
 
     with pytest.raises(DiffcalcException):
         cubic.get_position(1, 0, 0, 1)
@@ -148,7 +162,7 @@ def test_ub_with_willmot_si_5_5_12_mu_eta_fixed():
     ],
 )
 def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.constraints.asdict = {"alpha": 2, "mu": -90, "eta": 0}
+    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
     hklcalc.ubcalc.set_lattice("xtal", 7.68, 53.48, 75.63, 90, 90, 90)
     hklcalc.ubcalc.set_u(
         np.array(
@@ -209,7 +223,7 @@ def test_ub_with_willmot_si_5_5_12_mu_chi_fixed():
     ],
 )
 def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
-    hklcalc.constraints.asdict = {"alpha": 2, "eta": 0, "chi": 0}
+    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "eta": 0, "chi": 0}
     hklcalc.ubcalc.set_lattice("xtal", 7.68, 53.48, 75.63, 90, 90, 90)
     hklcalc.ubcalc.set_u(
         np.array(
@@ -221,7 +235,9 @@ def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
         )
     )
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 5, {"alpha": 2})
+    convert_position_to_hkl_and_hkl_to_position(
+        hklcalc, case, 5, {"alpha": Q(2, "deg")}
+    )
 
 
 def test_ub_with_willmot_pt531_mu_chi_fixed():
@@ -316,7 +332,7 @@ def test_ub_with_willmot_pt531_mu_chi_fixed():
     ],
 )
 def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.constraints.asdict = {"alpha": 2, "mu": 0, "chi": 90}
+    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": 0, "chi": pi / 2}
     hklcalc.ubcalc.set_lattice("Pt531", 6.204, 4.806, 23.215, 90, 90, 49.8)
     hklcalc.ubcalc.set_u(
         np.array(
@@ -364,7 +380,7 @@ def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
     ],
 )
 def test_pt531_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.constraints.asdict = {"alpha": 2, "mu": -90, "eta": 0}
+    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
 
     hklcalc.ubcalc.set_lattice("Pt531", 6.204, 4.806, 23.215, 90, 90, 49.8)
     hklcalc.ubcalc.set_u(

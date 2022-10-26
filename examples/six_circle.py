@@ -9,6 +9,7 @@ from itertools import product
 from pprint import pprint
 
 import numpy as np
+from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
@@ -32,7 +33,13 @@ def in_range_mu_nu_phi(pos: Position) -> bool:
     bool
         True, if position is in the acceptable np.arange.
     """
-    return all((0 < pos.mu < 90, 0 < pos.nu < 90, -90 < pos.phi < 90))
+    return all(
+        (
+            0 < pos.mu < Q(90, "deg"),
+            0 < pos.nu < Q(90, "deg"),
+            Q(-90, "deg") < pos.phi < Q(90, "deg"),
+        )
+    )
 
 
 def in_range_del_eta_phi(pos: Position) -> bool:
@@ -54,9 +61,9 @@ def in_range_del_eta_phi(pos: Position) -> bool:
     """
     return all(
         (
-            -90 < pos.delta < 90,
-            -90 < pos.eta < 90,
-            -90 < pos.phi < 90,
+            Q(-90, "deg") < pos.delta < Q(90, "deg"),
+            Q(-90, "deg") < pos.eta < Q(90, "deg"),
+            Q(-90, "deg") < pos.phi < Q(90, "deg"),
         )
     )
 
@@ -74,7 +81,7 @@ def get_hkl_positions():
                 for angle, val in virtual_angles.items():
                     print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0)
+    pos1 = Position(Q(7.31, "deg"), 0.0, Q(10.62, "deg"), 0.0, 0.0, 0.0)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
@@ -114,7 +121,7 @@ def demo_scan_alpha():
     )
     print("-------------------------------------------------------------")
     for alp in np.arange(0, 11, 1):
-        cons.alpha = alp
+        cons.constrain("alpha", Q(alp, "deg"))
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
@@ -135,7 +142,7 @@ def demo_scan_qaz():
     )
     print("-" * 78)
     for qaz in np.arange(90, -1, -10):
-        cons.qaz = qaz
+        cons.constrain("qaz", Q(qaz, "deg"))
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
@@ -157,7 +164,7 @@ def demo_scan_psi():
     )
     print("-" * 92)
     for psi in np.arange(90, -1, -10):
-        cons.psi = psi
+        cons.constrain("psi", Q(psi, "deg"))
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
@@ -179,7 +186,7 @@ def demo_scan_psi():
     )
     print("-" * 92)
     for psi in np.arange(90, -1, -10):
-        cons.psi = psi
+        cons.constrain("psi", Q(psi, "deg"))
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
@@ -225,7 +232,7 @@ if __name__ == "__main__":
     print(
         "\n\nConstraining incident and exit angles w.r.t. reference vector to be equal (a_eq_b)."
     )
-    cons.a_eq_b = True
+    cons.constrain("a_eq_b")
     demo_scan_hkl()
 
     demo_scan_alpha()

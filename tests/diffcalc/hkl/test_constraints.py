@@ -1,10 +1,11 @@
 from math import pi
-from typing import Dict, List, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pytest
-from diffcalc.hkl.constraints import Constraints, _con_type, _Constraint
-from diffcalc.util import DiffcalcException
+from diffcalc import Q, ureg
+from diffcalc.hkl.constraints import TYPE, Constraint, Constraints
+from diffcalc.util import Angle, DiffcalcException
 
 from tests.test_tools import eq_
 from tests.tools import assert_dict_almost_equal
@@ -30,9 +31,9 @@ def test_init_generates_correct_dictionaries(
 ):
     constraints = Constraints(cons)
     assert constraints.asdict == cons
-    assert constraints._detector == det
-    assert constraints._reference == ref
-    assert constraints._sample == samp
+    assert constraints.detector == det
+    assert constraints.reference == ref
+    assert constraints.sample == samp
 
 
 @pytest.mark.parametrize(
@@ -57,21 +58,21 @@ def test_init_generates_correct_dictionaries(
         "omega",
     ],
 )
-def test_setters_getters_and_deleters_for_each_constraint(
+def test_constraining_and_unconstraining_each_constraint(
     cm: Constraints, con_name: str
 ):
-    constraint_def: _Constraint = getattr(cm, "_" + con_name)
+    constraint_def: Constraint = getattr(cm, con_name)
 
     value: Union[bool, int] = 1
 
-    if constraint_def._type == _con_type.VOID:
+    if constraint_def.type == TYPE.VOID:
         value = True
 
-    setattr(cm, con_name, value)
-    assert getattr(cm, con_name) == value
+    cm.constrain(con_name, value)
+    assert getattr(cm, con_name).value == value
 
-    delattr(cm, con_name)
-    assert getattr(cm, con_name) is None
+    cm.unconstrain(con_name)
+    assert getattr(cm, con_name).value is None
 
 
 @pytest.mark.parametrize(
@@ -79,9 +80,11 @@ def test_setters_getters_and_deleters_for_each_constraint(
     [{"nu": 0, "mu": 0, "a_eq_b": None}, {"nu": 3, "mu": 4, "a_eq_b": True}],
 )
 def test_as_dict_setter_and_getter(
-    cm: Constraints, con_dict: Dict[str, Union[float, bool]]
+    cm: Constraints, con_dict: Dict[str, Optional[Union[Angle, Literal["True"]]]]
 ):
-    non_null_con_dict = {k: v for k, v in con_dict.items() if v is not None}
+    non_null_con_dict: Dict[str, Union[Angle, Literal["True"]]] = {
+        k: v for k, v in con_dict.items() if v is not None
+    }
     cm.asdict = con_dict
 
     assert {
@@ -105,30 +108,35 @@ def test_all_init(con_dict, con_tuple, con_set, con_list):
     for el in (con_dict, con_tuple, con_set, con_list):
         cm = Constraints(el)
         assert_dict_almost_equal(cm.asdict, con_dict)
-        # eq_(cm.astuple, con_tuple)
+
+
+@pytest.mark.parametrize(
+    ("constraints"), [{"nonexistent": 3.0}, ("nonexistent", 3.0), "nonexistent"]
+)
+def test_all_init_fails_for_invalid_constraint_names_or_types(
+    constraints: Union[Dict[str, float], Tuple[str], str]
+):
+    with pytest.raises(DiffcalcException):
+        Constraints(constraints)
 
 
 def test_constraints_stored_as_radians():
-    deg_cons = Constraints({"alpha": 90, "mu": 30, "nu": 45})
+    deg_cons = Constraints(
+        {"alpha": 90 * ureg.deg, "mu": 30 * ureg.deg, "nu": 45 * ureg.deg}
+    )
 
-    assert deg_cons._alpha.value == pi / 2
-    assert deg_cons._mu.value == pi / 6
-    assert deg_cons._nu.value == pi / 4
+    assert deg_cons.alpha.value == pi / 2
+    assert deg_cons.mu.value == pi / 6
+    assert deg_cons.nu.value == pi / 4
 
 
-def test_conversion_between_degrees_and_radians():
-    deg_cons = Constraints({"alpha": 90, "mu": 30, "nu": 45})
+def test_equality_between_degrees_and_radians():
+    deg_cons = Constraints(
+        {"alpha": 90 * ureg.deg, "mu": 30 * ureg.deg, "nu": 45 * ureg.deg}
+    )
     rad_cons = Constraints({"alpha": pi / 2, "mu": pi / 6, "nu": pi / 4})
 
-    cons_asradians = Constraints.asradians(deg_cons)
-
-    assert np.all(
-        [
-            pytest.approx(cons_asradians.asdict[key]) == rad_cons.asdict[key]
-            for key in ["alpha", "mu", "nu"]
-        ]
-    )
-    # NOTE: the conversion back does not work. i.e. Constraints.asdegrees is wrong.
+    assert deg_cons.asdict == rad_cons.asdict
 
 
 def test_str_constraint(cm):
@@ -154,10 +162,38 @@ def test_str_constraint(cm):
     )
 
 
+def test_str_non_implemented_constraint_combination():
+    cons = Constraints({"eta": 0, "chi": 0, "bisect": True})
+    assert str(cons) == "\n".join(
+        [
+            "    DET             REF             SAMP",
+            "    -----------     -----------     -----------",
+            "    delta           a_eq_b          mu",
+            "    nu              alpha       --> eta",
+            "    qaz             beta        --> chi",
+            "    naz             psi             phi",
+            "                    bin_eq_bout --> bisect",
+            "                    betain          omega",
+            "                    betaout",
+            "",
+            "    eta  : 0.0000",
+            "    chi  : 0.0000",
+            "    bisect",
+            "",
+            "    Sorry, this constraint combination is not implemented.",
+        ],
+    )
+
+
+def test_is_current_mode_implemented_for_non_implemented_constraint_combination():
+    cons = Constraints({"eta": 0, "chi": 0, "bisect": True})
+    assert cons.is_current_mode_implemented() is False
+
+
 def test_build_display_table(cm):
-    cm.qaz = 1.234
-    cm.alpha = 1.0
-    cm.eta = 99.0
+    cm.constrain("qaz", 1.234)
+    cm.constrain("alpha", 1.0)
+    cm.constrain("eta", 99.0)
     print("\n".join(cm._build_display_table_lines()))
     eq_(
         cm._build_display_table_lines(),
@@ -173,14 +209,6 @@ def test_build_display_table(cm):
             "                    betaout",
         ],
     )
-
-
-def test_setting_one_constraint_as_none(cm: Constraints):
-    cm.asdict = {"delta": 1.0, "mu": 2.0}
-
-    cm.mu = None
-
-    assert cm.asdict == {"delta": 1.0}
 
 
 def test_clear_constraints(cm):
@@ -209,15 +237,15 @@ def test_adding_detector_constraint_to_existing_set_of_constraints(
 
     extra_constraints = {"delta": 1, "naz": 2}
 
-    if (len(cons.asdict) == 3) & (len(cons._detector) == 0):
+    if (len(cons.asdict) == 3) & (len(cons.detector) == 0):
         with pytest.raises(DiffcalcException):
             cons.asdict = {**cons.asdict, **extra_constraints}
         return
 
     cons.asdict = {**cons.asdict, **extra_constraints}
 
-    assert pytest.approx(cons.naz) == 2
-    assert cons.delta is None
+    assert pytest.approx(cons.naz.value) == 2
+    assert cons.delta.value is None
 
 
 @pytest.mark.parametrize(
@@ -239,15 +267,15 @@ def test_adding_reference_constraint_to_existing_set_of_constraints(
 
     extra_constraints = {"alpha": 1, "beta": 2}
 
-    if (len(cons.asdict) == 3) & (len(cons._reference) == 0):
+    if (len(cons.asdict) == 3) & (len(cons.reference) == 0):
         with pytest.raises(DiffcalcException):
             cons.asdict = {**cons.asdict, **extra_constraints}
         return
 
     cons.asdict = {**cons.asdict, **extra_constraints}
 
-    assert pytest.approx(cons.beta) == 2
-    assert cons.alpha is None
+    assert pytest.approx(cons.beta.value) == 2
+    assert cons.alpha.value is None
 
 
 @pytest.mark.parametrize(
@@ -269,15 +297,15 @@ def test_adding_sample_constraint_to_existing_set_of_constraints(
 ):
     cons = Constraints(starting_constraints)
 
-    if (len(cons.asdict) == 3) & (len(cons._sample) > 1):
+    if (len(cons.asdict) == 3) & (len(cons.sample) > 1):
         with pytest.raises(DiffcalcException):
-            cons.phi = 1
+            cons.constrain("phi", 1.0)
 
         return
 
     cons.asdict = {**cons.asdict, "phi": 1.0}
 
-    assert cons.phi == 1.0
+    assert cons.phi.value == 1.0
 
 
 @pytest.mark.parametrize(
@@ -298,17 +326,14 @@ def test_adding_sample_constraint_to_existing_set_of_constraints(
     ],
 )
 def test_report_constraints_lines(
-    cm: Constraints, con_dict: Dict[str, Union[float, bool]], expected_lines: List[str]
+    cm: Constraints,
+    con_dict: Dict[str, Optional[Union[Angle, Literal["True"]]]],
+    expected_lines: List[str],
 ):
     cm.asdict = con_dict
     lines = cm._report_constraints_lines()
 
     assert np.all(lines == expected_lines)
-
-
-def _constrain(self, *args):
-    for con in args:
-        cm.constrain(con)
 
 
 @pytest.mark.parametrize(
@@ -364,20 +389,42 @@ def test_set_constraint_with_wrong_type_fails():
     cons = Constraints()
 
     try:
-        cons.delta = True
+        cons.constrain("delta", True)
     except DiffcalcException as e:
         assert (
             e.args[0]
-            == f"Constraint delta requires numerical value. Found {bool} instead."
+            == f'Constraint delta requires numerical value. Found "True" instead.'
         )
 
     try:
-        cons.a_eq_b = 1
+        cons.constrain("a_eq_b", 1.0)
     except DiffcalcException as e:
         assert (
             e.args[0]
-            == f"Constraint a_eq_b requires boolean value. Found {int} instead."
+            == f"Constraint a_eq_b requires boolean value. Found {float} instead."
         )
+
+    try:
+        cons.constrain("delta", Q(5, "meter"))
+    except DiffcalcException as e:
+        assert (
+            e.args[0]
+            == "Non dimensionless units found for delta constraint. "
+            + "Please use .deg or .rad units from the diffcalc.ureg registry."
+        )
+
+
+def test_constraint_and_unconstrain_fails_for_nonexistent_constraint():
+    cons = Constraints()
+    try:
+        cons.constrain("nonexistent", 2.0)
+    except DiffcalcException as e:
+        assert e.args[0] == "Invalid constraint name: nonexistent"
+
+    try:
+        cons.unconstrain("nonexistent")
+    except DiffcalcException as e:
+        assert e.args[0] == "Invalid constraint name: nonexistent"
 
 
 def test_as_tuple_getter():
@@ -389,19 +436,9 @@ def test_as_tuple_getter():
 def test_setting_already_active_constraint():
     cons = Constraints({"psi": 0, "mu": 0})
 
-    cons.mu = 90
+    cons.constrain("mu", 90 * ureg.deg)
 
-    assert cons.mu == 90
-
-
-def test_radian_implementation_equivalent_to_degrees():
-    con_rad = Constraints({"mu": pi, "delta": pi / 2, "eta": pi / 6}, indegrees=False)
-    con_deg = Constraints({"mu": 180, "delta": 90, "eta": 30})
-
-    new_con_deg = Constraints.asdegrees(con_rad)
-    assert np.all(
-        [True for k, v in new_con_deg.asdict.items() if (v - con_deg.asdict[k]) == 0]
-    )
+    assert cons.mu.value == 90 * ureg.deg
 
 
 def test_serialisation(cm):

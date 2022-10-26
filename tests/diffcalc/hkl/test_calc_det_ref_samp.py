@@ -1,9 +1,10 @@
 import itertools
-from math import cos, degrees, radians, sin, sqrt
+from math import cos, degrees, pi, radians, sin, sqrt
 from typing import Dict, Tuple, Union
 
 import numpy as np
 import pytest
+from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
@@ -55,7 +56,7 @@ def cubic_ub() -> UBCalculation:
         ((0, 0, 90, 0, 0, -180), {"psi": 0, "mu": 0, "naz": 0}),
         ((180, 0, 90, 0, 180, 0), {"psi": 0, "phi": 0, "delta": 0}),
         ((0, 0, 90, 0, 0, -180), {"psi": 0, "eta": 0, "delta": 0}),
-        ((-10, 0, 90, 90, 10, 90), {"psi": 0, "chi": 10, "delta": 0}),
+        ((-10, 0, 90, 90, 10, 90), {"psi": 0, "chi": Q(10, "deg"), "delta": 0}),
         ((0, 0, 90, 90, 90, -90), {"betaout": 0, "mu": 0, "delta": 0}),
     ],
 )
@@ -83,13 +84,13 @@ def test_get_position_one_det_one_ref_one_samp(
     ),
 )
 def test_fixed_naz_psi_eta(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"naz": 90, "psi": 0, "eta": 0})
+    cubic.constraints = Constraints({"naz": Q(90, "deg"), "psi": 0, "eta": 0})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
 
 def test_fixed_naz_psi_eta_fails_for_parallel_vectors(cubic: HklCalculation):
-    cubic.constraints = Constraints({"naz": 90, "psi": 0, "eta": 0})
+    cubic.constraints = Constraints({"naz": Q(90, "deg"), "psi": 0, "eta": 0})
     case = Case("001", (0, 0, 1), (30, 0, 60, 90, 0, 0))
 
     with pytest.raises(DiffcalcException):
@@ -114,8 +115,8 @@ def test_fixed_naz_psi_eta_fails_for_parallel_vectors(cubic: HklCalculation):
             ),
         ],
         [
-            {"a_eq_b": True, "qaz": 90, "chi": 90},
-            {"a_eq_b": True, "nu": 0, "chi": 90},
+            {"a_eq_b": True, "qaz": Q(90, "deg"), "chi": Q(90, "deg")},
+            {"a_eq_b": True, "nu": 0, "chi": Q(90, "deg")},
         ],
     ),
 )
@@ -134,8 +135,8 @@ def test_det_ref_and_chi_constrained(
             Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0)),
         ],
         [
-            {"a_eq_b": True, "qaz": 90, "chi": 90},
-            {"a_eq_b": True, "nu": 0, "chi": 90},
+            {"a_eq_b": True, "qaz": Q(90, "deg"), "chi": Q(90, "deg")},
+            {"a_eq_b": True, "nu": 0, "chi": Q(90, "deg")},
         ],
     ),
 )
@@ -173,7 +174,7 @@ def test_det_ref_and_chi_constrained_fails_for_parallel_vectors(
         [2],
         [
             {"delta": 0, "psi": 0, "phi": 0},
-            {"nu": 60, "psi": 0, "phi": 0},
+            {"nu": Q(60, "deg"), "psi": 0, "phi": 0},
         ],
     ),
 )
@@ -212,9 +213,9 @@ def test_ref_and_fixed_delta_phi_0(
 @pytest.mark.parametrize(
     ("constraints"),
     [
-        {"qaz": 90, "alpha": 90, "phi": 0},
-        {"delta": 90, "beta": 0, "phi": 0},
-        {"delta": 90, "betain": 0, "phi": 0},
+        {"qaz": pi / 2, "alpha": pi / 2, "phi": 0},
+        {"delta": pi / 2, "beta": 0, "phi": 0},
+        {"delta": pi / 2, "betain": 0, "phi": 0},
     ],
 )
 def test_alpha_90(cubic: HklCalculation, constraints: Dict[str, float]):
@@ -232,8 +233,8 @@ def test_alpha_90(cubic: HklCalculation, constraints: Dict[str, float]):
         [1, -1],
         [
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": 90, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": 90},
+            {"psi": pi / 2, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
         ],
     ),
 )
@@ -284,8 +285,8 @@ def test_small_zrot(
         [1, -1],
         [
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": 90, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": 90},
+            {"psi": pi / 2, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
         ],
     ),
 )
@@ -328,10 +329,10 @@ def test_various_constraints_and_small_zrot_yrot(
         ],
         [0, 2, -2, 45, -45, 90, -90],
         [
-            {"delta": 60, "a_eq_b": True, "mu": 0},
+            {"delta": pi / 3, "a_eq_b": True, "mu": 0},
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": 90, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": 90},
+            {"psi": pi / 2, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
         ],
     ),
 )
@@ -498,7 +499,7 @@ def test_i16_ga_as_example(hklcalc: HklCalculation, case: Case):
             ]
         )
     )
-    hklcalc.constraints.asdict = {"qaz": 90, "alpha": 11, "mu": 0}
+    hklcalc.constraints.asdict = {"qaz": pi / 2, "alpha": Q(11, "deg"), "mu": 0}
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 3)
 
@@ -528,6 +529,6 @@ def test_i21(hklcalc: HklCalculation, case: Case):
         np.array(((1.0, 0.0, 0.0), (0.0, 0.18482, -0.98277), (0.0, 0.98277, 0.18482)))
     )
 
-    hklcalc.constraints.asdict = {"psi": 10, "mu": 0, "nu": 0}
+    hklcalc.constraints.asdict = {"psi": Q(10, "deg"), "mu": 0, "nu": 0}
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 3)

@@ -9,6 +9,7 @@ from itertools import product
 from pprint import pprint
 
 import numpy as np
+from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
@@ -35,17 +36,17 @@ def position_in_range(pos: Position) -> bool:
     """
     return all(
         (
-            0 < pos.mu < 90,
-            0 < pos.nu < 90,
-            0 < pos.delta < 90,
-            -90 < pos.phi < 90,
+            0 < pos.mu < Q(90, "deg"),
+            0 < pos.nu < Q(90, "deg"),
+            0 < pos.delta < Q(90, "deg"),
+            Q(-90, "deg") < pos.phi < Q(90, "deg"),
         )
     )
 
 
 def demo_hkl_positions():
     """Demonstrate calculations of miller indices and diffractometer positions."""
-    cons.betain = 3.0
+    cons.constrain("betain", Q(3, "deg"))
     for h, k, l in ((0, 0, 1), (1, 0, 1), (1, 0, 2)):
         all_pos = hklcalc.get_position(h, k, l, wavelength)
         print(f"\n{'hkl':<8s}: [{h:1.0f} {k:1.0f} {l:1.0f}]")
@@ -57,7 +58,9 @@ def demo_hkl_positions():
                 for angle, val in virtual_angles.items():
                     print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(3.00, 7.90, 14.79, 0.0, 0.0, 8.30)
+    pos1 = Position(
+        Q(3, "deg"), Q(7.9, "deg"), Q(14.79, "deg"), 0.0, 0.0, Q(8.30, "deg")
+    )
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
@@ -82,7 +85,7 @@ def demo_scan_betain(h: float, k: float, l: float) -> None:
     print(f"{'betain':<8s}{'mu':>12s}{'delta':>12s}{'gamma':>12s}{'phi':>12s}")
     print("-" * 56)
     for betain in np.arange(3.0, 4.1, 0.1):
-        cons.betain = betain
+        cons.constrain("betain", Q(betain, "deg"))
         for pos, virtual_angles in hklcalc.get_position(h, k, l, wavelength):
             if position_in_range(pos):
                 print(
@@ -152,7 +155,7 @@ def demo_scan_qaz(h, k, l):
     )
     print("-" * 68)
     for qaz in np.arange(-1, 1.1, 0.1):
-        cons.qaz = qaz
+        cons.constrain("qaz", Q(qaz, "deg"))
         pos, virtual_angles = next(iter(hklcalc.get_position(h, k, l, wavelength)))
         print(
             f"{virtual_angles['qaz']:<8.2f}"
@@ -194,7 +197,7 @@ if __name__ == "__main__":
 
     # We define reciprocal lattice directions in laboratory frame
     # taking into account 2 deg crystal mismount around mu axis.
-    start_pos = Position(-2.0, 0, 0, 0, 0, 0)
+    start_pos = Position(Q(-2.0, "deg"), 0, 0, 0, 0, 0)
     ubcalc.add_orientation((0, 0, 1), (0, 0, 1), start_pos, "norm")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), start_pos, "plane")
     ubcalc.calc_ub()
@@ -219,12 +222,12 @@ if __name__ == "__main__":
 
     # Remove betain = betaout reference constraint to avoid ambiguity
     # when setting qaz detector constraint.
-    del cons.bin_eq_bout
+    cons.unconstrain("bin_eq_bout")
 
     demo_scan_qaz(0, 0, 1)
 
     # Remove detector constraint before setting reference constraint
-    del cons.qaz
+    cons.unconstrain("qaz")
 
     print("\n\nResetting crystal miscut to 0 (i.e. setting identity U matrix)\n")
     ubcalc.set_miscut(None, 0)
@@ -232,8 +235,8 @@ if __name__ == "__main__":
 
     demo_scan_betain(1, 0, 1)
 
-    cons.bin_eq_bout = True
+    cons.constrain("bin_eq_bout")
     demo_scan_hkl()
 
-    del cons.bin_eq_bout
+    cons.unconstrain("bin_eq_bout")
     demo_scan_qaz(1, 1, 1)

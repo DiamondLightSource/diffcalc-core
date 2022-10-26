@@ -9,15 +9,20 @@ References
        J. Appl. Cryst. (1999). 32, 614-623.
 """
 from math import degrees
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple
 
 import numpy as np
-from diffcalc.util import DiffcalcException, I, x_rotation, y_rotation, z_rotation
+from diffcalc import Q
+from diffcalc.util import (
+    Angle,
+    DiffcalcException,
+    I,
+    x_rotation,
+    y_rotation,
+    z_rotation,
+)
 from numpy.linalg import inv
-from pint import Quantity, UnitRegistry
-
-Angle = Union[float, Quantity]
-ureg = UnitRegistry()
+from pint import Quantity
 
 
 class Position:
@@ -129,7 +134,7 @@ class Position:
         Position
             New Position object with angles in degrees.
         """
-        pos_in_deg = {k: degrees(v) * ureg.deg for k, v in pos.asdict.items()}
+        pos_in_deg = {k: Q(degrees(v), "deg") for k, v in pos.asdict.items()}
         return cls(**pos_in_deg)
 
     @classmethod

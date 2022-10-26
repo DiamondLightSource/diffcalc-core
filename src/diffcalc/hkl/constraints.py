@@ -1,26 +1,29 @@
 """Module handling constraint information for diffractometer calculations."""
-import dataclasses
+from dataclasses import dataclass
 from enum import Enum
 from itertools import zip_longest
-from math import degrees, radians
-from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
+from typing import Collection, Dict, List, Literal, Optional, Tuple, Union
 
-from diffcalc.util import DiffcalcException
+from diffcalc.util import Angle, DiffcalcException
+from pint import Quantity
 
-_con_category = Enum("_con_category", "DETECTOR REFERENCE SAMPLE")
-_con_type = Enum("_con_type", "VALUE VOID")
+CATEGORY = Enum("CATEGORY", "DETECTOR REFERENCE SAMPLE")
+TYPE = Enum("TYPE", "VALUE VOID")
 
 
-@dataclasses.dataclass(eq=False)
-class _Constraint:
+@dataclass(eq=False)
+class Constraint:
+    """Single constraint object definition."""
+
     name: str
-    _category: _con_category
-    _type: _con_type
-    value: Optional[float] = None
+    category: CATEGORY
+    type: TYPE
+    value: Optional[Union[Angle, Literal["True"]]] = None
 
     @property
     def active(self) -> bool:
-        return self.value is not False and self.value is not None
+        """Determine if this constraint has a valid value."""
+        return self.value is not None
 
 
 class Constraints:
@@ -60,52 +63,51 @@ class Constraints:
 
     def __init__(
         self,
-        constraints: Collection[Union[Tuple[str, float], str]] = None,
-        indegrees: bool = True,
+        constraints: Union[
+            Dict[str, Union[Angle, Literal["True"]]],
+            Collection[Union[Tuple[str, Angle], str]],
+        ] = None,
     ):
         """Object for setting diffractometer angle constraints."""
-        self._delta = _Constraint("delta", _con_category.DETECTOR, _con_type.VALUE)
-        self._nu = _Constraint("nu", _con_category.DETECTOR, _con_type.VALUE)
-        self._qaz = _Constraint("qaz", _con_category.DETECTOR, _con_type.VALUE)
-        self._naz = _Constraint("naz", _con_category.DETECTOR, _con_type.VALUE)
+        self.delta = Constraint("delta", CATEGORY.DETECTOR, TYPE.VALUE)
+        self.nu = Constraint("nu", CATEGORY.DETECTOR, TYPE.VALUE)
+        self.qaz = Constraint("qaz", CATEGORY.DETECTOR, TYPE.VALUE)
+        self.naz = Constraint("naz", CATEGORY.DETECTOR, TYPE.VALUE)
 
-        self._a_eq_b = _Constraint("a_eq_b", _con_category.REFERENCE, _con_type.VOID)
-        self._alpha = _Constraint("alpha", _con_category.REFERENCE, _con_type.VALUE)
-        self._beta = _Constraint("beta", _con_category.REFERENCE, _con_type.VALUE)
-        self._psi = _Constraint("psi", _con_category.REFERENCE, _con_type.VALUE)
-        self._bin_eq_bout = _Constraint(
-            "bin_eq_bout", _con_category.REFERENCE, _con_type.VOID
+        self.a_eq_b = Constraint("a_eq_b", CATEGORY.REFERENCE, TYPE.VOID)
+        self.alpha = Constraint("alpha", CATEGORY.REFERENCE, TYPE.VALUE)
+        self.beta = Constraint("beta", CATEGORY.REFERENCE, TYPE.VALUE)
+        self.psi = Constraint("psi", CATEGORY.REFERENCE, TYPE.VALUE)
+        self.bin_eq_bout = Constraint("bin_eq_bout", CATEGORY.REFERENCE, TYPE.VOID)
+        self.betain = Constraint("betain", CATEGORY.REFERENCE, TYPE.VALUE)
+        self.betaout = Constraint("betaout", CATEGORY.REFERENCE, TYPE.VALUE)
+
+        self.mu = Constraint("mu", CATEGORY.SAMPLE, TYPE.VALUE)
+        self.eta = Constraint("eta", CATEGORY.SAMPLE, TYPE.VALUE)
+        self.chi = Constraint("chi", CATEGORY.SAMPLE, TYPE.VALUE)
+        self.phi = Constraint("phi", CATEGORY.SAMPLE, TYPE.VALUE)
+        self.bisect = Constraint("bisect", CATEGORY.SAMPLE, TYPE.VOID)
+        self.omega = Constraint("omega", CATEGORY.SAMPLE, TYPE.VALUE)
+
+        self.all: Tuple[Constraint, ...] = (
+            self.delta,
+            self.nu,
+            self.qaz,
+            self.naz,
+            self.a_eq_b,
+            self.alpha,
+            self.beta,
+            self.psi,
+            self.bin_eq_bout,
+            self.betain,
+            self.betaout,
+            self.mu,
+            self.eta,
+            self.chi,
+            self.phi,
+            self.bisect,
+            self.omega,
         )
-        self._betain = _Constraint("betain", _con_category.REFERENCE, _con_type.VALUE)
-        self._betaout = _Constraint("betaout", _con_category.REFERENCE, _con_type.VALUE)
-
-        self._mu = _Constraint("mu", _con_category.SAMPLE, _con_type.VALUE)
-        self._eta = _Constraint("eta", _con_category.SAMPLE, _con_type.VALUE)
-        self._chi = _Constraint("chi", _con_category.SAMPLE, _con_type.VALUE)
-        self._phi = _Constraint("phi", _con_category.SAMPLE, _con_type.VALUE)
-        self._bisect = _Constraint("bisect", _con_category.SAMPLE, _con_type.VOID)
-        self._omega = _Constraint("omega", _con_category.SAMPLE, _con_type.VALUE)
-
-        self._all: Tuple[_Constraint, ...] = (
-            self._delta,
-            self._nu,
-            self._qaz,
-            self._naz,
-            self._a_eq_b,
-            self._alpha,
-            self._beta,
-            self._psi,
-            self._bin_eq_bout,
-            self._betain,
-            self._betaout,
-            self._mu,
-            self._eta,
-            self._chi,
-            self._phi,
-            self._bisect,
-            self._omega,
-        )
-        self.indegrees = indegrees
         if constraints is not None:
             if isinstance(constraints, dict):
                 self.asdict = constraints
@@ -117,6 +119,264 @@ class Constraints:
                 raise DiffcalcException(
                     f"Invalid constraint parameter type: {type(constraints)}"
                 )
+
+    @property
+    def asdict(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+        """Get all constrained angle names and values.
+
+        Returns
+        -------
+        Dict[str, Union[float, bool]]
+            Dictionary with all constrained angle names and values.
+        """
+        return {con.name: con.value for con in self.all if con.active}
+
+    @asdict.setter
+    def asdict(self, constraints: Dict[str, Union[Angle, Literal["True"]]]):
+        self.clear()
+        for con_name, con_value in constraints.items():
+            if hasattr(self, con_name):
+                constraint: Constraint = getattr(self, con_name)
+                self.set_constraint(constraint, con_value)
+            else:
+                raise DiffcalcException(f"Invalid constraint name: {con_name}")
+
+    @property
+    def astuple(
+        self,
+    ) -> Tuple[Union[Tuple[str, Union[Angle, Literal["True"]]], str], ...]:
+        """Get all constrained angle names and values.
+
+        Returns
+        -------
+        Tuple[Union[Tuple[str, float], str], ...]
+            Tuple with all constrained angle names and values.
+        """
+        res = []
+        for con in self.constrained:
+            if con.type is TYPE.VALUE:
+                res.append((con.name, getattr(self, con.name).value))
+            else:
+                res.append(con.name)
+        return tuple(res)
+
+    @astuple.setter
+    def astuple(
+        self,
+        constraints: Tuple[Union[Tuple[str, Union[Angle, Literal["True"]]], str], ...],
+    ) -> None:
+        self.clear()
+        for con in constraints:
+
+            con_name = con if isinstance(con, str) else con[0]
+            con_value: Union[Angle, Literal["True"]] = (
+                True if isinstance(con, str) else con[1]
+            )
+
+            if hasattr(self, con_name):
+                constraint: Constraint = getattr(self, con_name)
+                self.set_constraint(constraint, con_value)
+            else:
+                raise DiffcalcException(f"Invalid constraint parameter: {con_name}")
+
+    def set_constraint(
+        self, con: Constraint, value: Optional[Union[Angle, Literal["True"]]]
+    ) -> None:
+        """Set a single constraint."""
+
+        def set_value(val: Optional[Union[Angle, Literal["True"]]]) -> None:
+            if con.type == TYPE.VALUE:
+                if isinstance(val, Quantity):
+                    if not val.dimensionless:
+                        raise DiffcalcException(
+                            f"Non dimensionless units found for {con.name} constraint."
+                            f" Please use .deg or .rad units from the diffcalc.ureg "
+                            "registry."
+                        )
+                elif val is True:
+                    raise DiffcalcException(
+                        f"Constraint {con.name} requires numerical value. "
+                        'Found "True" instead.'
+                    )
+
+            if con.type == TYPE.VOID:
+                if ((val) is not None) and (val is not True):
+                    raise DiffcalcException(
+                        f"Constraint {con.name} requires boolean value. "
+                        f"Found {type(val)} instead."
+                    )
+
+            con.value = val
+
+        cons_of_this_category = {
+            c for c in self.constrained if c.category is con.category
+        }
+        can_set_constraint_of_this_category = (
+            not self.is_fully_constrained(con) and not self.is_fully_constrained()
+        )
+
+        if not can_set_constraint_of_this_category:
+            if len(cons_of_this_category) == 1:
+                existing_con = cons_of_this_category.pop()
+                existing_con.value = None
+            else:
+                raise DiffcalcException(
+                    f"Cannot set {con.name} constraint. First un-constrain one of the\n"
+                    f"angles {', '.join(sorted(c.name for c in self.constrained))}."
+                )
+
+        set_value(value)
+
+    @property
+    def constrained(self):
+        """Produce tuple of all active constraints."""
+        return tuple(con for con in self.all if con.active)
+
+    @property
+    def detector(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+        """Produce dictionary of all active detector constraints."""
+        return {
+            con.name: con.value
+            for con in self.all
+            if con.active and con.category is CATEGORY.DETECTOR
+        }
+
+    @property
+    def reference(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+        """Produce dictionary of all active reference constraints."""
+        return {
+            con.name: con.value
+            for con in self.all
+            if con.active and con.category is CATEGORY.REFERENCE
+        }
+
+    @property
+    def sample(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+        """Produce dictionary of all active sample constraints."""
+        return {
+            con.name: con.value
+            for con in self.all
+            if con.active and con.category is CATEGORY.SAMPLE
+        }
+
+    def is_fully_constrained(self, con: Optional[Constraint] = None) -> bool:
+        """Check if configuration is fully constrained.
+
+        Parameters
+        ----------
+        con: _Constraint, default = None
+            Check if there are available constraints is the same category as the
+            input constraint. If parameter is None, check for all constraint
+            categories.
+
+        Returns
+        -------
+        bool:
+            True if there aren't any constraints available either in the input
+            constraint category or no constraints are available.
+        """
+        if con is None:
+            return len(self.constrained) >= 3
+
+        _max_constrained = {
+            CATEGORY.DETECTOR: 1,
+            CATEGORY.REFERENCE: 1,
+            CATEGORY.SAMPLE: 3,
+        }
+        count_constrained = len(
+            {c for c in self.constrained if c.category is con.category}
+        )
+        return count_constrained >= _max_constrained[con.category]
+
+    def is_current_mode_implemented(self) -> bool:
+        """Check if current constraint set is implemented.
+
+        Configuration needs to be fully constraint for this method to work.
+
+        Returns
+        -------
+        bool:
+            True if current constraint set is supported.
+        """
+        if not self.is_fully_constrained():
+            raise ValueError("Three constraints required")
+
+        count_detector = len(
+            {c for c in self.constrained if c.category is CATEGORY.DETECTOR}
+        )
+        count_reference = len(
+            {c for c in self.constrained if c.category is CATEGORY.REFERENCE}
+        )
+        count_sample = len(
+            {c for c in self.constrained if c.category is CATEGORY.SAMPLE}
+        )
+        if count_sample == 3:
+            if (
+                set(self.constrained) == {self.chi, self.phi, self.eta}
+                or set(self.constrained) == {self.chi, self.phi, self.mu}
+                or set(self.constrained) == {self.chi, self.eta, self.mu}
+                or set(self.constrained) == {self.phi, self.eta, self.mu}
+            ):
+                return True
+            return False
+
+        if count_sample == 1:
+            return self.omega not in set(self.constrained) and self.bisect not in set(
+                self.constrained
+            )
+
+        if count_reference == 1:
+            return (
+                {self.chi, self.phi}.issubset(self.constrained)
+                or {self.chi, self.eta}.issubset(self.constrained)
+                or {self.chi, self.mu}.issubset(self.constrained)
+                or {self.mu, self.eta}.issubset(self.constrained)
+                or {self.mu, self.phi}.issubset(self.constrained)
+                or {self.eta, self.phi}.issubset(self.constrained)
+            )
+
+        if count_detector == 1:
+            return (
+                {self.chi, self.phi}.issubset(self.constrained)
+                or {self.mu, self.eta}.issubset(self.constrained)
+                or {self.mu, self.phi}.issubset(self.constrained)
+                or {self.mu, self.chi}.issubset(self.constrained)
+                or {self.eta, self.phi}.issubset(self.constrained)
+                or {self.eta, self.chi}.issubset(self.constrained)
+                or {self.mu, self.bisect}.issubset(self.constrained)
+                or {self.eta, self.bisect}.issubset(self.constrained)
+                or {self.omega, self.bisect}.issubset(self.constrained)
+            )
+
+        return False
+
+    def clear(self) -> None:
+        """Remove all constraints.
+
+        Set all of the constraints as inactive, by setting their value as None.
+        """
+        for con in self.all:
+            con.value = None
+
+        return
+
+    def constrain(
+        self, con_name: str, value: Optional[Union[Angle, Literal["True"]]] = None
+    ) -> None:
+        """Set the value of a single constraint."""
+        if hasattr(self, con_name):
+            constraint: Constraint = getattr(self, con_name)
+            self.set_constraint(constraint, value)
+        else:
+            raise DiffcalcException(f"Invalid constraint name: {con_name}")
+
+    def unconstrain(self, con_name: str):
+        """Unset the value of a single constraint."""
+        if hasattr(self, con_name):
+            constraint: Constraint = getattr(self, con_name)
+            constraint.value = None
+        else:
+            raise DiffcalcException(f"Invalid constraint name: {con_name}")
 
     def __str__(self) -> str:
         """Output text representation of active constraint set.
@@ -136,434 +396,21 @@ class Constraints:
             lines.append("    Sorry, this constraint combination is not implemented.")
         return "\n".join(lines)
 
-    @property
-    def _constrained(self):
-        return tuple(con for con in self._all if con.active)
-
-    @property
-    def _detector(self) -> Dict[str, Union[float, bool, None]]:
-        return {
-            con.name: con.value
-            for con in self._all
-            if con.active and con._category is _con_category.DETECTOR
-        }
-
-    @property
-    def _reference(self) -> Dict[str, Union[float, bool, None]]:
-        return {
-            con.name: con.value
-            for con in self._all
-            if con.active and con._category is _con_category.REFERENCE
-        }
-
-    @property
-    def _sample(self) -> Dict[str, Union[float, bool, None]]:
-        return {
-            con.name: con.value
-            for con in self._all
-            if con.active and con._category is _con_category.SAMPLE
-        }
-
-    @property
-    def all(self) -> Dict[str, Union[float, bool, None]]:
-        """Get all angle names and values.
-
-        Returns
-        -------
-        Dict[str, Union[float, bool, None]]
-            Dictionary with all angle names and values.
-        """
-        return {con.name: getattr(self, con.name) for con in self._all}
-
-    @property
-    def asdict(self) -> Dict[str, Union[float, bool]]:
-        """Get all constrained angle names and values.
-
-        Returns
-        -------
-        Dict[str, Union[float, bool]]
-            Dictionary with all constrained angle names and values.
-        """
-        return {con.name: getattr(self, con.name) for con in self._all if con.active}
-
-    @asdict.setter
-    def asdict(self, constraints):
-        assert isinstance(constraints, dict)
-        self.clear()
-        if constraints is None:
-            return
-        for con_name, con_value in constraints.items():
-            if hasattr(self, con_name) and isinstance(
-                getattr(self, "_" + con_name), _Constraint
-            ):
-                setattr(self, con_name, con_value)
-            else:
-                raise DiffcalcException(f"Invalid constraint name: {con_name}")
-
-    @property
-    def astuple(self) -> Tuple[Union[Tuple[str, float], str], ...]:
-        """Get all constrained angle names and values.
-
-        Returns
-        -------
-        Tuple[Union[Tuple[str, float], str], ...]
-            Tuple with all constrained angle names and values.
-        """
-        res = []
-        for con in self._constrained:
-            if con._type is _con_type.VALUE:
-                res.append((con.name, getattr(self, con.name)))
-            elif con._type is _con_type.VOID:
-                res.append(con.name)
-            else:
-                raise DiffcalcException(
-                    f"Invalid {con.name} constraint type found: {type(con._type)}"
-                )
-        return tuple(res)
-
-    @astuple.setter
-    def astuple(self, constraints: Tuple[Union[Tuple[str, float], str], ...]) -> None:
-        assert isinstance(constraints, tuple)
-        self.clear()
-        if constraints is None:
-            return
-        for el in constraints:
-            if (
-                isinstance(el, str)
-                and hasattr(self, el)
-                and isinstance(getattr(self, "_" + el), _Constraint)
-            ):
-                setattr(self, el, True)
-            elif (
-                isinstance(el, (type(("a", 1)), type(("a", 1.0))))
-                and hasattr(self, el[0])
-                and isinstance(getattr(self, "_" + el[0]), _Constraint)
-            ):
-                setattr(self, *el)
-            else:
-                raise DiffcalcException(f"Invalid constraint parameter: {el}")
-
-    def _get_factory(self, con: _Constraint) -> Callable[[], Union[float, bool, None]]:
-        def _get_constraint() -> Optional[Union[float, bool, None]]:
-            if con.value is None:
-                return None
-            if isinstance(con.value, bool):
-                return con.value
-            elif isinstance(con.value, (int, float)):
-                return degrees(con.value) if self.indegrees else con.value
-            else:
-                raise DiffcalcException(
-                    f"Invalid {con.name} value type: {type(con.value)}"
-                )
-
-        return _get_constraint
-
-    def _set_factory(
-        self, con: _Constraint
-    ) -> Callable[[Union[float, bool, None]], None]:
-        def _set_value(val: Union[float, bool]) -> None:
-            if isinstance(val, bool):
-                if con._type is _con_type.VOID:
-                    con.value = val
-                    return
-                else:
-                    raise DiffcalcException(
-                        f"Constraint {con.name} requires numerical value. "
-                        f"Found {type(val)} instead."
-                    )
-            if con._type is _con_type.VALUE:
-                try:
-                    con.value = radians(float(val)) if self.indegrees else float(val)
-                    return
-                except ValueError:
-                    raise DiffcalcException(
-                        f"Constraint {con.name} requires numerical value. "
-                        f"Found {type(val)} instead."
-                    )
-            raise DiffcalcException(
-                f"Constraint {con.name} requires boolean value. "
-                f"Found {type(val)} instead."
-            )
-
-        def _set_constraint(val: Union[float, bool, None]) -> None:
-            if val is None or val is False:
-                con.value = None
-                return
-            active_con = {c for c in self._constrained if c._category is con._category}
-            num_active_con = len(active_con)
-            if con in active_con:
-                _set_value(val)
-                return
-            # Check if there's free constraint slot in a given constraint category and overall
-            if not self.is_fully_constrained(con) and not self.is_fully_constrained():
-                _set_value(val)
-            # We don't have empty slot for a new constraints.
-            # We need to replace on of the active constraints
-            elif num_active_con > 1:
-                # If there's already more than one constraint set for the given category.
-                # We don't know which one we should replace.
-                raise DiffcalcException(
-                    f"Cannot set {con.name} constraint. First un-constrain one of the\n"
-                    f"angles {', '.join(sorted(c.name for c in self._constrained))}."
-                )
-            elif num_active_con == 0:
-                # We need to replace a constraint from other category.
-                # We don't know which one to replace
-                raise DiffcalcException(
-                    f"Cannot set {con.name} constraint. First un-constrain one of the\n"
-                    f"angles {', '.join(sorted(c.name for c in self._constrained))}."
-                )
-            elif num_active_con == 1:
-                # If we have only one constraint in the requested category.
-                # We'll replace it with the new constraint.
-                existing_con = active_con.pop()
-                existing_con.value = None
-            _set_value(val)
-
-        return _set_constraint
-
-    def _del_factory(self, con: _Constraint) -> Callable[[], None]:
-        def _del_constraint() -> None:
-            con.value = None
-
-        return _del_constraint
-
-    @property
-    def delta(self) -> Union[float, None]:
-        """Constraint for delta angle."""
-        return self._get_factory(self._delta)()
-
-    @delta.setter
-    def delta(self, val):
-        return self._set_factory(self._delta)(val)
-
-    @delta.deleter
-    def delta(self):
-        return self._del_factory(self._delta)()
-
-    @property
-    def nu(self):
-        """Constraint for nu angle."""
-        return self._get_factory(self._nu)()
-
-    @nu.setter
-    def nu(self, val):
-        return self._set_factory(self._nu)(val)
-
-    @nu.deleter
-    def nu(self):
-        return self._del_factory(self._nu)()
-
-    @property
-    def qaz(self):
-        """Constraint for qaz angle."""
-        return self._get_factory(self._qaz)()
-
-    @qaz.setter
-    def qaz(self, val):
-        return self._set_factory(self._qaz)(val)
-
-    @qaz.deleter
-    def qaz(self):
-        return self._del_factory(self._qaz)()
-
-    @property
-    def naz(self):
-        """Constraint for naz angle."""
-        return self._get_factory(self._naz)()
-
-    @naz.setter
-    def naz(self, val):
-        return self._set_factory(self._naz)(val)
-
-    @naz.deleter
-    def naz(self):
-        return self._del_factory(self._naz)()
-
-    @property
-    def a_eq_b(self):
-        """Constraint for setting alpha = beta."""
-        return self._get_factory(self._a_eq_b)()
-
-    @a_eq_b.setter
-    def a_eq_b(self, val):
-        return self._set_factory(self._a_eq_b)(val)
-
-    @a_eq_b.deleter
-    def a_eq_b(self):
-        return self._del_factory(self._a_eq_b)()
-
-    @property
-    def alpha(self):
-        """Constraint for alpha angle."""
-        return self._get_factory(self._alpha)()
-
-    @alpha.setter
-    def alpha(self, val):
-        return self._set_factory(self._alpha)(val)
-
-    @alpha.deleter
-    def alpha(self):
-        return self._del_factory(self._alpha)()
-
-    @property
-    def beta(self):
-        """Constraint for beta angle."""
-        return self._get_factory(self._beta)()
-
-    @beta.setter
-    def beta(self, val):
-        return self._set_factory(self._beta)(val)
-
-    @beta.deleter
-    def beta(self):
-        return self._del_factory(self._beta)()
-
-    @property
-    def psi(self):
-        """Constraint for psi angle."""
-        return self._get_factory(self._psi)()
-
-    @psi.setter
-    def psi(self, val):
-        return self._set_factory(self._psi)(val)
-
-    @psi.deleter
-    def psi(self):
-        return self._del_factory(self._psi)()
-
-    @property
-    def bin_eq_bout(self):
-        """Constraint for betain = betaout."""
-        return self._get_factory(self._bin_eq_bout)()
-
-    @bin_eq_bout.setter
-    def bin_eq_bout(self, val):
-        return self._set_factory(self._bin_eq_bout)(val)
-
-    @bin_eq_bout.deleter
-    def bin_eq_bout(self):
-        return self._del_factory(self._bin_eq_bout)()
-
-    @property
-    def betain(self):
-        """Constraint for betain angle."""
-        return self._get_factory(self._betain)()
-
-    @betain.setter
-    def betain(self, val):
-        return self._set_factory(self._betain)(val)
-
-    @betain.deleter
-    def betain(self):
-        return self._del_factory(self._betain)()
-
-    @property
-    def betaout(self):
-        """Constraint for betaout angle."""
-        return self._get_factory(self._betaout)()
-
-    @betaout.setter
-    def betaout(self, val):
-        return self._set_factory(self._betaout)(val)
-
-    @betaout.deleter
-    def betaout(self):
-        return self._del_factory(self._betaout)()
-
-    @property
-    def mu(self):
-        """Constraint for mu angle."""
-        return self._get_factory(self._mu)()
-
-    @mu.setter
-    def mu(self, val):
-        return self._set_factory(self._mu)(val)
-
-    @mu.deleter
-    def mu(self):
-        return self._del_factory(self._mu)()
-
-    @property
-    def eta(self):
-        """Constraint for eta angle."""
-        return self._get_factory(self._eta)()
-
-    @eta.setter
-    def eta(self, val):
-        return self._set_factory(self._eta)(val)
-
-    @eta.deleter
-    def eta(self):
-        return self._del_factory(self._eta)()
-
-    @property
-    def chi(self):
-        """Constraint for chi angle."""
-        return self._get_factory(self._chi)()
-
-    @chi.setter
-    def chi(self, val):
-        return self._set_factory(self._chi)(val)
-
-    @chi.deleter
-    def chi(self):
-        return self._del_factory(self._chi)()
-
-    @property
-    def phi(self):
-        """Constraint for phi angle."""
-        return self._get_factory(self._phi)()
-
-    @phi.setter
-    def phi(self, val):
-        return self._set_factory(self._phi)(val)
-
-    @phi.deleter
-    def phi(self):
-        return self._del_factory(self._phi)()
-
-    @property
-    def bisect(self):
-        """Constraint for bisect mode."""
-        return self._get_factory(self._bisect)()
-
-    @bisect.setter
-    def bisect(self, val):
-        return self._set_factory(self._bisect)(val)
-
-    @bisect.deleter
-    def bisect(self):
-        return self._del_factory(self._bisect)()
-
-    @property
-    def omega(self):
-        """Constraint for omega angle."""
-        return self._get_factory(self._omega)()
-
-    @omega.setter
-    def omega(self, val):
-        return self._set_factory(self._omega)(val)
-
-    @omega.deleter
-    def omega(self):
-        return self._del_factory(self._omega)()
-
     def _build_display_table_lines(self) -> List[str]:
         constraint_types = [
-            (self._delta, self._nu, self._qaz, self._naz),
+            (self.delta, self.nu, self.qaz, self.naz),
             (
-                self._a_eq_b,
-                self._alpha,
-                self._beta,
-                self._psi,
-                self._bin_eq_bout,
-                self._betain,
-                self._betaout,
+                self.a_eq_b,
+                self.alpha,
+                self.beta,
+                self.psi,
+                self.bin_eq_bout,
+                self.betain,
+                self.betaout,
             ),
-            (self._mu, self._eta, self._chi, self._phi, self._bisect, self._omega),
+            (self.mu, self.eta, self.chi, self.phi, self.bisect, self.omega),
         ]
-        max_name_width = max(len(con.name) for con in self._all)
+        max_name_width = max(len(con.name) for con in self.all)
 
         cells = []
 
@@ -587,153 +434,24 @@ class Constraints:
         lines = [" ".join(row_cells).rstrip() for row_cells in cells]
         return lines
 
-    def _report_constraint(self, con: _Constraint) -> str:
-        val = getattr(self, con.name)
-        if con._type is _con_type.VOID:
+    def _report_constraint(self, con: Constraint) -> str:
+        val = con.value
+        if con.type is TYPE.VOID:
             return "    %s" % con.name
+
+        if isinstance(val, Quantity):
+            return f"    {con.name:<5}: {val.magnitude:.4f}"
         else:
             return f"    {con.name:<5}: {val:.4f}"
 
     def _report_constraints_lines(self) -> List[str]:
         lines = []
-        required = 3 - len(self._constrained)
+        required = 3 - len(self.constrained)
         if required == 0:
             pass
         elif required == 1:
             lines.append("!   1 more constraint required")
         else:
             lines.append("!   %d more constraints required" % required)
-        lines.extend([self._report_constraint(con) for con in self._all if con.active])
+        lines.extend([self._report_constraint(con) for con in self.all if con.active])
         return lines
-
-    @classmethod
-    def asdegrees(cls, constraints: "Constraints") -> "Constraints":
-        """Create new Constraints object with angles in degrees.
-
-        Parameters
-        ----------
-        constraints: Constraints
-            Input Constraints object
-
-        Returns
-        -------
-        Constraints
-            New Constraints object with angles in degrees.
-        """
-        res = cls(constraints.asdict, indegrees=constraints.indegrees)
-        res.indegrees = True
-        return res
-
-    @classmethod
-    def asradians(cls, constraints: "Constraints") -> "Constraints":
-        """Create new Constraints object with angles in radians.
-
-        Parameters
-        ----------
-        constraints: Constraints
-            Input Position object
-
-        Returns
-        -------
-        Constraints
-            New Constraints object with angles in radians.
-        """
-        res = cls(constraints.asdict, indegrees=constraints.indegrees)
-        res.indegrees = False
-        return res
-
-    def is_fully_constrained(self, con: Optional[_Constraint] = None) -> bool:
-        """Check if configuration is fully constrained.
-
-        Parameters
-        ----------
-        con: _Constraint, default = None
-            Check if there are available constraints is the same category as the
-            input constraint. If parameter is None, check for all constraint
-            categories.
-
-        Returns
-        -------
-        bool:
-            True if there aren't any constraints available either in the input
-            constraint category or no constraints are available.
-        """
-        if con is None:
-            return len(self._constrained) >= 3
-
-        _max_constrained = {
-            _con_category.DETECTOR: 1,
-            _con_category.REFERENCE: 1,
-            _con_category.SAMPLE: 3,
-        }
-        count_constrained = len(
-            {c for c in self._constrained if c._category is con._category}
-        )
-        return count_constrained >= _max_constrained[con._category]
-
-    def is_current_mode_implemented(self) -> bool:
-        """Check if current constraint set is implemented.
-
-        Configuration needs to be fully constraint for this method to work.
-
-        Returns
-        -------
-        bool:
-            True if current constraint set is supported.
-        """
-        if not self.is_fully_constrained():
-            raise ValueError("Three constraints required")
-
-        count_detector = len(
-            {c for c in self._constrained if c._category is _con_category.DETECTOR}
-        )
-        count_reference = len(
-            {c for c in self._constrained if c._category is _con_category.REFERENCE}
-        )
-        count_sample = len(
-            {c for c in self._constrained if c._category is _con_category.SAMPLE}
-        )
-        if count_sample == 3:
-            if (
-                set(self._constrained) == {self._chi, self._phi, self._eta}
-                or set(self._constrained) == {self._chi, self._phi, self._mu}
-                or set(self._constrained) == {self._chi, self._eta, self._mu}
-                or set(self._constrained) == {self._phi, self._eta, self._mu}
-            ):
-                return True
-            return False
-
-        if count_sample == 1:
-            return self._omega not in set(
-                self._constrained
-            ) and self._bisect not in set(self._constrained)
-
-        if count_reference == 1:
-            return (
-                {self._chi, self._phi}.issubset(self._constrained)
-                or {self._chi, self._eta}.issubset(self._constrained)
-                or {self._chi, self._mu}.issubset(self._constrained)
-                or {self._mu, self._eta}.issubset(self._constrained)
-                or {self._mu, self._phi}.issubset(self._constrained)
-                or {self._eta, self._phi}.issubset(self._constrained)
-            )
-
-        if count_detector == 1:
-            return (
-                {self._chi, self._phi}.issubset(self._constrained)
-                or {self._mu, self._eta}.issubset(self._constrained)
-                or {self._mu, self._phi}.issubset(self._constrained)
-                or {self._mu, self._chi}.issubset(self._constrained)
-                or {self._eta, self._phi}.issubset(self._constrained)
-                or {self._eta, self._chi}.issubset(self._constrained)
-                or {self._mu, self._bisect}.issubset(self._constrained)
-                or {self._eta, self._bisect}.issubset(self._constrained)
-                or {self._omega, self._bisect}.issubset(self._constrained)
-            )
-
-        return False
-
-    def clear(self) -> None:
-        """Remove all constraints."""
-        for con in self._all:
-            delattr(self, con.name)

@@ -1,11 +1,13 @@
 """Collection of auxiliary mathematical methods."""
 from math import acos, cos, isclose, sin
-from typing import Any, Sequence, Tuple
+from typing import Any, Sequence, Tuple, Union
 
 import numpy as np
 from numpy.linalg import norm
+from pint import Quantity
 from scipy.spatial.transform import Rotation
 
+Angle = Union[float, int, Quantity]
 I: np.ndarray = np.identity(3)
 
 SMALL: float = 1e-7

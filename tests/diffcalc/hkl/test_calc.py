@@ -6,9 +6,10 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
+from diffcalc import Q, ureg
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position, ureg
+from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
 
@@ -46,7 +47,7 @@ def tetragonal_ub() -> UBCalculation:
     ubcalc.set_lattice(name="test", a=4.913, c=5.405)
     ubcalc.add_reflection(
         (0, 0, 1),
-        Position(7.31 * ureg.deg, 0, 10.62 * ureg.deg, 0, 0, 0),
+        Position(Q(7.31, "deg"), 0, Q(10.62, "deg"), 0, 0, 0),
         12.39842,
         "refl1",
     ),
@@ -129,20 +130,17 @@ def test_str():
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
     ubcalc.set_lattice("xtal", "Cubic", 1)
     ubcalc.add_reflection(
-        (0, 0, 1), Position(0, 60 * ureg.deg, 0, 30 * ureg.deg, 0, 0), 12.4, "ref1"
+        (0, 0, 1), Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0), 12.4, "ref1"
     )
     ubcalc.add_orientation(
         (0, 1, 0),
         (0, 1, 0),
-        Position(1 * ureg.deg, 0, 0, 0, 2 * ureg.deg, 0),
+        Position(Q(1, "deg"), 0, 0, 0, Q(2, "deg"), 0),
         "orient1",
     )
     ubcalc.set_u(I)
 
-    constraints = Constraints()
-    constraints.nu = 0
-    constraints.psi = 90
-    constraints.phi = 90
+    constraints = Constraints({"nu": 0.0, "psi": Q(90, "deg"), "phi": Q(90, "deg")})
 
     hklcalc = HklCalculation(ubcalc, constraints)
     assert (
@@ -173,7 +171,7 @@ def test_serialisation(cubic: HklCalculation):
 
 
 def test_get_position_with_radians(cubic: HklCalculation):
-    cubic.constraints = Constraints({"delta": 60, "a_eq_b": True, "mu": 0})
+    cubic.constraints = Constraints({"delta": 60 * ureg.deg, "a_eq_b": True, "mu": 0.0})
 
     case = Case("100", (1, 0, 0), (0, pi / 3, 0, pi / 6, 0, 0))
 
@@ -182,7 +180,11 @@ def test_get_position_with_radians(cubic: HklCalculation):
 
 @pytest.mark.parametrize(
     ("constraints"),
-    [{}, {"mu": 1, "eta": 1, "bisect": True}, {"bisect": True, "eta": 34, "naz": 3}],
+    [
+        {},
+        {"mu": 1.0 * ureg.deg, "eta": 1 * ureg.deg, "bisect": True},
+        {"bisect": True, "eta": 34 * ureg.deg, "naz": 3 * ureg.deg},
+    ],
 )
 def test_get_position_raises_exception_if_badly_constrained(
     cubic: HklCalculation, constraints: Dict[str, Union[float, bool]]
@@ -195,7 +197,10 @@ def test_get_position_raises_exception_if_badly_constrained(
 
 @pytest.mark.parametrize(
     ("constraints"),
-    ({"naz": 3, "alpha": 1, "phi": 45}, {"eta": 20, "phi": 34, "delta": 10000}),
+    (
+        {"naz": 3 * ureg.deg, "alpha": 1 * ureg.deg, "phi": 45 * ureg.deg},
+        {"eta": 20 * ureg.deg, "phi": 34 * ureg.deg, "delta": 10000 * ureg.deg},
+    ),
 )
 def test_get_position_raises_exception_if_no_solutions_found(
     constraints: Dict[str, Union[float, bool]]
@@ -217,10 +222,10 @@ def test_get_position_raises_exception_if_no_solutions_found(
     itertools.product(
         [0, 2, -2, 45, -45, 90, -90],
         [
-            {"delta": 60, "a_eq_b": True, "mu": 0},
-            {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": 90, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": 90},
+            {"delta": 60 * ureg.deg, "a_eq_b": True, "mu": 0.0},
+            {"a_eq_b": True, "mu": 0.0, "nu": 0.0},
+            {"psi": 90 * ureg.deg, "mu": 0.0, "nu": 0.0},
+            {"a_eq_b": True, "mu": 0.0, "qaz": 90 * ureg.deg},
         ],
     ),
 )
@@ -245,7 +250,7 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
 ):
     configure_ub(cubic_ub)
     cubic_ub.n_hkl = (1, -1, 0)  # type: ignore
-    hklcalc = HklCalculation(cubic_ub, Constraints({"nu": 0, "chi": 0, "phi": 0}))
+    hklcalc = HklCalculation(cubic_ub, Constraints({"nu": 0.0, "chi": 0.0, "phi": 0.0}))
     virtual_angles = hklcalc.get_virtual_angles(
         Position(0, 180 * ureg.deg, 0, 90 * ureg.deg, 0, 0)
     )
@@ -256,14 +261,14 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
     ("constraints", "zrot", "yrot", "case", "n_hkl"),
     [
         (
-            {"delta": 90, "beta": 0, "phi": 0},
+            {"delta": 90 * ureg.deg, "beta": 0.0, "phi": 0.0},
             0,
             0,
             Case("sqrt(2)00", (sqrt(2), 0, 0), (0, 90, 0, 45, 0, 0)),
             (1, -1, 0),
         ),
         (
-            {"nu": 60, "psi": 0, "phi": 0},
+            {"nu": 60 * ureg.deg, "psi": 0.0, "phi": 0.0},
             -1,
             2,
             Case("100", (1, 0, 0), (118, 0, 60, 91, 180, 0)),

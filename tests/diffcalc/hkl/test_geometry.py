@@ -3,7 +3,8 @@ from typing import Tuple
 
 import numpy as np
 import pytest
-from diffcalc.hkl.geometry import Position, get_rotation_matrices, ureg
+from diffcalc import ureg
+from diffcalc.hkl.geometry import Position, get_rotation_matrices
 from diffcalc.util import DiffcalcException, I
 from numpy import array
 

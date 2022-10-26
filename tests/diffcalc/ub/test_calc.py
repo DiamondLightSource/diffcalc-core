@@ -7,7 +7,8 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from diffcalc.hkl.geometry import Position, ureg
+from diffcalc import Q, ureg
+from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.util import DiffcalcException
 from numpy import array
@@ -335,7 +336,7 @@ def test_refine_ub(ubcalc: UBCalculation):
     ubcalc.set_miscut(None, 0)
     ubcalc.refine_ub(
         (1, 1, 0),
-        Position(0, 60 * ureg.deg, 0, 30 * ureg.deg, 0, 0),
+        Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0),
         1.0,
         True,
         True,
@@ -435,13 +436,13 @@ def test_set_miscut(
             (0, 1, 0),
             10,
             (0, 0, 1),
-            Position(40 * ureg.deg, 0, 60 * ureg.deg, 0, 0, -90 * ureg.deg),
+            Position(Q(40, "deg"), 0, Q(60, "deg"), 0, 0, Q(-90, "deg")),
         ),
         (
             (1, 0, 0),
             30,
             (0, 1, 1),
-            Position(45 * ureg.deg, 0, 90 * ureg.deg, 0, 15 * ureg.deg, -90 * ureg.deg),
+            Position(Q(45, "deg"), 0, Q(90, "deg"), 0, Q(15, "deg"), Q(-90, "deg")),
         ),
     ],
 )

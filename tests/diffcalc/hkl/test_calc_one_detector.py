@@ -1,12 +1,13 @@
 import itertools
-from math import cos, radians, sin
+from math import cos, pi, radians, sin
 from typing import Dict, Tuple, Union
 
 import numpy as np
 import pytest
+from diffcalc import ureg
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position, ureg
+from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I
 
@@ -56,7 +57,7 @@ def cubic_ub() -> UBCalculation:
         ((45, 0, 90, 0, -45, 90), {"eta": 0, "bisect": True, "delta": 0}),
         ((0, 0, 90, -180, 0, 0), {"chi": 0, "phi": 0, "delta": 0}),
         ((0, 0, 90, 180, 0, 0), {"mu": 0, "phi": 0, "delta": 0}),
-        ((0, 90, 0.0, 90.0, 90.0, 0.0), {"mu": 0, "chi": 90.0, "phi": 0.0}),
+        ((0, 90, 0.0, 90.0, 90.0, 0.0), {"mu": 0, "chi": pi / 2, "phi": 0.0}),
         ((180, 0, 90, 0, 180, 0), {"eta": 0, "phi": 0, "delta": 0}),
         ((0, 0, 90, 0, 0, 180), {"eta": 0, "chi": 0, "delta": 0}),
         ((0, 0, 90, 0, 0, 180), {"mu": 0, "eta": 0, "delta": 0}),
@@ -132,7 +133,7 @@ def test_fixed_delta_eta_phi_0_fails_as_non_unique_chi(cubic: HklCalculation):
     ),
 )
 def test_fixed_delta_eta_phi_30(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"eta": 0, "delta": 0, "phi": 30})
+    cubic.constraints = Constraints({"eta": 0, "delta": 0, "phi": pi / 6})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -193,7 +194,7 @@ def test_fixed_delta_eta_chi_0_fails_for_degenerate_case(cubic: HklCalculation):
     ],
 )
 def test_fixed_delta_eta_chi_30(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"eta": 0, "delta": 0, "chi": 30})
+    cubic.constraints = Constraints({"eta": 0, "delta": 0, "chi": pi / 6})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -211,7 +212,7 @@ def test_fixed_delta_eta_chi_30(cubic: HklCalculation, case: Case):
     ],
 )
 def test_fixed_gamma_mu_chi_30(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"mu": 0, "nu": 0, "chi": 30})
+    cubic.constraints = Constraints({"mu": 0, "nu": 0, "chi": pi / 6})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -238,7 +239,7 @@ def test_fixed_gamma_mu_chi_30(cubic: HklCalculation, case: Case):
 )
 def test_fixed_gamma_mu_chi_90(cubic_ub: UBCalculation, case: Case, zrot: float):
     configure_ub(cubic_ub, zrot, 0)
-    hklcalc = HklCalculation(cubic_ub, Constraints({"mu": 0, "nu": 0, "chi": 90}))
+    hklcalc = HklCalculation(cubic_ub, Constraints({"mu": 0, "nu": 0, "chi": pi / 2}))
 
     case_with_rotation = Case(
         case.name, case.hkl, (*case.position[:5], case.position[5] + zrot)
@@ -248,7 +249,7 @@ def test_fixed_gamma_mu_chi_90(cubic_ub: UBCalculation, case: Case, zrot: float)
 
 
 def test_fixed_gamma_mu_chi_90_fails_for_non_unique_phi(cubic: HklCalculation):
-    cubic.constraints = Constraints({"mu": 0, "nu": 0, "chi": 90})
+    cubic.constraints = Constraints({"mu": 0, "nu": 0, "chi": pi / 2})
 
     case = Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0))
 
@@ -309,13 +310,13 @@ def test_with_bisect_and_nu_0_omega_0_fails_for_non_unique_phi(cubic: HklCalcula
     ],
 )
 def test_fixed_mu_eta(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"nu": 0, "mu": 90, "eta": 0})
+    cubic.constraints = Constraints({"nu": 0, "mu": pi / 2, "eta": 0})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 def test_fixed_mu_eta_fails_for_non_unique_phi(cubic: HklCalculation):
-    cubic.constraints = Constraints({"nu": 0, "mu": 90, "eta": 0})
+    cubic.constraints = Constraints({"nu": 0, "mu": pi / 2, "eta": 0})
     case = Case("001", (0, 0, 1), (90, 60, 0, 0, 60, 0))
 
     with pytest.raises(DiffcalcException):
@@ -369,7 +370,7 @@ def test_ttheta_180(cubic: HklCalculation):
     ],
 )
 def test_with_chi_phi_constrained(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"nu": 0, "chi": 90.0, "phi": 0.0})
+    cubic.constraints = Constraints({"nu": 0, "chi": pi / 2, "phi": 0.0})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -454,7 +455,7 @@ def test_fixed_phi_0(cubic_ub: UBCalculation, case: Case, yrot: float):
     ),
 )
 def test_fixed_phi_30(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"mu": 0, "nu": 0, "phi": 30})
+    cubic.constraints = Constraints({"mu": 0, "nu": 0, "phi": pi / 6})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -465,7 +466,7 @@ def test_fixed_phi_30(cubic: HklCalculation, case: Case):
 )
 def test_fixed_phi_90(cubic_ub: UBCalculation, yrot: float):
     configure_ub(cubic_ub, 0, yrot)
-    hklcalc = HklCalculation(cubic_ub, Constraints({"mu": 0, "nu": 0, "phi": 90}))
+    hklcalc = HklCalculation(cubic_ub, Constraints({"mu": 0, "nu": 0, "phi": pi / 2}))
 
     case = Case("010", (0, 1, 0), (0, 60, 0, 30, 0, 90))
 
@@ -528,7 +529,7 @@ def test_bisect_fails_for_non_unique_phi(cubic: HklCalculation):
 def test_three_two_circle_i06_i10(hklcalc: HklCalculation, case: Case):
     hklcalc.ubcalc.set_lattice("xtal", 5.34, 13.2)
     hklcalc.ubcalc.set_u(I)
-    hklcalc.constraints.asdict = {"phi": -90, "nu": 0, "mu": 0}
+    hklcalc.constraints.asdict = {"phi": -pi / 2, "nu": 0, "mu": 0}
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
 
@@ -543,7 +544,7 @@ def test_three_two_circle_i06_i10(hklcalc: HklCalculation, case: Case):
                 (16.536647016477247, 0, 33.07329403295449, 0, 0, -90),
                 12.39842 / 1.650,
             ),
-            {"phi": -90, "delta": 0, "eta": 0},
+            {"phi": -pi / 2, "delta": 0, "eta": 0},
         ),
         (
             Case(
@@ -552,7 +553,7 @@ def test_three_two_circle_i06_i10(hklcalc: HklCalculation, case: Case):
                 (117.347760720783, 0, 98.74666191021282, 0, 0, -90),
                 12.39842 / 1.650,
             ),
-            {"phi": -90, "delta": 0, "eta": 0},
+            {"phi": -pi / 2, "delta": 0, "eta": 0},
         ),
         (
             Case(
@@ -561,7 +562,7 @@ def test_three_two_circle_i06_i10(hklcalc: HklCalculation, case: Case):
                 (134.71463281804702, 0, 89.42926563609406, 0, 0, -90),
                 12.39842 / 1.650,
             ),
-            {"phi": -90, "chi": 0, "delta": 0},
+            {"phi": -pi / 2, "chi": 0, "delta": 0},
         ),
     ],
 )
@@ -585,7 +586,7 @@ def test_three_two_circle_i06_i10_horizontal(
                 (134.71463281804702, 0, 89.42926563609406, 0, 0, -90),
                 12.39842 / 1.650,
             ),
-            {"phi": -90, "delta": 0, "eta": 0},
+            {"phi": -pi / 2, "delta": 0, "eta": 0},
         ),
         (
             Case(
@@ -594,7 +595,7 @@ def test_three_two_circle_i06_i10_horizontal(
                 (16.536647016477247, 0, 33.07329403295449, 0, 0, -90),
                 12.39842 / 1.650,
             ),
-            {"phi": -90, "chi": 0, "delta": 0},
+            {"phi": -pi / 2, "chi": 0, "delta": 0},
         ),
     ],
 )

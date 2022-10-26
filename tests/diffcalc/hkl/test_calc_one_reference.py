@@ -1,9 +1,10 @@
 import itertools
-from math import cos, radians, sin
+from math import cos, pi, radians, sin
 from typing import Dict, Tuple, Union
 
 import numpy as np
 import pytest
+from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
@@ -39,13 +40,13 @@ def cubic() -> HklCalculation:
 @pytest.mark.parametrize(
     ("expected_position", "constraints"),
     [
-        ((0, -90, 0, -180, 90, 0), {"chi": 90, "phi": 0, "psi": 0}),
-        ((90, 90, 0, 0, 90, -90), {"mu": 90, "eta": 0, "psi": 0}),
+        ((0, -90, 0, -180, 90, 0), {"chi": pi / 2, "phi": 0, "psi": 0}),
+        ((90, 90, 0, 0, 90, -90), {"mu": pi / 2, "eta": 0, "psi": 0}),
         ((0, 0, 90, 0, 0, -180), {"chi": 0, "eta": 0, "psi": 0}),
-        ((0, 90, 0, 0, 90, -180), {"chi": 90, "mu": 0, "psi": 0}),
-        ((0, 0, 90, 90, 0, 90), {"mu": 0, "phi": 90, "psi": 0}),
-        ((90, -90, 0, 0, -90, 90), {"eta": 0, "phi": 90, "psi": 0}),
-        ((-45, -90, 0, -180, 90, 45), {"chi": 90, "phi": 45, "betain": 0}),
+        ((0, 90, 0, 0, 90, -180), {"chi": pi / 2, "mu": 0, "psi": 0}),
+        ((0, 0, 90, 90, 0, 90), {"mu": 0, "phi": pi / 2, "psi": 0}),
+        ((90, -90, 0, 0, -90, 90), {"eta": 0, "phi": pi / 2, "psi": 0}),
+        ((-45, -90, 0, -180, 90, 45), {"chi": pi / 2, "phi": pi / 4, "betain": 0}),
     ],
 )
 def test_get_position_one_ref_two_samp(
@@ -93,13 +94,13 @@ def test_get_position_one_ref_two_samp(
     ),
 )
 def test_fixed_chi_phi_a_eq_b(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"chi": 90, "phi": 0, "a_eq_b": True})
+    cubic.constraints = Constraints({"chi": pi / 2, "phi": 0, "a_eq_b": True})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
 
 def test_fixed_chi_phi_a_eq_b_fails_for_non_unique_eta(cubic: HklCalculation):
-    cubic.constraints = Constraints({"chi": 90, "phi": 0, "a_eq_b": True})
+    cubic.constraints = Constraints({"chi": pi / 2, "phi": 0, "a_eq_b": True})
     case = Case("1m10", (1, -1, 0), (-90, 0, 90, 0, 90, 0))
 
     with pytest.raises(DiffcalcException):
@@ -107,7 +108,7 @@ def test_fixed_chi_phi_a_eq_b_fails_for_non_unique_eta(cubic: HklCalculation):
 
 
 def test_fixed_chi_phi_a_eq_b_fails_for_parallel_vector(cubic: HklCalculation):
-    cubic.constraints = Constraints({"chi": 90, "phi": 0, "a_eq_b": True})
+    cubic.constraints = Constraints({"chi": pi / 2, "phi": 0, "a_eq_b": True})
     case = Case("001", (0, 0, 1), (30, 0, 60, 90, 0, 0))
 
     with pytest.raises(DiffcalcException):
@@ -148,13 +149,13 @@ def test_fixed_chi_phi_a_eq_b_fails_for_parallel_vector(cubic: HklCalculation):
     ),
 )
 def test_with_one_ref_and_mu_0_phi_0(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"psi": 90, "mu": 0, "phi": 0})
+    cubic.constraints = Constraints({"psi": pi / 2, "mu": 0, "phi": 0})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 def test_with_one_ref_and_mu_0_phi_0_fails_for_parallel_vectors(cubic: HklCalculation):
-    cubic.constraints = Constraints({"psi": 90, "mu": 0, "phi": 0})
+    cubic.constraints = Constraints({"psi": pi / 2, "mu": 0, "phi": 0})
     case = Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0))
 
     with pytest.raises(DiffcalcException):
@@ -269,7 +270,7 @@ def test_i07_horizontal_fails_for_parallel_vectors(hklcalc: HklCalculation):
 )
 def test_i16_vertical(hklcalc: HklCalculation, case: Case):
     hklcalc.ubcalc.set_lattice("Cubic", 1)
-    hklcalc.constraints.asdict = {"chi": 90, "psi": 90, "phi": 0}
+    hklcalc.constraints.asdict = {"chi": pi / 2, "psi": pi / 2, "phi": 0}
     hklcalc.ubcalc.set_u(I)
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 4)
@@ -288,8 +289,8 @@ def test_i16_vertical(hklcalc: HklCalculation, case: Case):
         ],
         [
             {"delta": 0, "a_eq_b": True, "eta": 0},
-            {"delta": 0, "psi": -90, "eta": 0},
-            {"delta": 0, "alpha": 17.9776, "eta": 0},
+            {"delta": 0, "psi": -pi / 2, "eta": 0},
+            {"delta": 0, "alpha": Q(17.9776, "deg"), "eta": 0},
         ],
     ),
 )
@@ -321,7 +322,7 @@ def test_i16_failed_hexagonal_experiment_with_small_variations(hklcalc: HklCalcu
         ]
     )
     hklcalc.ubcalc.set_u(u_matrix)
-    hklcalc.constraints.asdict = {"delta": 0, "alpha": 17.8776, "eta": 0}
+    hklcalc.constraints.asdict = {"delta": 0, "alpha": Q(17.8776, "deg"), "eta": 0}
 
     case = Case(
         "",
