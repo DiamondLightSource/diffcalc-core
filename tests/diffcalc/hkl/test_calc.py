@@ -11,7 +11,8 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
+from diffcalc.util import Angle, DiffcalcException, I, y_rotation, z_rotation
+from typing_extensions import Literal
 
 from tests.tools import (
     assert_array_almost_equal_in_list,
@@ -92,7 +93,7 @@ def convert_position_to_hkl_and_hkl_to_position(
     hklcalc: HklCalculation,
     case: Case,
     places: int = 5,
-    expected_virtual: Dict[str, float] = {},
+    expected_virtual: Dict[str, Union[Angle, Literal["True"]]] = {},
     asdegrees: bool = True,
 ) -> None:
 

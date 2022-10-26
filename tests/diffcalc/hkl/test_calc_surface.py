@@ -1,5 +1,5 @@
 from math import pi
-from typing import Dict
+from typing import Dict, Union
 
 import numpy as np
 import pytest
@@ -8,7 +8,8 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import DiffcalcException, I
+from diffcalc.util import Angle, DiffcalcException, I
+from typing_extensions import Literal
 
 from tests.diffcalc.hkl.test_calc import (
     Case,
@@ -60,7 +61,9 @@ def cubic() -> HklCalculation:
     ],
 )
 def test_surface_normal_vertical_cubic(
-    cubic: HklCalculation, case: Case, expected_virtual: Dict[str, float]
+    cubic: HklCalculation,
+    case: Case,
+    expected_virtual: Dict[str, Union[Angle, Literal["True"]]],
 ):
     cubic.constraints.asdict = {"a_eq_b": True, "mu": -pi / 2, "eta": 0}
 
