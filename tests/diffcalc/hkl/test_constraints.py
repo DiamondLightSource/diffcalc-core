@@ -1,11 +1,12 @@
 from math import pi
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
 from diffcalc import Q, ureg
 from diffcalc.hkl.constraints import TYPE, Constraint, Constraints
 from diffcalc.util import Angle, DiffcalcException
+from typing_extensions import Literal
 
 from tests.test_tools import eq_
 from tests.tools import assert_dict_almost_equal
