@@ -1,5 +1,5 @@
 from math import pi
-from typing import Dict, Literal, Union
+from typing import Dict, Union
 
 import numpy as np
 import pytest
@@ -10,6 +10,7 @@ from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import Angle, DiffcalcException, I
+from typing_extensions import Literal
 
 from tests.diffcalc.hkl.test_calc import (
     Case,

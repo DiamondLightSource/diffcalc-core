@@ -2,10 +2,11 @@
 from dataclasses import dataclass
 from enum import Enum
 from itertools import zip_longest
-from typing import Collection, Dict, List, Literal, Optional, Tuple, Union
+from typing import Collection, Dict, List, Optional, Tuple, Union
 
 from diffcalc.util import Angle, DiffcalcException
 from pint import Quantity
+from typing_extensions import Literal
 
 CATEGORY = Enum("CATEGORY", "DETECTOR REFERENCE SAMPLE")
 TYPE = Enum("TYPE", "VALUE VOID")

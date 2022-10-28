@@ -1,7 +1,7 @@
 import itertools
 from dataclasses import dataclass
 from math import isnan, pi, radians, sqrt
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from unittest.mock import Mock
 
 import numpy as np
@@ -13,6 +13,7 @@ from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import Angle, DiffcalcException, I, y_rotation, z_rotation
+from typing_extensions import Literal
 
 from tests.tools import (
     assert_array_almost_equal_in_list,
