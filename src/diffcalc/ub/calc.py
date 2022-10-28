@@ -20,7 +20,6 @@ from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
 from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
 from diffcalc.util import (
     SMALL,
-    Angle,
     DiffcalcException,
     bound,
     cross3,
@@ -1082,18 +1081,10 @@ class UBCalculation:
         indices: Sequence[Union[str, int]],
         refine_lattice: Optional[bool] = False,
         refine_umatrix: Optional[bool] = False,
-    ) -> Tuple[
-        np.ndarray,
-        Tuple[
-            float,
-            float,
-            float,
-            Union[float, Angle],
-            Union[float, Angle],
-            Union[float, Angle],
-        ],
-    ]:
+    ) -> Tuple[np.ndarray, Tuple[float, ...],]:
         """Refine UB matrix using reference reflections.
+
+        Returns radians only.
 
         Parameters
         ----------
@@ -1130,7 +1121,7 @@ class UBCalculation:
             new_crystal = fit_crystal(self.crystal, refl_list)
             print("Fitting orientation matrix...")
             new_u = fit_u_matrix(self.U, new_crystal, refl_list)
-            new_lattice = new_crystal.get_lattice()
+            new_lattice = tuple([float(i) for i in new_crystal.get_lattice()])
 
         if refine_lattice:
             self.set_lattice(
@@ -1145,7 +1136,7 @@ class UBCalculation:
 
     def _fit_ub_uncon(
         self, indices: Sequence[Union[str, int]]
-    ) -> Tuple[np.ndarray, Tuple[float, float, float, float, float, float]]:
+    ) -> Tuple[np.ndarray, Tuple[float, ...]]:
         """Refine UB matrix using least-squares solution."""
         if indices is None:
             raise DiffcalcException(
@@ -1355,14 +1346,14 @@ class UBCalculation:
         return (
             sc,
             self.crystal.name,
-            self.crystal.system,
+            str(self.crystal.system),
             (
                 ref_a1,
                 ref_a2,
                 ref_a3,
-                alpha1,
-                alpha2,
-                alpha3,
+                float(alpha1),
+                float(alpha2),
+                float(alpha3),
             ),
         )
 
