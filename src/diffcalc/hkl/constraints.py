@@ -2,11 +2,10 @@
 from dataclasses import dataclass
 from enum import Enum
 from itertools import zip_longest
-from typing import Collection, Dict, List, Optional, Tuple, Union
+from typing import Collection, Dict, List, Literal, Optional, Tuple, Union
 
 from diffcalc.util import Angle, DiffcalcException
 from pint import Quantity
-from typing_extensions import Literal
 
 CATEGORY = Enum("CATEGORY", "DETECTOR REFERENCE SAMPLE")
 TYPE = Enum("TYPE", "VALUE VOID")
@@ -64,9 +63,11 @@ class Constraints:
 
     def __init__(
         self,
-        constraints: Union[
-            Dict[str, Union[Angle, Literal["True"]]],
-            Collection[Union[Tuple[str, Angle], str]],
+        constraints: Optional[
+            Union[
+                Dict[str, Union[Angle, Literal["True"]]],
+                Collection[Union[Tuple[str, Angle], str]],
+            ]
         ] = None,
     ):
         """Object for setting diffractometer angle constraints."""

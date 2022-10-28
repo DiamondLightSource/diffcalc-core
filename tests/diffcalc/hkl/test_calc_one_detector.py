@@ -9,6 +9,7 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException, I
 
 from tests.diffcalc.hkl.test_calc import (
@@ -32,7 +33,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1))
     configure_ub(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())
@@ -44,7 +45,7 @@ def cubic_ub() -> UBCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1))
     return ubcalc
 
 
@@ -527,7 +528,7 @@ def test_bisect_fails_for_non_unique_phi(cubic: HklCalculation):
     ],
 )
 def test_three_two_circle_i06_i10(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("xtal", 5.34, 13.2)
+    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(5.34, 13.2))
     hklcalc.ubcalc.set_u(I)
     hklcalc.constraints.asdict = {"phi": -pi / 2, "nu": 0, "mu": 0}
 
@@ -569,7 +570,7 @@ def test_three_two_circle_i06_i10(hklcalc: HklCalculation, case: Case):
 def test_three_two_circle_i06_i10_horizontal(
     hklcalc: HklCalculation, case: Case, constraints: Dict[str, float]
 ):
-    hklcalc.ubcalc.set_lattice("xtal", 5.34, 13.2)
+    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(5.34, 13.2))
     hklcalc.ubcalc.set_u(I)
     hklcalc.constraints.asdict = constraints
 
@@ -602,7 +603,7 @@ def test_three_two_circle_i06_i10_horizontal(
 def test_three_two_circle_i06_i10_horizontal_fails_for_non_unique_chi(
     hklcalc: HklCalculation, case: Case, constraints: Dict[str, float]
 ):
-    hklcalc.ubcalc.set_lattice("xtal", 5.34, 13.2)
+    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(5.34, 13.2))
     hklcalc.ubcalc.set_u(I)
     hklcalc.constraints.asdict = constraints
 
@@ -629,7 +630,7 @@ def test_i16_cubic_get_hkl(hklcalc: HklCalculation, case: Case):
             (0.017452406437283505, -1.1135499981271473e-16, 0.9998476951563912),
         )
     )
-    hklcalc.ubcalc.set_lattice("Cubic", 1)
+    hklcalc.ubcalc.set_lattice("Cubic", LatticeParams(1))
     hklcalc.ubcalc.set_u(u_matrix)
 
     hkl = hklcalc.get_hkl(Position(*case.position * ureg.deg), 1.0)

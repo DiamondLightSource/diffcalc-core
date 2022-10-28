@@ -8,6 +8,7 @@ from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException, I
 
 from tests.diffcalc.hkl.test_calc import (
@@ -31,7 +32,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1))
     configure_ub(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())
@@ -241,7 +242,7 @@ def test_with_one_ref_and_eta_0_phi_0_fails_for_parallel_vectors(cubic: HklCalcu
     ],
 )
 def test_i07_horizontal(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.ubcalc.set_lattice("Cubic", 1)
+    hklcalc.ubcalc.set_lattice("Cubic", LatticeParams(1))
     hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "a_eq_b": True}
     hklcalc.ubcalc.set_u(I)
 
@@ -249,7 +250,7 @@ def test_i07_horizontal(hklcalc: HklCalculation, case: Case, places: int):
 
 
 def test_i07_horizontal_fails_for_parallel_vectors(hklcalc: HklCalculation):
-    hklcalc.ubcalc.set_lattice("Cubic", 1)
+    hklcalc.ubcalc.set_lattice("Cubic", LatticeParams(1))
     hklcalc.constraints.asdict = {"chi": 0, "phi": 0, "a_eq_b": True}
     hklcalc.ubcalc.set_u(I)
 
@@ -269,7 +270,7 @@ def test_i07_horizontal_fails_for_parallel_vectors(hklcalc: HklCalculation):
     ],
 )
 def test_i16_vertical(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("Cubic", 1)
+    hklcalc.ubcalc.set_lattice("Cubic", LatticeParams(1))
     hklcalc.constraints.asdict = {"chi": pi / 2, "psi": pi / 2, "phi": 0}
     hklcalc.ubcalc.set_u(I)
 
@@ -297,7 +298,7 @@ def test_i16_vertical(hklcalc: HklCalculation, case: Case):
 def test_i16_failed_hexagonal_experiment(
     hklcalc: HklCalculation, case: Case, constraints: Dict[str, Union[float, bool]]
 ):
-    hklcalc.ubcalc.set_lattice("I16_test", "Hexagonal", 4.785, 12.991)
+    hklcalc.ubcalc.set_lattice("I16_test", LatticeParams(4.785, 12.991), "Hexagonal")
     u_matrix = np.array(
         [
             [-9.65616334e-01, -2.59922060e-01, 5.06142415e-03],
@@ -313,7 +314,7 @@ def test_i16_failed_hexagonal_experiment(
 
 
 def test_i16_failed_hexagonal_experiment_with_small_variations(hklcalc: HklCalculation):
-    hklcalc.ubcalc.set_lattice("I16_test", "Hexagonal", 4.785, 12.991)
+    hklcalc.ubcalc.set_lattice("I16_test", LatticeParams(4.785, 12.991), "Hexagonal")
     u_matrix = np.array(
         [
             [-9.65616334e-01, -2.59922060e-01, 5.06142415e-03],

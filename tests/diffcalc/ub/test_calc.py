@@ -1,7 +1,7 @@
 """Test the UBCalculation and ReferenceVector objects."""
 
 import pickle
-from math import degrees, radians, sqrt
+from math import degrees, pi, radians, sqrt
 from pathlib import Path
 from typing import List, Tuple
 
@@ -10,6 +10,7 @@ import pytest
 from diffcalc import Q, ureg
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException
 from numpy import array
 
@@ -49,7 +50,11 @@ class TestStrings:
 
         self.ubcalc.n_phi = (0, 0, 1)
         self.ubcalc.surf_nphi = (0, 0, 1)
-        self.ubcalc.set_lattice("xtal", "Cubic", 1)
+        self.ubcalc.set_lattice(
+            "xtal",
+            LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            "Cubic",
+        )
         self.ubcalc.set_miscut(None, 0.0)
 
         assert str(self.ubcalc) == self.retrieve_expected_string("unitary_UB")
@@ -59,7 +64,11 @@ class TestStrings:
 
         self.ubcalc.n_phi = (0, 0, 1)
         self.ubcalc.surf_nphi = (0, 0, 1)
-        self.ubcalc.set_lattice("xtal", "Cubic", 1)
+        self.ubcalc.set_lattice(
+            "xtal",
+            LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            "Cubic",
+        )
         self.ubcalc.add_reflection(
             (0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1"
         )
@@ -75,7 +84,7 @@ class TestPersistenceMethods:
     ubcalc = UBCalculation("test_persistence")
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
-    ubcalc.set_lattice("xtal", "Cubic", 1)
+    ubcalc.set_lattice("xtal", LatticeParams(1), "Cubic")
     ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1")
     ubcalc.set_miscut(None, radians(2.0))
@@ -220,11 +229,27 @@ def ubcalc() -> UBCalculation:
 @pytest.mark.parametrize(
     ("short_params", "full_params", "system_name"),
     [
-        ([1.1], [1.1, 1.1, 1.1, 90, 90, 90], "Cubic"),
-        ([1.1, 2.2], [1.1, 1.1, 2.2, 90, 90, 90], "Tetragonal"),
-        ([1.1, 2.2, 3.3], [1.1, 2.2, 3.3, 90, 90, 90], "Orthorhombic"),
-        ([1.1, 2.2, 3.3, 91], [1.1, 2.2, 3.3, 90, 91, 90], "Monoclinic"),
-        ([1.1, 2.2, 3.3, 91, 92, 93], [1.1, 2.2, 3.3, 91, 92, 93], "Triclinic"),
+        ([1.1], [1.1, 1.1, 1.1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")], "Cubic"),
+        (
+            [1.1, 2.2],
+            [1.1, 1.1, 2.2, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")],
+            "Tetragonal",
+        ),
+        (
+            [1.1, 2.2, 3.3],
+            [1.1, 2.2, 3.3, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")],
+            "Orthorhombic",
+        ),
+        (
+            [1.1, 2.2, 3.3, Q(91, "deg")],
+            [1.1, 2.2, 3.3, Q(90, "deg"), Q(91, "deg"), Q(90, "deg")],
+            "Monoclinic",
+        ),
+        (
+            [1.1, 2.2, 3.3, Q(91, "deg"), Q(92, "deg"), Q(93, "deg")],
+            [1.1, 2.2, 3.3, Q(91, "deg"), Q(92, "deg"), Q(93, "deg")],
+            "Triclinic",
+        ),
     ],
 )
 def test_set_lattice_with_various_arguments_guesses_system_correctly(
@@ -233,20 +258,15 @@ def test_set_lattice_with_various_arguments_guesses_system_correctly(
     full_params: List[float],
     system_name: str,
 ):
-    ubcalc.set_lattice("test", *short_params)
+    ubcalc.set_lattice("test", LatticeParams(*short_params))
 
-    assert ("test", *full_params) == ubcalc.crystal.get_lattice()
+    assert tuple(full_params) == ubcalc.crystal.get_lattice()
     assert ubcalc.crystal.system == system_name
 
 
 def test_set_lattice_five_arguments_raises_error(ubcalc: UBCalculation):
-    with pytest.raises(TypeError):
-        ubcalc.set_lattice("NaCl", 1.1, 2.2, 3.3, 91, 92)
-
-
-def test_set_lattice_no_arguments_raises_error(ubcalc: UBCalculation):
-    with pytest.raises(TypeError):
-        ubcalc.set_lattice("NaCl")
+    with pytest.raises(DiffcalcException):
+        ubcalc.set_lattice("NaCl", LatticeParams(1.1, 2.2, 3.3, 91, 92))
 
 
 def test_setu_and_setub(ubcalc: UBCalculation):
@@ -267,7 +287,7 @@ def test_calc_ub(ubcalc: UBCalculation):
 
     for scenario in scenarios.sessions():
         ubcalc = UBCalculation("test_calcub")
-        ubcalc.set_lattice(scenario.name, *scenario.lattice)
+        ubcalc.set_lattice(scenario.name, LatticeParams(*scenario.lattice))
 
         for ref in [scenario.ref1, scenario.ref2]:
             ubcalc.add_reflection(
@@ -303,7 +323,7 @@ def session1_ubcalc() -> UBCalculation:
             ref.tag,
         )
 
-    ubcalc.set_lattice(scenario.name, *scenario.lattice)
+    ubcalc.set_lattice(scenario.name, LatticeParams(*scenario.lattice))
     return ubcalc
 
 
@@ -332,7 +352,9 @@ def test_calc_ub_for_one_reflection_only(session1_ubcalc: UBCalculation):
 
 
 def test_refine_ub(ubcalc: UBCalculation):
-    ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice(
+        "xtal", LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))
+    )
     ubcalc.set_miscut(None, 0)
     ubcalc.refine_ub(
         (1, 1, 0),
@@ -341,7 +363,15 @@ def test_refine_ub(ubcalc: UBCalculation):
         True,
         True,
     )
-    assert ("xtal", sqrt(2.0), sqrt(2.0), 1, 90, 90, 90) == ubcalc.crystal.get_lattice()
+
+    assert (
+        sqrt(2.0),
+        sqrt(2.0),
+        1,
+        radians(90),
+        radians(90),
+        radians(90),
+    ) == ubcalc.crystal.get_lattice()
 
     assert np.all(
         np.round(ubcalc.U, 4)
@@ -368,7 +398,9 @@ def test_fit_ub():
                 ref.tag,
             )
 
-        ubcalc.set_lattice(scenario.name, scenario.system, *scenario.lattice)
+        ubcalc.set_lattice(
+            scenario.name, LatticeParams(*scenario.lattice), scenario.system
+        )
         ubcalc.calc_ub(scenario.ref1.tag, scenario.ref2.tag)
 
         init_latt = (
@@ -379,14 +411,13 @@ def test_fit_ub():
             1.06 * beta,
             0.95 * gamma,
         )
-        ubcalc.set_lattice(scenario.name, scenario.system, *init_latt)
+        ubcalc.set_lattice(scenario.name, LatticeParams(*init_latt), scenario.system)
         ubcalc.set_miscut([0.2, 0.8, 0.1], 3.0, True)
 
         ubcalc.fit_ub([r.tag for r in scenario.reflist], True, True)
 
         assert np.all(
-            np.round([ubcalc.crystal.get_lattice()[1:]], 2)
-            == np.round(scenario.lattice, 2)
+            np.round(ubcalc.crystal.get_lattice(), 2) == np.round(scenario.lattice, 2)
         ), "wrong lattice after fitting UB"
 
         assert np.all(
@@ -395,7 +426,9 @@ def test_fit_ub():
 
 
 def test_get_ttheta_from_hkl(ubcalc: UBCalculation):
-    ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice(
+        "cube", LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))
+    )
     assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(radians(60))
 
 
@@ -422,7 +455,7 @@ def test_set_miscut(
 ):
     ubcalc = UBCalculation("testsetmiscut")
     ubcalc.reference = ReferenceVector((0, 0, 1), False)
-    ubcalc.set_lattice("cube", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("cube", LatticeParams(1, 1, 1, pi / 2, pi / 2, pi / 2))
 
     for idx in range(len(miscut_xyzs)):
         ubcalc.set_miscut(miscut_xyzs[idx], miscut_angles[idx], add_miscuts[idx])
@@ -453,7 +486,9 @@ def test_get_miscut_from_hkl(
     hkl: Tuple[float, float, float],
     pos: Position,
 ):
-    ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice(
+        "xtal", LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))
+    )
     ubcalc.set_miscut(axis, radians(angle))
     ubcalc.set_miscut(None, 0)
 
@@ -470,7 +505,7 @@ def test_get_miscut_from_hkl(
     [((0, 1, 0), 10), ((1, 0, 0), 30), ((0.70710678, 0.70710678, 0), 50)],
 )
 def test_get_miscut(ubcalc, axis, angle):
-    ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
+    ubcalc.set_lattice("xtal", LatticeParams(1, 1, 1, 90, 90, 90))
     ubcalc.set_miscut(axis, radians(angle))
 
     test_angle, test_axis = ubcalc.get_miscut()

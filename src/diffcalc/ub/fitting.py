@@ -8,7 +8,7 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal
+from diffcalc.ub.crystal import Crystal, LatticeParams
 from diffcalc.ub.reference import Reflection
 from diffcalc.util import DiffcalcException, I, angle_between_vectors, sign
 from numpy.linalg import inv, norm
@@ -32,7 +32,7 @@ def _func_crystal(
     refl_data: List[Tuple[np.ndarray, Position, float]],
 ) -> float:
     try:
-        trial_cr = Crystal("trial", uc_system, *vals)
+        trial_cr = Crystal("trial", LatticeParams(*vals), uc_system)
     except Exception:
         return 1e6
 
@@ -167,12 +167,12 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
         If crystal lattice object not initialised.
     """
     try:
-        xtal_system, xtal_params = crystal.get_lattice_params()
-        start = xtal_params
+        xparams = crystal.get_lattice_params()
+        start = xparams
         lower = [
             0,
-        ] * len(xtal_params)
-        upper = _get_uc_upper_limits(xtal_system)
+        ] * len(xparams)
+        upper = _get_uc_upper_limits(crystal.system)
     except AttributeError:
         raise DiffcalcException(
             "UB matrix not initialised. Cannot run UB matrix fitting procedure."
@@ -183,7 +183,7 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
     res = minimize(
         _func_crystal,
         start,
-        args=(xtal_system, refl_data),
+        args=(crystal.system, refl_data),
         method="SLSQP",
         tol=1e-10,
         options={"disp": False, "maxiter": 10000, "eps": 1e-6, "ftol": 1e-10},
@@ -191,7 +191,7 @@ def fit_crystal(crystal: Crystal, refl_list: List[Reflection]) -> Crystal:
     )
     vals = res.x
 
-    res_cr = Crystal("trial", xtal_system, *vals)
+    res_cr = Crystal("trial", LatticeParams(*vals), crystal.system)
     # res_cr._set_cell_for_system(uc_system, *vals)
     return res_cr
 

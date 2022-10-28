@@ -1,5 +1,6 @@
-from math import asin, atan2, cos, degrees, radians, sin
+from math import asin, atan2, cos, degrees, pi, radians, sin
 
+from diffcalc import Q
 from diffcalc.hkl.calc import sign
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.reference import Reflection
@@ -101,7 +102,7 @@ def sessions(P=VliegPos):
 
     session1 = SessionScenario()
     session1.name = "b16_270608"
-    session1.lattice = (3.8401, 3.8401, 5.43072, 90, 90, 90)
+    session1.lattice = (3.8401, 3.8401, 5.43072, pi / 2, pi / 2, pi / 2)
     session1.bmatrix = ((1.636204, 0, 0), (0, 1.636204, 0), (0, 0, 1.156971))
     session1.ref1 = Reflection(
         1,
@@ -131,7 +132,7 @@ def sessions(P=VliegPos):
     # cubic crystal from bliss tutorial
     session2 = SessionScenario()
     session2.name = "cubic_from_bliss_tutorial"
-    session2.lattice = (1.54, 1.54, 1.54, 90, 90, 90)
+    session2.lattice = (1.54, 1.54, 1.54, pi / 2, pi / 2, pi / 2)
     session2.ref1 = Reflection(1, 0, 0, P(0, 60, 0, 30, 0, 0), 12.39842 / 1.54, "ref1")
     session2.ref2 = Reflection(
         0, 1, 0, P(0, 60, 0, 30, 0, -90), 12.39842 / 1.54, "ref2"
@@ -159,7 +160,7 @@ def sessions(P=VliegPos):
     # AngleCalc scenarios from SPEC sixc. using crystal and alignment
     session3 = SessionScenario()
     session3.name = "spec_sixc_b16_270608"
-    session3.lattice = (3.8401, 3.8401, 5.43072, 90, 90, 90)
+    session3.lattice = (3.8401, 3.8401, 5.43072, pi / 2, pi / 2, pi / 2)
     session3.bmatrix = ((1.636204, 0, 0), (0, 1.636204, 0), (0, 0, 1.156971))
     session3.umatrix = (
         (0.997161, -0.062217, 0.042420),
@@ -246,7 +247,7 @@ def sessions(P=VliegPos):
 
     session4 = SessionScenario()
     session4.name = "test_orth"
-    session4.lattice = (1.41421, 1.41421, 1.00000, 90, 90, 90)
+    session4.lattice = (1.41421, 1.41421, 1.00000, pi / 2, pi / 2, pi / 2)
     session4.system = "Orthorhombic"
     session4.bmatrix = ((4.44288, 0, 0), (0, 4.44288, 0), (0, 0, 6.28319))
     session4.ref1 = Reflection(
@@ -295,7 +296,14 @@ def sessions(P=VliegPos):
 
     session5 = SessionScenario()
     session5.name = "Dalyite"
-    session5.lattice = (7.51, 7.73, 7.00, 106.0, 113.5, 99.5)
+    session5.lattice = (
+        7.51,
+        7.73,
+        7.00,
+        Q(106.0, "deg"),
+        Q(113.5, "deg"),
+        Q(99.5, "deg"),
+    )
     session5.system = "Triclinic"
     session5.bmatrix = (
         (0.96021, 0.27759, 0.49527),
@@ -380,7 +388,7 @@ def sessions(P=VliegPos):
 
     session6 = SessionScenario()
     session6.name = "Acanthite"
-    session6.lattice = (4.229, 6.931, 7.862, 90, 99.61, 90)
+    session6.lattice = (4.229, 6.931, 7.862, pi / 2, Q(99.61, "deg"), pi / 2)
     session6.system = "Monoclinic"
     session6.bmatrix = (
         (1.50688, 0.00000, 0.13532),

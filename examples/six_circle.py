@@ -14,6 +14,7 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 
 
 def in_range_mu_nu_phi(pos: Position) -> bool:
@@ -204,7 +205,7 @@ def demo_scan_psi():
 if __name__ == "__main__":
     ubcalc = UBCalculation("sixcircle")
 
-    ubcalc.set_lattice("SiO2", 4.913, 5.405)
+    ubcalc.set_lattice("SiO2", LatticeParams(4.913, 5.405))
 
     ubcalc.n_hkl = (1, 0, 0)
 

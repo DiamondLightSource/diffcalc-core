@@ -1,7 +1,7 @@
 import itertools
 from dataclasses import dataclass
 from math import isnan, pi, radians, sqrt
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 from unittest.mock import Mock
 
 import numpy as np
@@ -11,8 +11,8 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import Angle, DiffcalcException, I, y_rotation, z_rotation
-from typing_extensions import Literal
 
 from tests.tools import (
     assert_array_almost_equal_in_list,
@@ -35,7 +35,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1.0))
     configure_ub(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())
@@ -45,7 +45,7 @@ def cubic() -> HklCalculation:
 def tetragonal_ub() -> UBCalculation:
     ubcalc = UBCalculation()
 
-    ubcalc.set_lattice(name="test", a=4.913, c=5.405)
+    ubcalc.set_lattice("test", LatticeParams(4.913, 5.405))
     ubcalc.add_reflection(
         (0, 0, 1),
         Position(Q(7.31, "deg"), 0, Q(10.62, "deg"), 0, 0, 0),
@@ -65,7 +65,7 @@ def cubic_ub() -> UBCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1.0))
     return ubcalc
 
 
@@ -75,7 +75,7 @@ def hkl_mocked_constraints() -> HklCalculation:
     constraints.is_fully_constrained.return_value = True
 
     ubcalc = UBCalculation()
-    ubcalc.set_lattice("xtal", 1)
+    ubcalc.set_lattice("xtal", LatticeParams(1))
     ubcalc.set_u(I)
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
 
@@ -129,7 +129,7 @@ def test_str():
     ubcalc = UBCalculation("test_str")
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
-    ubcalc.set_lattice("xtal", "Cubic", 1)
+    ubcalc.set_lattice("xtal", LatticeParams(1), "Cubic")
     ubcalc.add_reflection(
         (0, 0, 1), Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0), 12.4, "ref1"
     )
@@ -207,7 +207,7 @@ def test_get_position_raises_exception_if_no_solutions_found(
     constraints: Dict[str, Union[float, bool]]
 ):
     ubcalc = UBCalculation()
-    ubcalc.set_lattice("cube", 1)
+    ubcalc.set_lattice("cube", LatticeParams(1))
     ubcalc.add_reflection((0, 0, 1), Position(1, 2, 3, 4, 5, 6), 12)
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 2, 3, 4, 5, 6), "orient")
     ubcalc.calc_ub(0, "orient")

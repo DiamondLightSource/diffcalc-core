@@ -1,5 +1,5 @@
 from math import pi
-from typing import Dict, Union
+from typing import Dict, Literal, Union
 
 import numpy as np
 import pytest
@@ -8,8 +8,8 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import Angle, DiffcalcException, I
-from typing_extensions import Literal
 
 from tests.diffcalc.hkl.test_calc import (
     Case,
@@ -33,7 +33,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (1, 0, 0)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("xtal", 1)
+    ubcalc.set_lattice("xtal", LatticeParams(1))
     ubcalc.set_u(I)
 
     return HklCalculation(ubcalc, Constraints())
@@ -81,7 +81,10 @@ def test_surface_normal_vertical_cubic_fails_for_parallel_vectors(
 
 def test_ub_with_willmot_si_5_5_12_mu_eta_fixed():
     ubcalc = UBCalculation("test")
-    ubcalc.set_lattice("Si_5_5_12", 7.68, 53.48, 75.63, 90, 90, 90)
+    ubcalc.set_lattice(
+        "Si_5_5_12",
+        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+    )
     ubcalc.add_reflection(
         (2, 19, 32),
         Position(*(-90, 21.975, 4.419, 0.0, 92.0, -416.2) * ureg.deg),
@@ -166,7 +169,10 @@ def test_ub_with_willmot_si_5_5_12_mu_eta_fixed():
 )
 def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
-    hklcalc.ubcalc.set_lattice("xtal", 7.68, 53.48, 75.63, 90, 90, 90)
+    hklcalc.ubcalc.set_lattice(
+        "xtal",
+        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+    )
     hklcalc.ubcalc.set_u(
         np.array(
             [
@@ -182,7 +188,10 @@ def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
 
 def test_ub_with_willmot_si_5_5_12_mu_chi_fixed():
     ubcalc = UBCalculation("test")
-    ubcalc.set_lattice("Si_5_5_12", 7.68, 53.48, 75.63, 90, 90, 90)
+    ubcalc.set_lattice(
+        "Si_5_5_12",
+        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+    )
     ubcalc.add_reflection(
         (2, 19, 32),
         Position(*(0.0, 21.975, 4.419, 2.0, 90.0, -326.2) * ureg.deg),
@@ -227,7 +236,10 @@ def test_ub_with_willmot_si_5_5_12_mu_chi_fixed():
 )
 def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "eta": 0, "chi": 0}
-    hklcalc.ubcalc.set_lattice("xtal", 7.68, 53.48, 75.63, 90, 90, 90)
+    hklcalc.ubcalc.set_lattice(
+        "xtal",
+        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+    )
     hklcalc.ubcalc.set_u(
         np.array(
             [
@@ -245,7 +257,10 @@ def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
 
 def test_ub_with_willmot_pt531_mu_chi_fixed():
     ubcalc = UBCalculation("test")
-    ubcalc.set_lattice("Pt531", 6.204, 4.806, 23.215, 90, 90, 49.8)
+    ubcalc.set_lattice(
+        "Pt531",
+        LatticeParams(6.204, 4.806, 23.215, Q(90, "deg"), Q(90, "deg"), Q(49.8, "deg")),
+    )
     ubcalc.add_reflection(
         (-1, 1, 6),
         Position(
@@ -336,7 +351,10 @@ def test_ub_with_willmot_pt531_mu_chi_fixed():
 )
 def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": 0, "chi": pi / 2}
-    hklcalc.ubcalc.set_lattice("Pt531", 6.204, 4.806, 23.215, 90, 90, 49.8)
+    hklcalc.ubcalc.set_lattice(
+        "Pt531",
+        LatticeParams(6.204, 4.806, 23.215, Q(90, "deg"), Q(90, "deg"), Q(49.8, "deg")),
+    )
     hklcalc.ubcalc.set_u(
         np.array(
             [
@@ -385,7 +403,10 @@ def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
 def test_pt531_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
 
-    hklcalc.ubcalc.set_lattice("Pt531", 6.204, 4.806, 23.215, 90, 90, 49.8)
+    hklcalc.ubcalc.set_lattice(
+        "Pt531",
+        LatticeParams(6.204, 4.806, 23.215, Q(90, "deg"), Q(90, "deg"), Q(49.8, "deg")),
+    )
     hklcalc.ubcalc.set_u(
         np.array(
             [

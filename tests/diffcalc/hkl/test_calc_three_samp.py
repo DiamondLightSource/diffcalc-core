@@ -7,6 +7,7 @@ from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException
 
 from tests.diffcalc.hkl.test_calc import (
@@ -22,7 +23,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1.0))
     configure_ub(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())

@@ -15,13 +15,13 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
-from diffcalc.ub.crystal import Crystal
+from diffcalc.ub.crystal import Crystal, LatticeParams
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
 from diffcalc.ub.reference import OrientationList, Reflection, ReflectionList
 from diffcalc.util import (
     SMALL,
+    Angle,
     DiffcalcException,
-    allnum,
     bound,
     cross3,
     dot3,
@@ -386,17 +386,7 @@ class UBCalculation:
     ### Lattice ###
 
     def set_lattice(
-        self,
-        name: str,
-        system: Optional[
-            Union[str, float]
-        ] = None,  # FIXME: Cannot set Union type for  positional arguments
-        a: Optional[float] = None,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
+        self, name: str, params: LatticeParams, system: Optional[str] = None
     ) -> None:
         """Set crystal lattice parameters using shortform notation.
 
@@ -439,43 +429,13 @@ class UBCalculation:
         gamma: Optional[float], default = None
             Crystal lattice angle.
         """
-        if not isinstance(name, str):
-            raise TypeError("Invalid crystal name.")
-        shortform: Tuple[Any, ...] = tuple(
-            val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
-        )
-        if not shortform:
-            raise TypeError("Please specify unit cell parameters.")
-        elif allnum(shortform):
-            sf = shortform
-            if len(sf) == 1:
-                system = "Cubic"
-            elif len(sf) == 2:
-                system = "Tetragonal"
-            elif len(sf) == 3:
-                system = "Orthorhombic"
-            elif len(sf) == 4:
-                if is_small(float(sf[0]) - float(sf[1])) and sf[3] == 120:
-                    system = "Hexagonal"
-                else:
-                    system = "Monoclinic"
-            elif len(sf) == 6:
-                system = "Triclinic"
-            else:
-                raise TypeError(
-                    "Invalid number of input parameters to set unit lattice."
-                )
-            fullform: Tuple[Any, ...] = (system,) + shortform
-            self.crystal = Crystal(name, *fullform)
-        else:
-            if not isinstance(shortform[0], str):
-                raise TypeError("Invalid unit cell parameters specified.")
-            self.crystal = Crystal(name, *shortform)
         if self.name is None:
             raise DiffcalcException(
                 "Cannot set lattice until a UBCalcaluation has been started "
                 "with newub."
             )
+
+        self.crystal = Crystal(name, params, system)
 
     ### Reference vector ###
     @property
@@ -1108,9 +1068,11 @@ class UBCalculation:
         Tuple[np.ndarray, Tuple[str, float, float, float, float, float, float]]
             Refined U matrix as NumPy array and refined crystal lattice parameters.
         """
-        scale, lat = self._rescale_unit_cell(hkl, position, wavelength)
+        scale, name, system, lattice = self._rescale_unit_cell(
+            hkl, position, wavelength
+        )
         if scale and refine_lattice:
-            self.set_lattice(*lat)
+            self.set_lattice(name, LatticeParams(*lattice), system)
         mc_angle, mc_axis = self.get_miscut_from_hkl(hkl, position)
         if mc_angle and refine_umatrix:
             self.set_miscut(mc_axis, radians(mc_angle), True)
@@ -1120,7 +1082,17 @@ class UBCalculation:
         indices: Sequence[Union[str, int]],
         refine_lattice: Optional[bool] = False,
         refine_umatrix: Optional[bool] = False,
-    ) -> Tuple[np.ndarray, Tuple[str, float, float, float, float, float, float]]:
+    ) -> Tuple[
+        np.ndarray,
+        Tuple[
+            float,
+            float,
+            float,
+            Union[float, Angle],
+            Union[float, Angle],
+            Union[float, Angle],
+        ],
+    ]:
         """Refine UB matrix using reference reflections.
 
         Parameters
@@ -1137,16 +1109,12 @@ class UBCalculation:
         Tuple[np.ndarray, Tuple[str, float, float, float, float, float, float]]
             Refined U matrix as NumPy array and refined crystal lattice parameters.
         """
-        if indices is None:
-            raise DiffcalcException(
-                "Please specify list of reference reflection indices."
-            )
         if len(indices) < 3:
             raise DiffcalcException(
                 "Need at least 3 reference reflections to fit UB matrix."
             )
 
-        if len(self.crystal.get_lattice_params()[1]) == 6:
+        if len(self.crystal.get_lattice_params()) == 6:
             new_u, new_lattice = self._fit_ub_uncon(indices)
         else:
             refl_list = []
@@ -1162,14 +1130,14 @@ class UBCalculation:
             new_crystal = fit_crystal(self.crystal, refl_list)
             print("Fitting orientation matrix...")
             new_u = fit_u_matrix(self.U, new_crystal, refl_list)
-            new_lattice = (self.crystal.get_lattice()[0],) + new_crystal.get_lattice()[
-                1:
-            ]
-
-        crystal_system = self.crystal.system
+            new_lattice = new_crystal.get_lattice()
 
         if refine_lattice:
-            self.set_lattice(new_lattice[0], crystal_system, *new_lattice[1:])
+            self.set_lattice(
+                self.crystal.name,
+                LatticeParams(*new_lattice),
+                self.crystal.system,
+            )
 
         if refine_umatrix:
             self.set_u(new_u)
@@ -1177,7 +1145,7 @@ class UBCalculation:
 
     def _fit_ub_uncon(
         self, indices: Sequence[Union[str, int]]
-    ) -> Tuple[np.ndarray, Tuple[str, float, float, float, float, float, float]]:
+    ) -> Tuple[np.ndarray, Tuple[float, float, float, float, float, float]]:
         """Refine UB matrix using least-squares solution."""
         if indices is None:
             raise DiffcalcException(
@@ -1220,19 +1188,18 @@ class UBCalculation:
         a2 = cross3(b3.T, b1.T) * 2 * pi / V
         a3 = cross3(b1.T, b2.T) * 2 * pi / V
         ax, bx, cx = float(norm(a1)), float(norm(a2)), float(norm(a3))
+
         alpha = acos(dot3(a2, a3) / (bx * cx))
         beta = acos(dot3(a1, a3) / (ax * cx))
         gamma = acos(dot3(a1, a2) / (ax * bx))
 
-        lattice_name = self.crystal.get_lattice()[0]
         return new_umatrix, (
-            lattice_name,
             ax,
             bx,
             cx,
-            degrees(alpha),
-            degrees(beta),
-            degrees(gamma),
+            alpha,
+            beta,
+            gamma,
         )
 
     def get_miscut(self) -> Tuple[float, np.ndarray]:
@@ -1356,7 +1323,7 @@ class UBCalculation:
 
     def _rescale_unit_cell(
         self, hkl: Tuple[float, float, float], pos: Position, wavelength: float
-    ) -> Tuple[float, Tuple[str, str, float, float, float, float, float, float]]:
+    ) -> Tuple[float, str, str, Tuple[float, float, float, float, float, float]]:
         """Calculate unit cell scaling factor.
 
         Match lattice spacing corresponding to a given miller indices to the
@@ -1378,22 +1345,25 @@ class UBCalculation:
         q_hkl = norm(q_vec) / wavelength
         d_hkl = self.crystal.get_hkl_plane_distance(hkl)
         sc = float(1 / (q_hkl * d_hkl))
-        name, a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
+        a1, a2, a3, alpha1, alpha2, alpha3 = self.crystal.get_lattice()
         if abs(sc - 1.0) < SMALL:
-            return None, None
+            return None, None, None, None
         h, k, l = hkl
         ref_a1 = sc * a1 if abs(h) > SMALL else a1
         ref_a2 = sc * a2 if abs(k) > SMALL else a2
         ref_a3 = sc * a3 if abs(l) > SMALL else a3
-        return sc, (
-            name,
+        return (
+            sc,
+            self.crystal.name,
             self.crystal.system,
-            ref_a1,
-            ref_a2,
-            ref_a3,
-            alpha1,
-            alpha2,
-            alpha3,
+            (
+                ref_a1,
+                ref_a2,
+                ref_a3,
+                alpha1,
+                alpha2,
+                alpha3,
+            ),
         )
 
     @property

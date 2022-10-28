@@ -3,12 +3,27 @@
 A module defining crystal lattice class and auxiliary methods for calculating
 crystal plane geometric properties.
 """
-from math import acos, cos, degrees, pi, radians, sin, sqrt
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from inspect import signature
+from math import acos, cos, pi, sin, sqrt
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from diffcalc.util import allnum, angle_between_vectors, zero_round
+from diffcalc.util import Angle, DiffcalcException, angle_between_vectors, zero_round
 from numpy.linalg import inv
+from pint import Quantity
+
+
+@dataclass
+class LatticeParams:
+    """Lattice parameters to be passed to Crystal class."""
+
+    a: float
+    b: Optional[float] = None
+    c: Optional[float] = None
+    alpha: Optional[Angle] = None
+    beta: Optional[Angle] = None
+    gamma: Optional[Angle] = None
 
 
 class Crystal:
@@ -41,15 +56,7 @@ class Crystal:
     """
 
     def __init__(
-        self,
-        name: str,
-        system: Optional[str] = None,
-        a: Optional[float] = None,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
+        self, name: str, params: LatticeParams, system: Optional[str] = None
     ) -> None:
         """Create a new crystal lattice and calculates B matrix.
 
@@ -73,32 +80,15 @@ class Crystal:
             Crystal lattice angle.
         """
         self.name = name
-        args = tuple(
-            val for val in (system, a, b, c, alpha, beta, gamma) if val is not None
-        )
-        if allnum(args):
-            if len(args) != 6:
-                raise ValueError(
-                    "Crystal definition requires six lattice "
-                    "parameters or crystal system name."
-                )
-            # Set the direct lattice parameters
-            self.system = "Triclinic"
-            self.a1, self.a2, self.a3 = tuple(float(val) for val in args[:3])
-            self.alpha1, self.alpha2, self.alpha3 = tuple(
-                radians(float(val)) for val in args[3:]
-            )
-            self._set_reciprocal_cell(
-                self.a1, self.a2, self.a3, self.alpha1, self.alpha2, self.alpha3
-            )
-        else:
-            if not isinstance(args[0], str):
-                raise ValueError(f"Invalid crystal system name {args[0]}.")
-            self.system = args[0]
-            if allnum(args[1:]):
-                self._set_cell_for_system(system, a, b, c, alpha, beta, gamma)
-            else:
-                raise ValueError("Crystal lattice parameters must be numeric type.")
+        self.a = params.a
+        self.b = params.b
+        self.c = params.c
+        self.alpha = params.alpha
+        self.beta = params.beta
+        self.gamma = params.gamma
+        self.system = system
+
+        self._set_cell_for_system()
 
     def __str__(self) -> str:
         """Represent the crystal lattice information as a string.
@@ -112,19 +102,23 @@ class Crystal:
 
     def _str_lines(self) -> List[str]:
         WIDTH = 13
+        a, b, c, alpha, beta, gamma = self.get_lattice()
         if self.name is None:
             return ["   none specified"]
         lines = []
         lines.append("   name:".ljust(WIDTH) + self.name.rjust(9))
         lines.append("")
-        lines.append(
-            "   a, b, c:".ljust(WIDTH)
-            + "% 9.5f % 9.5f % 9.5f" % (self.get_lattice()[1:4])
-        )
-        lines.append(
-            " " * WIDTH
-            + "% 9.5f % 9.5f % 9.5f  %s" % (self.get_lattice()[4:] + (self.system,))
-        )
+        lines.append("   a, b, c:".ljust(WIDTH) + f"{a: 9.5f} {b: 9.5f} {c: 9.5f}")
+
+        angle_string = ""
+        for angle in (alpha, beta, gamma):
+            if isinstance(angle, Quantity):
+                if angle.units == "degree":
+                    angle_string += "% 9.5f " % angle.magnitude
+            else:
+                angle_string += "% 9.5f " % angle
+
+        lines.append(" " * WIDTH + angle_string + " %s" % self.system)
         lines.append("")
 
         fmt = "% 9.5f % 9.5f % 9.5f"
@@ -159,14 +153,16 @@ class Crystal:
 
     def _set_reciprocal_cell(
         self,
-        a1: float,
-        a2: float,
-        a3: float,
-        alpha1: float,
-        alpha2: float,
-        alpha3: float,
     ) -> None:
-        # Calculate the reciprocal lattice parameters
+        a1, a2, a3 = self.a, self.b, self.c
+        alpha1, alpha2, alpha3 = self.alpha, self.beta, self.gamma
+
+        if (sin(alpha1) == 0.0) or (sin(alpha2) == 0.0) or (sin(alpha3) == 0.0):
+            raise DiffcalcException(
+                "Error setting reciprocal cell: alpha, beta and "
+                + "gamma cannot be multiples of 2 pi."
+            )
+
         beta2 = acos(
             (cos(alpha1) * cos(alpha3) - cos(alpha2)) / (sin(alpha1) * sin(alpha3))
         )
@@ -202,145 +198,149 @@ class Crystal:
             ]
         )
 
-    def get_lattice(self) -> Tuple[str, float, float, float, float, float, float]:
-        """Get all crystal name and crystal lattice parameters.
+    def get_lattice(self) -> Tuple[float, float, float, Angle, Angle, Angle]:
+        """Get crystal lattice parameters.
 
         Returns
         -------
-        Tuple[str, float, float, float, float, float, float]
+        Tuple[str, float, float, float, Angle, Angle, Angle]
             Crystal name and crystal lattice parameters.
         """
         return (
-            self.name,
-            self.a1,
-            self.a2,
-            self.a3,
-            degrees(self.alpha1),
-            degrees(self.alpha2),
-            degrees(self.alpha3),
+            self.a,
+            self.b,
+            self.c,
+            self.alpha,
+            self.beta,
+            self.gamma,
         )
 
-    def get_lattice_params(self) -> Tuple[str, Tuple[float, ...]]:
-        """Get crystal name and non-redundant set of crystal lattice parameters.
+    def get_lattice_params(self) -> Tuple[Union[float, Angle], ...]:
+        """Get non-redundant set of crystal lattice parameters.
 
         Returns
         -------
         Tuple[str, Tuple[float, ...]]
-            Crystal name and minimal set of parameters for the crystal lattice
-            system.
+            minimal set of parameters for the crystal lattice system.
         """
-        try:
-            if self.system == "Triclinic":
-                return self.system, (
-                    self.a1,
-                    self.a2,
-                    self.a3,
-                    degrees(self.alpha1),
-                    degrees(self.alpha2),
-                    degrees(self.alpha3),
-                )
-            elif self.system == "Monoclinic":
-                return self.system, (
-                    self.a1,
-                    self.a2,
-                    self.a3,
-                    degrees(self.alpha2),
-                )
-            elif self.system == "Orthorhombic":
-                return self.system, (self.a1, self.a2, self.a3)
-            elif self.system == "Tetragonal" or self.system == "Hexagonal":
-                return self.system, (self.a1, self.a3)
-            elif self.system == "Rhombohedral":
-                return self.system, (self.a1, degrees(self.alpha1))
-            elif self.system == "Cubic":
-                return self.system, (self.a1,)
-            else:
-                raise TypeError(
-                    "Invalid crystal system parameter: %s" % str(self.system)
-                )
-        except ValueError as e:
-            raise TypeError from e
+        system_mappings: Dict[str, Tuple[Union[float, Angle], ...]] = {
+            "Triclinic": (self.a, self.b, self.c, self.alpha, self.beta, self.gamma),
+            "Monoclinic": (self.a, self.b, self.c, self.beta),
+            "Orthorhombic": (self.a, self.b, self.c),
+            "Tetragonal": (self.a, self.c),
+            "Hexagonal": (self.a, self.c),
+            "Rhombohedral": (self.a, self.alpha),
+            "Cubic": (self.a,),
+        }
 
-    def _get_cell_for_system(
-        self, system: str
+        try:
+            return system_mappings[self.system]
+        except KeyError:
+            raise DiffcalcException(
+                f"Provided crystal system {self.system} is invalid. Please "
+                + f"choose one of: {system_mappings.keys()}"
+            )
+
+    def _set_triclinic_cell(
+        self, a: float, b: float, c: float, alpha: float, beta: float, gamma: float
     ) -> Tuple[float, float, float, float, float, float]:
-        if system == "Triclinic":
-            return (
-                self.a1,
-                self.a2,
-                self.a3,
-                radians(self.alpha1),
-                radians(self.alpha2),
-                radians(self.alpha3),
-            )
-        elif system == "Monoclinic":
-            return (self.a1, self.a2, self.a3, pi / 2, radians(self.alpha2), pi / 2)
-        elif system == "Orthorhombic":
-            return (self.a1, self.a2, self.a3, pi / 2, pi / 2, pi / 2)
-        elif system == "Tetragonal":
-            return (self.a1, self.a1, self.a3, pi / 2, pi / 2, pi / 2)
-        elif system == "Rhombohedral":
-            return (
-                self.a1,
-                self.a1,
-                self.a1,
-                radians(self.alpha1),
-                radians(self.alpha1),
-                radians(self.alpha1),
-            )
-        elif system == "Hexagonal":
-            return (self.a1, self.a1, self.a3, pi / 2, pi / 2, 2 * pi / 3)
-        elif system == "Cubic":
-            return (self.a1, self.a1, self.a1, pi / 2, pi / 2, pi / 2)
-        else:
-            raise TypeError("Invalid crystal system parameter: %s" % str(system))
+        return a, b, c, alpha, beta, gamma
+
+    def _set_monoclinic_cell(
+        self, a: float, b: float, c: float, beta: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, b, c, pi / 2, beta, pi / 2
+
+    def _set_orthorhombic_cell(
+        self, a: float, b: float, c: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, b, c, pi / 2, pi / 2, pi / 2
+
+    def _set_tetragonal_cell(
+        self, a: float, c: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, c, pi / 2, pi / 2, pi / 2
+
+    def _set_hexagonal_cell(
+        self, a: float, c: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, c, pi / 2, pi / 2, 2 * pi / 3
+
+    def _set_rhombohedral_cell(
+        self, a: float, alpha: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, a, alpha, alpha, alpha
+
+    def _set_cubic_cell(
+        self, a: float
+    ) -> Tuple[float, float, float, float, float, float]:
+        return a, a, a, pi / 2, pi / 2, pi / 2
 
     def _set_cell_for_system(
         self,
-        system: str,
-        a: float,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
     ) -> None:
-        args = tuple(val for val in (a, b, c, alpha, beta, gamma) if val is not None)
-        try:
-            if len(args) == 6 or system == "Triclinic":
-                (
-                    self.a1,
-                    self.a2,
-                    self.a3,
-                    self.alpha1,
-                    self.alpha2,
-                    self.alpha3,
-                ) = args
-            elif system == "Monoclinic":
-                (self.a1, self.a2, self.a3, self.alpha2) = args
-            elif system == "Orthorhombic":
-                (self.a1, self.a2, self.a3) = args
-            elif system == "Tetragonal" or system == "Hexagonal":
-                (self.a1, self.a3) = args
-            elif system == "Rhombohedral":
-                (self.a1, self.alpha1) = args
-            elif system == "Cubic":
-                (self.a1,) = args
-            else:
-                raise TypeError("Invalid crystal system parameter: %s" % str(system))
-        except ValueError as e:
-            raise TypeError from e
-        (
-            self.a1,
-            self.a2,
-            self.a3,
-            self.alpha1,
-            self.alpha2,
-            self.alpha3,
-        ) = self._get_cell_for_system(system)
-        self._set_reciprocal_cell(
-            self.a1, self.a2, self.a3, self.alpha1, self.alpha2, self.alpha3
-        )
+        raw_input = [self.a, self.b, self.c, self.alpha, self.beta, self.gamma]
+        params = [entry for entry in raw_input if entry is not None]
+
+        system_mappings: Dict[
+            str, Callable[..., Tuple[float, float, float, float, float, float]]
+        ] = {
+            "Monoclinic": self._set_monoclinic_cell,
+            "Orthorhombic": self._set_orthorhombic_cell,
+            "Hexagonal": self._set_hexagonal_cell,
+            "Rhombohedral": self._set_rhombohedral_cell,
+            "Tetragonal": self._set_tetragonal_cell,
+            "Cubic": self._set_cubic_cell,
+        }
+
+        required_lengths = {
+            len(signature(method).parameters): system
+            for system, method in system_mappings.items()
+        }
+        required_lengths[6] = "Triclinic"
+
+        system = self.system
+        if system is None:
+            try:
+                system = required_lengths[len(params)]
+            except KeyError:
+                raise DiffcalcException(
+                    f"{len(params)} were given, but no such system"
+                    + "requires this many parameters. Required parameter lengths are "
+                    + f"{required_lengths} for each system."
+                )
+        else:
+            if system not in system_mappings.keys() and system != "Triclinic":
+                raise DiffcalcException(
+                    f"Provided crystal system {self.system} is invalid. Please "
+                    + f"choose one of: {system_mappings.keys()}"
+                )
+            minimum_length = (
+                len(signature(system_mappings[system]).parameters)
+                if system != "Triclinic"
+                else 6
+            )
+
+            if (len(params) != minimum_length) and (len(params) != 6):
+                raise DiffcalcException(
+                    "Parameters to construct the Crystal do not match specified system."
+                    + f" {self.system} system requires either exactly {minimum_length} "
+                    + f"parameter(s) or 6 but got {len(params)}."
+                )
+
+        if len(params) < 6:
+            system_method = system_mappings[system]
+            (a, b, c, alpha, beta, gamma) = system_method(*params)
+
+            self.a = a
+            self.b = b
+            self.c = c
+            self.alpha = alpha
+            self.beta = beta
+            self.gamma = gamma
+
+        self.system = system
+        self._set_reciprocal_cell()
 
     def get_hkl_plane_distance(self, hkl: Tuple[float, float, float]) -> float:
         """Calculate distance between crystal lattice planes.
@@ -402,11 +402,8 @@ class Crystal:
         """
         return {
             "name": self.name,
+            "params": LatticeParams(
+                self.a, self.b, self.c, self.alpha, self.beta, self.gamma
+            ),
             "system": self.system,
-            "a": self.a1,
-            "b": self.a2,
-            "c": self.a3,
-            "alpha": degrees(self.alpha1),
-            "beta": degrees(self.alpha2),
-            "gamma": degrees(self.alpha3),
         }

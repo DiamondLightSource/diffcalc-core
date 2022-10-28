@@ -8,6 +8,7 @@ from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException
 
 from tests.diffcalc.hkl.test_calc import (
@@ -31,7 +32,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1))
     configure_ub(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())
@@ -43,7 +44,7 @@ def cubic_ub() -> UBCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", 1.0)
+    ubcalc.set_lattice("Cubic", LatticeParams(1))
     return ubcalc
 
 
@@ -467,7 +468,7 @@ def test_one_parallel_vector_still_fails_even_if_rotated(
     ],
 )
 def test_against_spec_sixc_b16_270608(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("name", 3.8401, 5.43072)
+    hklcalc.ubcalc.set_lattice("name", LatticeParams(3.8401, 5.43072))
     u_matrix = np.array(
         (
             (0.997161, -0.062217, 0.042420),
@@ -489,7 +490,7 @@ def test_against_spec_sixc_b16_270608(hklcalc: HklCalculation, case: Case):
     ],
 )
 def test_i16_ga_as_example(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("xtal", 5.65315)
+    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(5.65315))
     hklcalc.ubcalc.set_u(
         np.array(
             [
@@ -522,7 +523,7 @@ def test_i16_ga_as_example(hklcalc: HklCalculation, case: Case):
     ],
 )
 def test_i21(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("xtal", 3.78, 20.10)
+    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(3.78, 20.10))
     hklcalc.ubcalc.n_phi = (0, 0, 1)
 
     hklcalc.ubcalc.set_u(

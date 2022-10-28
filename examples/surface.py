@@ -14,6 +14,7 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 
 
 def position_in_range(pos: Position) -> bool:
@@ -191,7 +192,7 @@ def demo_scan_hkl():
 if __name__ == "__main__":
     ubcalc = UBCalculation("surface")
 
-    ubcalc.set_lattice("SiO2", 4.913, 5.405)
+    ubcalc.set_lattice("SiO2", LatticeParams(4.913, 5.405))
 
     ubcalc.n_phi = (0, 0, 1)
 
