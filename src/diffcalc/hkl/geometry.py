@@ -12,17 +12,8 @@ from math import degrees
 from typing import Dict, Tuple
 
 import numpy as np
-from diffcalc import Q
-from diffcalc.util import (
-    Angle,
-    DiffcalcException,
-    I,
-    x_rotation,
-    y_rotation,
-    z_rotation,
-)
+from diffcalc.util import I, x_rotation, y_rotation, z_rotation
 from numpy.linalg import inv
-from pint import Quantity
 
 
 class Position:
@@ -62,31 +53,19 @@ class Position:
 
     def __init__(
         self,
-        mu: Angle = 0.0,
-        delta: Angle = 0.0,
-        nu: Angle = 0.0,
-        eta: Angle = 0.0,
-        chi: Angle = 0.0,
-        phi: Angle = 0.0,
+        mu: float = 0.0,
+        delta: float = 0.0,
+        nu: float = 0.0,
+        eta: float = 0.0,
+        chi: float = 0.0,
+        phi: float = 0.0,
     ):
-        self.mu: Angle = mu
-        self.delta: Angle = delta
-        self.nu: Angle = nu
-        self.eta: Angle = eta
-        self.chi: Angle = chi
-        self.phi: Angle = phi
-
-        quantities_dimensionless = [
-            getattr(self, field).dimensionless
-            for field in self.fields
-            if isinstance(getattr(self, field), Quantity)
-        ]
-
-        if False in quantities_dimensionless:
-            raise DiffcalcException(
-                "found non dimensionless field for Position object. If using pint to "
-                + "define quantities, use either .deg or .rad on unit registry."
-            )
+        self.mu: float = mu
+        self.delta: float = delta
+        self.nu: float = nu
+        self.eta: float = eta
+        self.chi: float = chi
+        self.phi: float = phi
 
     def __str__(self):
         """Represent Position object information as a string.
@@ -96,11 +75,9 @@ class Position:
         str
             Position object string representation.
         """
-        values = {
-            key: value.magnitude if isinstance(value, Quantity) else value
-            for key, value in self.asdict.items()
-        }
-        return f"Position({', '.join((f'{k}: {v:.4f}' for k, v in values.items()))})"
+        return (
+            f"Position({', '.join((f'{k}: {v:.4f}' for k, v in self.asdict.items()))})"
+        )
 
     def __eq__(self, other):
         """Check if two Position objects are equivalent.
@@ -134,7 +111,7 @@ class Position:
         Position
             New Position object with angles in degrees.
         """
-        pos_in_deg = {k: Q(degrees(v), "deg") for k, v in pos.asdict.items()}
+        pos_in_deg = {k: degrees(v) for k, v in pos.asdict.items()}
         return cls(**pos_in_deg)
 
     @classmethod
@@ -155,7 +132,7 @@ class Position:
         return cls(**pos_in_rad)
 
     @property
-    def asdict(self) -> Dict[str, Angle]:
+    def asdict(self) -> Dict[str, float]:
         """Return dictionary of diffractometer angles.
 
         Returns
@@ -166,7 +143,7 @@ class Position:
         return {field: getattr(self, field) for field in self.fields}
 
     @property
-    def astuple(self) -> Tuple[Angle, Angle, Angle, Angle, Angle, Angle]:
+    def astuple(self) -> Tuple[float, float, float, float, float, float]:
         """Return tuple of diffractometer angles.
 
         Returns
@@ -200,13 +177,16 @@ def get_rotation_matrices(
     """
     mu, delta, nu, eta, chi, phi = pos.astuple
     return (
-        rot_MU(float(mu)),
-        rot_DELTA(float(delta)),
-        rot_NU(float(nu)),
-        rot_ETA(float(eta)),
-        rot_CHI(float(chi)),
-        rot_PHI(float(phi)),
+        rot_MU(mu),
+        rot_DELTA(delta),
+        rot_NU(nu),
+        rot_ETA(eta),
+        rot_CHI(chi),
+        rot_PHI(phi),
     )
+
+
+# TODO: these below functions are all variations, you can shorten it.
 
 
 def rot_NU(nu: float) -> np.ndarray:

@@ -6,15 +6,15 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
-from diffcalc import Q, ureg
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import Angle, DiffcalcException, I, y_rotation, z_rotation
+from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
 from typing_extensions import Literal
 
+from tests.diffcalc import Q, ureg
 from tests.tools import (
     assert_array_almost_equal_in_list,
     assert_dict_almost_in_list,
@@ -94,7 +94,7 @@ def convert_position_to_hkl_and_hkl_to_position(
     hklcalc: HklCalculation,
     case: Case,
     places: int = 5,
-    expected_virtual: Dict[str, Union[Angle, Literal["True"]]] = {},
+    expected_virtual: Dict[str, Union[float, Literal["True"]]] = {},
     asdegrees: bool = True,
 ) -> None:
 
@@ -105,13 +105,13 @@ def convert_position_to_hkl_and_hkl_to_position(
 
     assert np.all(np.round(hkl, places) == np.round(case.hkl, places))
 
-    pos_virtual_angles_pairs_in_degrees = hklcalc.get_position(
+    pos_virtual_floats_pairs_in_degrees = hklcalc.get_position(
         case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength, asdegrees=asdegrees
     )
 
-    pos = [result[0] for result in pos_virtual_angles_pairs_in_degrees]
+    pos = [result[0] for result in pos_virtual_floats_pairs_in_degrees]
     virtual_from_get_position = [
-        result[1] for result in pos_virtual_angles_pairs_in_degrees
+        result[1] for result in pos_virtual_floats_pairs_in_degrees
     ]
 
     assert_array_almost_equal_in_list(
@@ -158,8 +158,8 @@ def test_str():
                     betaout
 
     nu   : 0.0000
-    psi  : 90.0000
-    phi  : 90.0000
+    psi  : 90.0000 degree
+    phi  : 90.0000 degree
 """
     )
 
@@ -247,16 +247,16 @@ def test_fails_for_parallel_vectors(
         convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
 
 
-def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
+def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_float(
     cubic_ub: UBCalculation,
 ):
     configure_ub(cubic_ub)
     cubic_ub.n_hkl = (1, -1, 0)  # type: ignore
     hklcalc = HklCalculation(cubic_ub, Constraints({"nu": 0.0, "chi": 0.0, "phi": 0.0}))
-    virtual_angles = hklcalc.get_virtual_angles(
+    virtual_floats = hklcalc.get_virtual_angles(
         Position(0, 180 * ureg.deg, 0, 90 * ureg.deg, 0, 0)
     )
-    assert isnan(virtual_angles["psi"])
+    assert isnan(virtual_floats["psi"])
 
 
 @pytest.mark.parametrize(
@@ -278,7 +278,7 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_angle(
         ),
     ],
 )
-def test_redundant_solutions_when_calculating_remaining_detector_angles(
+def test_redundant_solutions_when_calculating_remaining_detector_floats(
     cubic_ub: UBCalculation,
     constraints: Dict[str, float],
     zrot: float,
@@ -427,7 +427,7 @@ def test_get_hkl(cubic_ub: UBCalculation, case: Case):
         ),
     ],
 )
-def test_get_virtual_angles_calculates_correct_angles(
+def test_get_virtual_angles_calculates_correct_floats(
     hkl_mocked_constraints: HklCalculation,
     angle: str,
     expected_values_for_positions: Dict[
@@ -436,27 +436,29 @@ def test_get_virtual_angles_calculates_correct_angles(
 ):
     for expected_value, positions in expected_values_for_positions.items():
         for each_position in positions:
-            virtual_angles = hkl_mocked_constraints.get_virtual_angles(
+            virtual_floats = hkl_mocked_constraints.get_virtual_angles(
                 Position(*each_position * ureg.deg)
             )
-            assert np.round(virtual_angles[angle], 8) == expected_value
+            assert np.round(virtual_floats[angle], 8) == np.round(
+                radians(expected_value), 8
+            )
 
 
 @pytest.mark.parametrize(
-    ("angle", "positions"),
+    ("float", "positions"),
     [
         ("beta", [(0, 0, 0, 0, 0, 0)]),
         ("tau", [(0, 0, 0, 0, 0, 0)]),
         ("psi", [(0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 90, 0)]),
     ],
 )
-def test_get_virtual_angles_correctly_returns_nan_angles_for_some_positions(
+def test_get_virtual_angles_correctly_returns_nan_floats_for_some_positions(
     hkl_mocked_constraints: HklCalculation,
-    angle: str,
+    float: str,
     positions: List[Tuple[float, float, float, float, float, float]],
 ):
     for each_position in positions:
         calculated_value = hkl_mocked_constraints.get_virtual_angles(
             Position(*each_position * ureg.deg)
-        )[angle]
+        )[float]
         assert isnan(calculated_value)

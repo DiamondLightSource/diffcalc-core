@@ -6,12 +6,11 @@ crystal plane geometric properties.
 from dataclasses import dataclass
 from inspect import signature
 from math import acos, cos, pi, sin, sqrt
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from diffcalc.util import Angle, DiffcalcException, angle_between_vectors, zero_round
+from diffcalc.util import DiffcalcException, angle_between_vectors, zero_round
 from numpy.linalg import inv
-from pint import Quantity
 
 
 @dataclass
@@ -21,9 +20,9 @@ class LatticeParams:
     a: float
     b: Optional[float] = None
     c: Optional[float] = None
-    alpha: Optional[Angle] = None
-    beta: Optional[Angle] = None
-    gamma: Optional[Angle] = None
+    alpha: Optional[float] = None
+    beta: Optional[float] = None
+    gamma: Optional[float] = None
 
 
 class Crystal:
@@ -108,17 +107,15 @@ class Crystal:
         lines = []
         lines.append("   name:".ljust(WIDTH) + self.name.rjust(9))
         lines.append("")
-        lines.append("   a, b, c:".ljust(WIDTH) + f"{a: 9.5f} {b: 9.5f} {c: 9.5f}")
+        lines.append(
+            "   a, b, c:".ljust(WIDTH) + f"{a: 9.5f}        {b: 9.5f}        {c: 9.5f}"
+        )
 
-        angle_string = ""
-        for angle in (alpha, beta, gamma):
-            if isinstance(angle, Quantity):
-                if angle.units == "degree":
-                    angle_string += "% 9.5f " % angle.magnitude
-            else:
-                angle_string += "% 9.5f " % angle
-
-        lines.append(" " * WIDTH + angle_string + " %s" % self.system)
+        lines.append(
+            " " * WIDTH
+            + f"  {alpha:9.5f}  {beta:9.5f}  {gamma:9.5f} "
+            + " %s" % self.system
+        )
         lines.append("")
 
         fmt = "% 9.5f % 9.5f % 9.5f"
@@ -198,7 +195,7 @@ class Crystal:
             ]
         )
 
-    def get_lattice(self) -> Tuple[float, float, float, Angle, Angle, Angle]:
+    def get_lattice(self) -> Tuple[float, float, float, float, float, float]:
         """Get crystal lattice parameters.
 
         Returns
@@ -215,7 +212,7 @@ class Crystal:
             self.gamma,
         )
 
-    def get_lattice_params(self) -> Tuple[Union[float, Angle], ...]:
+    def get_lattice_params(self) -> Tuple[float, ...]:
         """Get non-redundant set of crystal lattice parameters.
 
         Returns
@@ -223,7 +220,7 @@ class Crystal:
         Tuple[str, Tuple[float, ...]]
             minimal set of parameters for the crystal lattice system.
         """
-        system_mappings: Dict[str, Tuple[Union[float, Angle], ...]] = {
+        system_mappings: Dict[str, Tuple[float, ...]] = {
             "Triclinic": (self.a, self.b, self.c, self.alpha, self.beta, self.gamma),
             "Monoclinic": (self.a, self.b, self.c, self.beta),
             "Orthorhombic": (self.a, self.b, self.c),

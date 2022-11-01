@@ -3,11 +3,11 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
-from diffcalc import Q, ureg
 from diffcalc.hkl.constraints import TYPE, Constraint, Constraints
-from diffcalc.util import Angle, DiffcalcException
+from diffcalc.util import DiffcalcException
 from typing_extensions import Literal
 
+from tests.diffcalc import Q, ureg
 from tests.test_tools import eq_
 from tests.tools import assert_dict_almost_equal
 
@@ -81,9 +81,9 @@ def test_constraining_and_unconstraining_each_constraint(
     [{"nu": 0, "mu": 0, "a_eq_b": None}, {"nu": 3, "mu": 4, "a_eq_b": True}],
 )
 def test_as_dict_setter_and_getter(
-    cm: Constraints, con_dict: Dict[str, Optional[Union[Angle, Literal["True"]]]]
+    cm: Constraints, con_dict: Dict[str, Optional[Union[float, Literal["True"]]]]
 ):
-    non_null_con_dict: Dict[str, Union[Angle, Literal["True"]]] = {
+    non_null_con_dict: Dict[str, Union[float, Literal["True"]]] = {
         k: v for k, v in con_dict.items() if v is not None
     }
     cm.asdict = con_dict
@@ -328,7 +328,7 @@ def test_adding_sample_constraint_to_existing_set_of_constraints(
 )
 def test_report_constraints_lines(
     cm: Constraints,
-    con_dict: Dict[str, Optional[Union[Angle, Literal["True"]]]],
+    con_dict: Dict[str, Optional[Union[float, Literal["True"]]]],
     expected_lines: List[str],
 ):
     cm.asdict = con_dict

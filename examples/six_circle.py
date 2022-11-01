@@ -6,10 +6,10 @@ different constraints, e.g. scattering plane and reference vector orientations.
 """
 
 from itertools import product
+from math import degrees
 from pprint import pprint
 
 import numpy as np
-from diffcalc import Q
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
@@ -102,15 +102,15 @@ def demo_scan_hkl():
         pos, virtual_angles = next(iter(hklcalc.get_position(h, 0, l, wavelength)))
         print(
             f"[{h:2.1f} 0 {l:2.1f}] "
-            f"{pos.mu:12.3f}"
-            f"{pos.delta:12.3f}"
-            f"{pos.nu:12.3f}"
-            f"{pos.eta:12.3f}"
-            f"{pos.chi:12.3f}"
-            f"{pos.phi:12.3f}"
-            f"{virtual_angles['alpha']:12.3f}"
-            f"{virtual_angles['beta']:12.3f}"
-            f"{virtual_angles['theta']:12.3f}"
+            f"{degrees(pos.mu):12.3f}"
+            f"{degrees(pos.delta):12.3f}"
+            f"{degrees(pos.nu):12.3f}"
+            f"{degrees(pos.eta):12.3f}"
+            f"{degrees(pos.chi):12.3f}"
+            f"{degrees(pos.phi):12.3f}"
+            f"{degrees(virtual_angles['alpha']):12.3f}"
+            f"{degrees(virtual_angles['beta']):12.3f}"
+            f"{degrees(virtual_angles['theta']):12.3f}"
         )
 
 
@@ -126,12 +126,12 @@ def demo_scan_alpha():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
-                    f"{virtual_angles['alpha']:6.2f}"
-                    f"{pos.mu:12.3f}"
-                    f"{pos.nu:12.3f}"
-                    f"{pos.chi:12.3f}"
-                    f"{pos.phi:12.3f}"
-                    f"{virtual_angles['theta']:12.3f}"
+                    f"{degrees(virtual_angles['alpha']):6.2f}"
+                    f"{degrees(pos.mu):12.3f}"
+                    f"{degrees(pos.nu):12.3f}"
+                    f"{degrees(pos.chi):12.3f}"
+                    f"{degrees(pos.phi):12.3f}"
+                    f"{degrees(virtual_angles['theta']):12.3f}"
                 )
 
 
@@ -147,13 +147,13 @@ def demo_scan_qaz():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
-                    f"{virtual_angles['qaz']:6.2f}"
-                    f"{pos.mu:12.3f}"
-                    f"{pos.delta:12.3f}"
-                    f"{pos.nu:12.3f}"
-                    f"{pos.chi:12.3f}"
-                    f"{pos.phi:12.3f}"
-                    f"{virtual_angles['psi']:12.3f}"
+                    f"{degrees(virtual_angles['qaz']):12.3f}"
+                    f"{degrees(pos.mu):12.3f}"
+                    f"{degrees(pos.delta):12.3f}"
+                    f"{degrees(pos.nu):12.3f}"
+                    f"{degrees(pos.chi):12.3f}"
+                    f"{degrees(pos.phi):12.3f}"
+                    f"{degrees(virtual_angles['psi']):6.2f}"
                 )
 
 
@@ -169,14 +169,14 @@ def demo_scan_psi():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
-                    f"{virtual_angles['psi']:6.2f}"
-                    f"{pos.mu:12.3f}"
-                    f"{pos.delta:12.3f}"
-                    f"{pos.nu:12.3f}"
-                    f"{pos.eta:12.3f}"
-                    f"{pos.chi:12.3f}"
-                    f"{pos.phi:12.3f}"
-                    f"{virtual_angles['qaz']:12.3f}"
+                    f"{degrees(virtual_angles['psi']):6.2f}"
+                    f"{degrees(pos.mu):12.3f}"
+                    f"{degrees(pos.delta):12.3f}"
+                    f"{degrees(pos.nu):12.3f}"
+                    f"{degrees(pos.eta):12.3f}"
+                    f"{degrees(pos.chi):12.3f}"
+                    f"{degrees(pos.phi):12.3f}"
+                    f"{degrees(virtual_angles['qaz']):12.3f}"
                 )
 
     print("\n\nResetting crystal miscut to 0 (i.e. setting identity U matrix)\n")
@@ -191,18 +191,23 @@ def demo_scan_psi():
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
-                    f"{virtual_angles['psi']:6.2f}"
-                    f"{pos.mu:12.3f}"
-                    f"{pos.delta:12.3f}"
-                    f"{pos.nu:12.3f}"
-                    f"{pos.eta:12.3f}"
-                    f"{pos.chi:12.3f}"
-                    f"{pos.phi:12.3f}"
-                    f"{virtual_angles['qaz']:12.3f}"
+                    f"{degrees(virtual_angles['psi']):6.2f}"
+                    f"{degrees(pos.mu):12.3f}"
+                    f"{degrees(pos.delta):12.3f}"
+                    f"{degrees(pos.nu):12.3f}"
+                    f"{degrees(pos.eta):12.3f}"
+                    f"{degrees(pos.chi):12.3f}"
+                    f"{degrees(pos.phi):12.3f}"
+                    f"{degrees(virtual_angles['qaz']):12.3f}"
                 )
 
 
 if __name__ == "__main__":
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    Q = ureg.Quantity
+
     ubcalc = UBCalculation("sixcircle")
 
     ubcalc.set_lattice("SiO2", LatticeParams(4.913, 5.405))
@@ -211,7 +216,7 @@ if __name__ == "__main__":
 
     ubcalc.add_reflection(
         (0, 0, 1),
-        Position(7.31, 0.0, 10.62, 0, 0.0, 0),
+        Position(Q(7.31, "deg"), 0.0, Q(10.62, "deg"), 0, 0.0, 0),
         12.39842,
         "refl1",
     )
@@ -240,5 +245,5 @@ if __name__ == "__main__":
 
     demo_scan_qaz()
 
-    cons.asdict = {"qaz": 90, "chi": 90}
+    cons.asdict = {"qaz": Q(90, "deg"), "chi": Q(90, "deg")}
     demo_scan_psi()

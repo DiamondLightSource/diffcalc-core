@@ -1,17 +1,17 @@
-from math import pi
+from math import pi, radians
 from typing import Dict, Union
 
 import numpy as np
 import pytest
-from diffcalc import Q, ureg
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import Angle, DiffcalcException, I
+from diffcalc.util import DiffcalcException, I
 from typing_extensions import Literal
 
+from tests.diffcalc import Q, ureg
 from tests.diffcalc.hkl.test_calc import (
     Case,
     convert_position_to_hkl_and_hkl_to_position,
@@ -45,26 +45,26 @@ def cubic() -> HklCalculation:
     [
         (
             Case("", (0, 0, 1), (-90, 60, 0, 0, 120, 90)),
-            {"betain": 30, "betaout": 30},
+            {"betain": pi / 6, "betaout": pi / 6},
         ),
         (
             Case("", (0, 1, 1), (-90, 90, 0, 0, 90, 90)),
-            {"betain": 0, "betaout": 90},
+            {"betain": 0, "betaout": pi / 2},
         ),
         (
             Case("", (0, 1, 0), (-90, 60, 0, 0, 30, 90)),
-            {"betain": -60, "betaout": 60},
+            {"betain": -pi / 3, "betaout": pi / 3},
         ),
         (
             Case("", (1, 1, 0), (-90, 90, 0, 0, 45, 45)),
-            {"alpha": 30, "beta": 30},
+            {"alpha": pi / 6, "beta": pi / 6},
         ),
     ],
 )
 def test_surface_normal_vertical_cubic(
     cubic: HklCalculation,
     case: Case,
-    expected_virtual: Dict[str, Union[Angle, Literal["True"]]],
+    expected_virtual: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints.asdict = {"a_eq_b": True, "mu": -pi / 2, "eta": 0}
 
@@ -184,7 +184,9 @@ def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
         )
     )
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, places, {"alpha": 2})
+    convert_position_to_hkl_and_hkl_to_position(
+        hklcalc, case, places, {"alpha": Q(2, "deg")}
+    )
 
 
 def test_ub_with_willmot_si_5_5_12_mu_chi_fixed():
@@ -366,7 +368,9 @@ def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
         )
     )
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, places, {"alpha": 2})
+    convert_position_to_hkl_and_hkl_to_position(
+        hklcalc, case, places, {"alpha": radians(2)}
+    )
 
 
 @pytest.mark.parametrize(
@@ -418,4 +422,6 @@ def test_pt531_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
         )
     )
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, places, {"alpha": 2})
+    convert_position_to_hkl_and_hkl_to_position(
+        hklcalc, case, places, {"alpha": radians(2)}
+    )

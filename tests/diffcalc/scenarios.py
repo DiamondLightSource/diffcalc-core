@@ -1,9 +1,10 @@
 from math import asin, atan2, cos, degrees, pi, radians, sin
 
-from diffcalc import Q
 from diffcalc.hkl.calc import sign
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.reference import Reflection
+
+from tests.diffcalc import Q
 
 
 def PosFromI16sEuler(phi, chi, eta, mu, delta, gamma):

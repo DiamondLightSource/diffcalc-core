@@ -4,8 +4,7 @@ from enum import Enum
 from itertools import zip_longest
 from typing import Collection, Dict, List, Optional, Tuple, Union
 
-from diffcalc.util import Angle, DiffcalcException
-from pint import Quantity
+from diffcalc.util import DiffcalcException
 from typing_extensions import Literal
 
 CATEGORY = Enum("CATEGORY", "DETECTOR REFERENCE SAMPLE")
@@ -19,7 +18,7 @@ class Constraint:
     name: str
     category: CATEGORY
     type: TYPE
-    value: Optional[Union[Angle, Literal["True"]]] = None
+    value: Optional[Union[float, Literal["True"]]] = None
 
     @property
     def active(self) -> bool:
@@ -66,8 +65,8 @@ class Constraints:
         self,
         constraints: Optional[
             Union[
-                Dict[str, Union[Angle, Literal["True"]]],
-                Collection[Union[Tuple[str, Angle], str]],
+                Dict[str, Union[float, Literal["True"]]],
+                Collection[Union[Tuple[str, float], str]],
             ]
         ] = None,
     ):
@@ -124,7 +123,7 @@ class Constraints:
                 )
 
     @property
-    def asdict(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+    def asdict(self) -> Dict[str, Union[float, Literal["True"]]]:
         """Get all constrained angle names and values.
 
         Returns
@@ -135,7 +134,7 @@ class Constraints:
         return {con.name: con.value for con in self.all if con.active}
 
     @asdict.setter
-    def asdict(self, constraints: Dict[str, Union[Angle, Literal["True"]]]):
+    def asdict(self, constraints: Dict[str, Union[float, Literal["True"]]]):
         self.clear()
         for con_name, con_value in constraints.items():
             if hasattr(self, con_name):
@@ -147,7 +146,7 @@ class Constraints:
     @property
     def astuple(
         self,
-    ) -> Tuple[Union[Tuple[str, Union[Angle, Literal["True"]]], str], ...]:
+    ) -> Tuple[Union[Tuple[str, Union[float, Literal["True"]]], str], ...]:
         """Get all constrained angle names and values.
 
         Returns
@@ -166,13 +165,13 @@ class Constraints:
     @astuple.setter
     def astuple(
         self,
-        constraints: Tuple[Union[Tuple[str, Union[Angle, Literal["True"]]], str], ...],
+        constraints: Tuple[Union[Tuple[str, Union[float, Literal["True"]]], str], ...],
     ) -> None:
         self.clear()
         for con in constraints:
 
             con_name = con if isinstance(con, str) else con[0]
-            con_value: Union[Angle, Literal["True"]] = (
+            con_value: Union[float, Literal["True"]] = (
                 True if isinstance(con, str) else con[1]
             )
 
@@ -183,20 +182,13 @@ class Constraints:
                 raise DiffcalcException(f"Invalid constraint parameter: {con_name}")
 
     def set_constraint(
-        self, con: Constraint, value: Optional[Union[Angle, Literal["True"]]]
+        self, con: Constraint, value: Optional[Union[float, Literal["True"]]]
     ) -> None:
         """Set a single constraint."""
 
-        def set_value(val: Optional[Union[Angle, Literal["True"]]]) -> None:
+        def set_value(val: Optional[Union[float, Literal["True"]]]) -> None:
             if con.type == TYPE.VALUE:
-                if isinstance(val, Quantity):
-                    if not val.dimensionless:
-                        raise DiffcalcException(
-                            f"Non dimensionless units found for {con.name} constraint."
-                            f" Please use .deg or .rad units from the diffcalc.ureg "
-                            "registry."
-                        )
-                elif val is True:
+                if val is True:
                     raise DiffcalcException(
                         f"Constraint {con.name} requires numerical value. "
                         'Found "True" instead.'
@@ -236,7 +228,7 @@ class Constraints:
         return tuple(con for con in self.all if con.active)
 
     @property
-    def detector(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+    def detector(self) -> Dict[str, Union[float, Literal["True"]]]:
         """Produce dictionary of all active detector constraints."""
         return {
             con.name: con.value
@@ -245,7 +237,7 @@ class Constraints:
         }
 
     @property
-    def reference(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+    def reference(self) -> Dict[str, Union[float, Literal["True"]]]:
         """Produce dictionary of all active reference constraints."""
         return {
             con.name: con.value
@@ -254,7 +246,7 @@ class Constraints:
         }
 
     @property
-    def sample(self) -> Dict[str, Union[Angle, Literal["True"]]]:
+    def sample(self) -> Dict[str, Union[float, Literal["True"]]]:
         """Produce dictionary of all active sample constraints."""
         return {
             con.name: con.value
@@ -364,11 +356,12 @@ class Constraints:
         return
 
     def constrain(
-        self, con_name: str, value: Optional[Union[Angle, Literal["True"]]] = None
+        self, con_name: str, value: Optional[Union[float, Literal["True"]]] = None
     ) -> None:
         """Set the value of a single constraint."""
         if hasattr(self, con_name):
             constraint: Constraint = getattr(self, con_name)
+            value = True if value is None else value
             self.set_constraint(constraint, value)
         else:
             raise DiffcalcException(f"Invalid constraint name: {con_name}")
@@ -442,10 +435,7 @@ class Constraints:
         if con.type is TYPE.VOID:
             return "    %s" % con.name
 
-        if isinstance(val, Quantity):
-            return f"    {con.name:<5}: {val.magnitude:.4f}"
-        else:
-            return f"    {con.name:<5}: {val:.4f}"
+        return f"    {con.name:<5}: {val:.4f}"
 
     def _report_constraints_lines(self) -> List[str]:
         lines = []

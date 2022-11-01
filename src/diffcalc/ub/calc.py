@@ -1121,7 +1121,7 @@ class UBCalculation:
             new_crystal = fit_crystal(self.crystal, refl_list)
             print("Fitting orientation matrix...")
             new_u = fit_u_matrix(self.U, new_crystal, refl_list)
-            new_lattice = tuple([float(i) for i in new_crystal.get_lattice()])
+            new_lattice = tuple(float(i) for i in new_crystal.get_lattice())
 
         if refine_lattice:
             self.set_lattice(

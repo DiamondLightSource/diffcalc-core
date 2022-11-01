@@ -1,13 +1,11 @@
 """Collection of auxiliary mathematical methods."""
 from math import acos, cos, isclose, sin
-from typing import Any, Sequence, Tuple, Union
+from typing import Tuple
 
 import numpy as np
 from numpy.linalg import norm
-from pint import Quantity
 from scipy.spatial.transform import Rotation
 
-Angle = Union[float, int, Quantity]
 I: np.ndarray = np.identity(3)
 
 SMALL: float = 1e-7
@@ -213,38 +211,6 @@ def radians_equivalent(first: float, second: float, tolerance: float = SMALL) ->
     """
     diff = sin((first - second) / 2.0)
     return is_small(diff, tolerance)
-
-
-def isnum(o: Any) -> bool:
-    """Check if the input object type is either int or float.
-
-    Parameters
-    ----------
-    o: Any
-        Input object to be checked.
-
-    Returns
-    -------
-    bool
-        If object type is either int or float.
-    """
-    return isinstance(o, (int, float))
-
-
-def allnum(lst: Sequence[Any]) -> bool:
-    """Check if all object types in the input sequence are either int or float.
-
-    Parameters
-    ----------
-    o: Sequence[Any]
-        Input object sequence to be checked.
-
-    Returns
-    -------
-    bool
-        If all object types in th sequence are either int or float.
-    """
-    return not [o for o in lst if not isnum(o)]
 
 
 def is_small(x, tolerance=SMALL) -> bool:

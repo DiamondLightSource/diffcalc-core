@@ -18,8 +18,8 @@
 
 from math import radians
 
+import numpy as np
 from diffcalc.util import SMALL, radians_equivalent
-from pytest import approx
 
 
 #
@@ -30,9 +30,9 @@ def format_note(note):
 
 def assert_almost_equal(first, second, places=7, msg=None):
     if msg:
-        assert first == approx(second, rel=pow(10, -places), abs=pow(10, -places)), msg
+        assert np.round(float(first), places) == np.round(float(second), places), msg
     else:
-        assert first == approx(second, rel=pow(10, -places), abs=pow(10, -places))
+        assert np.round(float(first), places) == np.round(float(second), places)
 
 
 def assert_array_almost_equal(first, second, places=7, msg=None, note=None):

@@ -16,8 +16,8 @@ CRYSTAL
 
    name:          xtal
 
-   a, b, c:    1.00000   1.00000   1.00000
-              90.00000  90.00000  90.00000  Cubic
+   a, b, c:    1.00000          1.00000          1.00000
+               90.00000 degree  90.00000 degree  90.00000 degree  Cubic
 
    B matrix:   6.28319   0.00000   0.00000
                0.00000   6.28319   0.00000
@@ -40,9 +40,9 @@ UB MATRIX
 REFLECTIONS
 
      ENERGY     H     K     L        MU    DELTA       NU      ETA      CHI      PHI  TAG
-   1 12.400  0.00  0.00  1.00    0.0000  60.0000   0.0000  30.0000   0.0000   0.0000  ref1
+   1 12.400  0.00  0.00  1.00     0.0000  60.0000 degree    0.0000  30.0000 degree    0.0000    0.0000 ref1
 
 CRYSTAL ORIENTATIONS
 
          H     K     L       X     Y     Z        MU    DELTA       NU      ETA      CHI      PHI  TAG
-   1  0.00  1.00  0.00   0.00  1.00  0.00    1.0000   0.0000   0.0000   0.0000   2.0000   0.0000  orient1
+   1  0.00  1.00  0.00   0.00  1.00  0.00    0.7854   0.0000   0.0000   0.0000   1.0300   0.0000  orient1

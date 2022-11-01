@@ -2,11 +2,10 @@ from math import atan, pi, sqrt
 
 import numpy as np
 import pytest
-from diffcalc import Q
 from diffcalc.ub.crystal import Crystal, LatticeParams
 from diffcalc.util import DiffcalcException
 
-from tests.diffcalc import scenarios
+from tests.diffcalc import Q, scenarios
 
 
 def test_correct_b_matrix_from_init():

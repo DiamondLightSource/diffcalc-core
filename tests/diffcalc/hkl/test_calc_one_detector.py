@@ -4,7 +4,6 @@ from typing import Dict, Tuple, Union
 
 import numpy as np
 import pytest
-from diffcalc import ureg
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
@@ -12,6 +11,7 @@ from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException, I
 
+from tests.diffcalc import ureg
 from tests.diffcalc.hkl.test_calc import (
     Case,
     configure_ub,

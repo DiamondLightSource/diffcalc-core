@@ -3,7 +3,6 @@
 Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
-from copy import copy
 from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
@@ -150,8 +149,6 @@ class HklCalculation:
             "betain": betain,
             "betaout": betaout,
         }
-        if asdegrees:
-            result = {key: degrees(val) for key, val in result.items()}
         return result
 
     def get_position(
@@ -189,15 +186,7 @@ class HklCalculation:
         for pos, virtual_angles in pos_virtual_angles_pairs:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
-            if asdegrees:
-                use_pos = Position.asdegrees(pos)
-                res_virtual_angles = {
-                    key: degrees(val) for key, val in virtual_angles.items()
-                }
-            else:
-                use_pos = pos
-                res_virtual_angles = copy(virtual_angles)
-            results.append((use_pos, res_virtual_angles))
+            results.append((pos, virtual_angles))
 
         return results
 

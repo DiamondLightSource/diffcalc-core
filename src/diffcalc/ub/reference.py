@@ -326,9 +326,12 @@ class ReflectionList:
             (h, k, l), pos, energy, tag = ref_tuple.astuple
             if tag is None:
                 tag = ""
-            fmt = "  %2d %6.3f % 4.2f % 4.2f % 4.2f  " + "% 8.4f " * len(axes) + " %s"
-            values = (n, energy, h, k, l) + pos + (tag,)
-            lines.append(fmt % values)
+            fmt = (
+                "  {:2d} {:6.3f}  {:4.2f}  {:4.2f}  {:4.2f}  "
+                + " {:8.4f} " * len(axes)
+                + "{:s}"
+            )
+            lines.append(fmt.format(n, energy, h, k, l, *pos, tag))
         return lines
 
     @property
@@ -704,13 +707,12 @@ class OrientationList:
             if tag is None:
                 tag = ""
             str_format = (
-                "  %2d % 4.2f % 4.2f % 4.2f  "
-                + "% 4.2f % 4.2f % 4.2f  "
-                + "% 8.4f " * len(axes)
-                + " %s"
+                "  {:2d}  {:4.2f}  {:4.2f}  {:4.2f}  "
+                + " {:4.2f}  {:4.2f}  {:4.2f}  "
+                + "{:8.4f} " * len(axes)
+                + " {:s}"
             )
-            values = (n, h, k, l, x, y, z) + angles + (tag,)
-            lines.append(str_format % values)
+            lines.append(str_format.format(n, h, k, l, x, y, z, *angles, tag))
         return lines
 
     @property

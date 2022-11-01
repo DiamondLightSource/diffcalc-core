@@ -7,14 +7,13 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from diffcalc import Q, ureg
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException
 from numpy import array
 
-from tests.diffcalc import scenarios
+from tests.diffcalc import Q, scenarios, ureg
 
 # Integration tests
 
@@ -70,10 +69,10 @@ class TestStrings:
             "Cubic",
         )
         self.ubcalc.add_reflection(
-            (0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1"
+            (0, 0, 1), Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0), 12.4, "ref1"
         )
         self.ubcalc.add_orientation(
-            (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
+            (0, 1, 0), (0, 1, 0), Position(pi / 4, 0, 0, 0, 1.03, 0), "orient1"
         )
         self.ubcalc.set_miscut(None, radians(2.0))
 
