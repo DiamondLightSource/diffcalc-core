@@ -49,7 +49,7 @@ def tetragonal_ub() -> UBCalculation:
     ubcalc.set_lattice("test", LatticeParams(4.913, 5.405))
     ubcalc.add_reflection(
         (0, 0, 1),
-        Position(Q(7.31, "deg"), 0, Q(10.62, "deg"), 0, 0, 0),
+        Position(radians(7.31), 0, radians(10.62), 0, 0, 0),
         12.39842,
         "refl1",
     ),

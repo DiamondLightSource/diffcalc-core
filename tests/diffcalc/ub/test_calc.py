@@ -350,14 +350,22 @@ def test_calc_ub_for_one_reflection_only(session1_ubcalc: UBCalculation):
     )
 
 
-def test_refine_ub(ubcalc: UBCalculation):
-    ubcalc.set_lattice(
-        "xtal", LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))
-    )
+@pytest.mark.parametrize(
+    ("lattice", "position"),
+    [
+        ((1, 1, 1, pi / 2, pi / 2, pi / 2), (0, pi / 3, 0, pi / 6, 0, 0)),
+        (
+            (1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            (0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0),
+        ),
+    ],
+)
+def test_refine_ub(ubcalc: UBCalculation, lattice, position):
+    ubcalc.set_lattice("xtal", LatticeParams(*lattice))
     ubcalc.set_miscut(None, 0)
     ubcalc.refine_ub(
         (1, 1, 0),
-        Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0),
+        Position(*position),
         1.0,
         True,
         True,
@@ -424,10 +432,15 @@ def test_fit_ub():
         ), "wrong U matrix after fitting UB"
 
 
-def test_get_ttheta_from_hkl(ubcalc: UBCalculation):
-    ubcalc.set_lattice(
-        "cube", LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))
-    )
+@pytest.mark.parametrize(
+    ("lattice"),
+    [
+        (1, 1, 1, pi / 2, pi / 2, pi / 2),
+        (1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+    ],
+)
+def test_get_ttheta_from_hkl(ubcalc: UBCalculation, lattice):
+    ubcalc.set_lattice("cube", LatticeParams(*lattice))
     assert ubcalc.get_ttheta_from_hkl((0, 0, 1), 12.39842) == pytest.approx(radians(60))
 
 
@@ -468,13 +481,13 @@ def test_set_miscut(
             (0, 1, 0),
             10,
             (0, 0, 1),
-            Position(Q(40, "deg"), 0, Q(60, "deg"), 0, 0, Q(-90, "deg")),
+            Position(radians(40), 0, pi / 3, 0, 0, -pi / 2),
         ),
         (
             (1, 0, 0),
             30,
             (0, 1, 1),
-            Position(Q(45, "deg"), 0, Q(90, "deg"), 0, Q(15, "deg"), Q(-90, "deg")),
+            Position(pi / 4, 0, pi / 2, 0, pi / 12, -pi / 2),
         ),
     ],
 )
@@ -485,9 +498,7 @@ def test_get_miscut_from_hkl(
     hkl: Tuple[float, float, float],
     pos: Position,
 ):
-    ubcalc.set_lattice(
-        "xtal", LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))
-    )
+    ubcalc.set_lattice("xtal", LatticeParams(1, 1, 1, pi / 2, pi / 2, pi / 2))
     ubcalc.set_miscut(axis, radians(angle))
     ubcalc.set_miscut(None, 0)
 
@@ -504,7 +515,7 @@ def test_get_miscut_from_hkl(
     [((0, 1, 0), 10), ((1, 0, 0), 30), ((0.70710678, 0.70710678, 0), 50)],
 )
 def test_get_miscut(ubcalc, axis, angle):
-    ubcalc.set_lattice("xtal", LatticeParams(1, 1, 1, 90, 90, 90))
+    ubcalc.set_lattice("xtal", LatticeParams(1))
     ubcalc.set_miscut(axis, radians(angle))
 
     test_angle, test_axis = ubcalc.get_miscut()

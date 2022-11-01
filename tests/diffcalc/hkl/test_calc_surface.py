@@ -172,7 +172,7 @@ def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
     hklcalc.ubcalc.set_lattice(
         "xtal",
-        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+        LatticeParams(7.68, 53.48, 75.63, pi / 2, pi / 2, pi / 2),
     )
     hklcalc.ubcalc.set_u(
         np.array(
@@ -185,7 +185,7 @@ def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
     )
 
     convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, places, {"alpha": Q(2, "deg")}
+        hklcalc, case, places, {"alpha": radians(2)}
     )
 
 
@@ -241,7 +241,7 @@ def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "eta": 0, "chi": 0}
     hklcalc.ubcalc.set_lattice(
         "xtal",
-        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+        LatticeParams(7.68, 53.48, 75.63, pi / 2, pi / 2, pi / 2),
     )
     hklcalc.ubcalc.set_u(
         np.array(
@@ -253,9 +253,7 @@ def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
         )
     )
 
-    convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, 5, {"alpha": Q(2, "deg")}
-    )
+    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 5, {"alpha": radians(2)})
 
 
 def test_ub_with_willmot_pt531_mu_chi_fixed():
@@ -356,7 +354,9 @@ def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
     hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": 0, "chi": pi / 2}
     hklcalc.ubcalc.set_lattice(
         "Pt531",
-        LatticeParams(6.204, 4.806, 23.215, Q(90, "deg"), Q(90, "deg"), Q(49.8, "deg")),
+        LatticeParams(
+            6.204, 4.806, 23.215, 90 * ureg.deg, 90 * ureg.deg, 49.8 * ureg.deg
+        ),
     )
     hklcalc.ubcalc.set_u(
         np.array(
@@ -369,7 +369,7 @@ def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
     )
 
     convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, places, {"alpha": radians(2)}
+        hklcalc, case, places, {"alpha": 2 * ureg.deg}
     )
 
 
@@ -410,7 +410,9 @@ def test_pt531_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
 
     hklcalc.ubcalc.set_lattice(
         "Pt531",
-        LatticeParams(6.204, 4.806, 23.215, Q(90, "deg"), Q(90, "deg"), Q(49.8, "deg")),
+        LatticeParams(
+            6.204, 4.806, 23.215, 90 * ureg.deg, 90 * ureg.deg, 49.8 * ureg.deg
+        ),
     )
     hklcalc.ubcalc.set_u(
         np.array(
@@ -423,5 +425,5 @@ def test_pt531_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
     )
 
     convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, places, {"alpha": radians(2)}
+        hklcalc, case, places, {"alpha": 2 * ureg.deg}
     )
