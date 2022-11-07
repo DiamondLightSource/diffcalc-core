@@ -19,6 +19,8 @@ from tests.tools import (
     assert_array_almost_equal_in_list,
     assert_dict_almost_in_list,
     assert_second_dict_almost_in_first,
+    configure_constraints,
+    configure_ub,
 )
 
 
@@ -37,7 +39,7 @@ def cubic() -> HklCalculation:
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
     ubcalc.set_lattice("Cubic", LatticeParams(1.0))
-    configure_ub(ubcalc)
+    configure_ub_with_rotation(ubcalc)
 
     return HklCalculation(ubcalc, Constraints())
 
@@ -83,7 +85,9 @@ def hkl_mocked_constraints() -> HklCalculation:
     return HklCalculation(ubcalc, constraints)
 
 
-def configure_ub(ubcalc: UBCalculation, zrot: float = 0.0, yrot: float = 0.0) -> None:
+def configure_ub_with_rotation(
+    ubcalc: UBCalculation, zrot: float = 0.0, yrot: float = 0.0
+) -> None:
     ZROT = z_rotation(radians(zrot))  # -PHI
     YROT = y_rotation(radians(yrot))  # +CHI
     U = ZROT @ YROT
@@ -97,22 +101,36 @@ def convert_position_to_hkl_and_hkl_to_position(
     expected_virtual: Dict[str, Union[float, Literal["True"]]] = {},
     asdegrees: bool = True,
 ) -> None:
+    """Converts a position to a hkl, and back.
 
+    This does what the HklCalculation.get_position method does implicitly; it checks
+    that a diffractometer position maps correctly to a (h,k,l) and this (h,k,l)
+    correctly retrieves that diffractometer position.
+
+    Most of the test examples use degrees. As such this method has a parameter,
+    as degrees, which when set assumes that all angles have been given in degrees,
+    both for the case position and all expected virtual angles.
+
+    This therefore serves as a basic example of how to use pint with this library.
+    """
+
+    # First, ensure everything is in the correct units.
     position: Position = (
         Position(*case.position * ureg.deg) if asdegrees else Position(*case.position)
     )
+
+    # Second, get the hkl from the position. Check it is correct.
     hkl = hklcalc.get_hkl(position, case.wavelength)
 
     assert np.all(np.round(hkl, places) == np.round(case.hkl, places))
 
-    pos_virtual_floats_pairs_in_degrees = hklcalc.get_position(
-        case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength, asdegrees=asdegrees
+    # Third, get the position from the hkl. Check it is correct.
+    pos_virtual_pairs = hklcalc.get_position(
+        case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength
     )
 
-    pos = [result[0] for result in pos_virtual_floats_pairs_in_degrees]
-    virtual_from_get_position = [
-        result[1] for result in pos_virtual_floats_pairs_in_degrees
-    ]
+    pos = [result[0] for result in pos_virtual_pairs]
+    virtual_from_get_position = [result[1] for result in pos_virtual_pairs]
 
     assert_array_almost_equal_in_list(
         position.astuple,
@@ -120,10 +138,22 @@ def convert_position_to_hkl_and_hkl_to_position(
         places,
     )
 
+    # If virtual angle is expected,
     if expected_virtual:
+        # Check the virtual angles from get_position AND from get_virtual_angles
+        # method match with expected virtual angles (in correct units: radians).
+        expected_virtual_correct_units = {
+            key: value * ureg.deg if asdegrees else value
+            for key, value in expected_virtual.items()
+        }
+
         virtual_angles = hklcalc.get_virtual_angles(position)
-        assert_second_dict_almost_in_first(virtual_angles, expected_virtual)
-        assert_dict_almost_in_list(virtual_from_get_position, expected_virtual)
+        assert_second_dict_almost_in_first(
+            virtual_angles, expected_virtual_correct_units
+        )
+        assert_dict_almost_in_list(
+            virtual_from_get_position, expected_virtual_correct_units
+        )
 
 
 def test_str():
@@ -173,7 +203,7 @@ def test_serialisation(cubic: HklCalculation):
 
 
 def test_get_position_with_radians(cubic: HklCalculation):
-    cubic.constraints = Constraints({"delta": 60 * ureg.deg, "a_eq_b": True, "mu": 0.0})
+    cubic.constraints = configure_constraints({"delta": 60, "a_eq_b": True, "mu": 0.0})
 
     case = Case("100", (1, 0, 0), (0, pi / 3, 0, pi / 6, 0, 0))
 
@@ -184,14 +214,14 @@ def test_get_position_with_radians(cubic: HklCalculation):
     ("constraints"),
     [
         {},
-        {"mu": 1.0 * ureg.deg, "eta": 1 * ureg.deg, "bisect": True},
-        {"bisect": True, "eta": 34 * ureg.deg, "naz": 3 * ureg.deg},
+        {"mu": 1.0, "eta": 1, "bisect": True},
+        {"bisect": True, "eta": 34, "naz": 3},
     ],
 )
 def test_get_position_raises_exception_if_badly_constrained(
     cubic: HklCalculation, constraints: Dict[str, Union[float, bool]]
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     with pytest.raises(DiffcalcException):
         cubic.get_position(1, 0, 0, 1)
@@ -200,8 +230,8 @@ def test_get_position_raises_exception_if_badly_constrained(
 @pytest.mark.parametrize(
     ("constraints"),
     (
-        {"naz": 3 * ureg.deg, "alpha": 1 * ureg.deg, "phi": 45 * ureg.deg},
-        {"eta": 20 * ureg.deg, "phi": 34 * ureg.deg, "delta": 10000 * ureg.deg},
+        {"naz": 3, "alpha": 1, "phi": 45},
+        {"eta": 20, "phi": 34, "delta": 10000},
     ),
 )
 def test_get_position_raises_exception_if_no_solutions_found(
@@ -213,7 +243,7 @@ def test_get_position_raises_exception_if_no_solutions_found(
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 2, 3, 4, 5, 6), "orient")
     ubcalc.calc_ub(0, "orient")
 
-    hklcalc = HklCalculation(ubcalc, Constraints(constraints))
+    hklcalc = HklCalculation(ubcalc, configure_constraints(constraints))
 
     with pytest.raises(DiffcalcException):
         hklcalc.get_position(1, 0, 0, 1)
@@ -224,36 +254,35 @@ def test_get_position_raises_exception_if_no_solutions_found(
     itertools.product(
         [0, 2, -2, 45, -45, 90, -90],
         [
-            {"delta": 60 * ureg.deg, "a_eq_b": True, "mu": 0.0},
+            {"delta": 60, "a_eq_b": True, "mu": 0.0},
             {"a_eq_b": True, "mu": 0.0, "nu": 0.0},
-            {"psi": 90 * ureg.deg, "mu": 0.0, "nu": 0.0},
-            {"a_eq_b": True, "mu": 0.0, "qaz": 90 * ureg.deg},
+            {"psi": 90, "mu": 0.0, "nu": 0.0},
+            {"a_eq_b": True, "mu": 0.0, "qaz": 90},
         ],
     ),
 )
 def test_fails_for_parallel_vectors(
-    cubic_ub: UBCalculation, zrot: float, constraints: Dict[str, Union[float, bool]]
+    cubic: HklCalculation, zrot: float, constraints: Dict[str, Union[float, bool]]
 ):
     """Confirm that a hkl of (0,0,1) fails for a_eq_b=True.
     By default, the reference vector is (0,0,1). A parallel vector to this should
     cause failure
     """
-    configure_ub(cubic_ub, zrot, 0)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, zrot, 0)
+    cubic.constraints = configure_constraints(constraints)
 
     case = Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0 + zrot))
 
     with pytest.raises(DiffcalcException):
-        convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
+        convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_float(
-    cubic_ub: UBCalculation,
+    cubic: HklCalculation,
 ):
-    configure_ub(cubic_ub)
-    cubic_ub.n_hkl = (1, -1, 0)  # type: ignore
-    hklcalc = HklCalculation(cubic_ub, Constraints({"nu": 0.0, "chi": 0.0, "phi": 0.0}))
-    virtual_floats = hklcalc.get_virtual_angles(
+    cubic.ubcalc.n_hkl = (1, -1, 0)  # type: ignore
+    cubic.constraints = configure_constraints({"nu": 0.0, "chi": 0.0, "phi": 0.0})
+    virtual_floats = cubic.get_virtual_angles(
         Position(0, 180 * ureg.deg, 0, 90 * ureg.deg, 0, 0)
     )
     assert isnan(virtual_floats["psi"])
@@ -263,14 +292,14 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_float(
     ("constraints", "zrot", "yrot", "case", "n_hkl"),
     [
         (
-            {"delta": 90 * ureg.deg, "beta": 0.0, "phi": 0.0},
+            {"delta": 90, "beta": 0.0, "phi": 0.0},
             0,
             0,
             Case("sqrt(2)00", (sqrt(2), 0, 0), (0, 90, 0, 45, 0, 0)),
             (1, -1, 0),
         ),
         (
-            {"nu": 60 * ureg.deg, "psi": 0.0, "phi": 0.0},
+            {"nu": 60, "psi": 0.0, "phi": 0.0},
             -1,
             2,
             Case("100", (1, 0, 0), (118, 0, 60, 91, 180, 0)),
@@ -279,19 +308,19 @@ def test_scattering_angle_parallel_to_xray_beam_yields_nan_psi_virtual_float(
     ],
 )
 def test_redundant_solutions_when_calculating_remaining_detector_floats(
-    cubic_ub: UBCalculation,
+    cubic: HklCalculation,
     constraints: Dict[str, float],
     zrot: float,
     yrot: float,
     case: Case,
     n_hkl: Optional[Tuple[float, float, float]],
 ):
-    configure_ub(cubic_ub, zrot, yrot)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, zrot, yrot)
+    cubic.constraints = configure_constraints(constraints)
     if n_hkl:
-        hklcalc.ubcalc.n_hkl = (1, -1, 0)
+        cubic.ubcalc.n_hkl = n_hkl
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 @pytest.mark.parametrize(
@@ -313,7 +342,7 @@ def test_fails_when_a_eq_b_and_parallel_vectors(
     case: Case,
     constraints: Dict[str, Union[float, bool]],
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     with pytest.raises(DiffcalcException):
         convert_position_to_hkl_and_hkl_to_position(cubic, case)
@@ -330,19 +359,21 @@ def test_fails_when_a_eq_b_and_parallel_vectors(
         ),
     ],
 )
-def test_get_hkl(cubic_ub: UBCalculation, case: Case):
-    u_matrix = np.array(
-        (
-            (0.9996954135095477, -0.01745240643728364, -0.017449748351250637),
-            (0.01744974835125045, 0.9998476951563913, -0.0003045864904520898),
-            (0.017452406437283505, -1.1135499981271473e-16, 0.9998476951563912),
-        )
+def test_get_hkl(cubic: HklCalculation, case: Case):
+    configure_ub(
+        cubic.ubcalc,
+        u_matrix=np.array(
+            (
+                (0.9996954135095477, -0.01745240643728364, -0.017449748351250637),
+                (0.01744974835125045, 0.9998476951563913, -0.0003045864904520898),
+                (0.017452406437283505, -1.1135499981271473e-16, 0.9998476951563912),
+            )
+        ),
     )
-    cubic_ub.set_u(u_matrix)
 
-    hkl = HklCalculation(cubic_ub, Constraints()).get_hkl(
-        Position(*case.position * ureg.deg), 1.0
-    )
+    cubic.constraints = Constraints()
+
+    hkl = cubic.get_hkl(Position(*case.position * ureg.deg), 1.0)
 
     assert np.all(np.round(hkl, 7) == np.round(case.hkl, 7))
 

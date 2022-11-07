@@ -8,14 +8,14 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import DiffcalcException
+from diffcalc.util import DiffcalcException, I
 
-from tests.diffcalc import Q
 from tests.diffcalc.hkl.test_calc import (
     Case,
-    configure_ub,
+    configure_ub_with_rotation,
     convert_position_to_hkl_and_hkl_to_position,
 )
+from tests.tools import configure_constraints, configure_ub
 
 
 @pytest.fixture
@@ -32,8 +32,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", LatticeParams(1))
-    configure_ub(ubcalc)
+    configure_ub(ubcalc, lattice=(1,), u_matrix=I)
 
     return HklCalculation(ubcalc, Constraints())
 
@@ -57,7 +56,7 @@ def cubic_ub() -> UBCalculation:
         ((0, 0, 90, 0, 0, -180), {"psi": 0, "mu": 0, "naz": 0}),
         ((180, 0, 90, 0, 180, 0), {"psi": 0, "phi": 0, "delta": 0}),
         ((0, 0, 90, 0, 0, -180), {"psi": 0, "eta": 0, "delta": 0}),
-        ((-10, 0, 90, 90, 10, 90), {"psi": 0, "chi": Q(10, "deg"), "delta": 0}),
+        ((-10, 0, 90, 90, 10, 90), {"psi": 0, "chi": 10, "delta": 0}),
         ((0, 0, 90, 90, 90, -90), {"betaout": 0, "mu": 0, "delta": 0}),
     ],
 )
@@ -66,7 +65,7 @@ def test_get_position_one_det_one_ref_one_samp(
     expected_position: Tuple[float, float, float, float, float, float],
     constraints: Dict[str, Union[float, bool]],
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     all_positions = cubic.get_position(0, 1, 1, 1)
 
@@ -85,13 +84,13 @@ def test_get_position_one_det_one_ref_one_samp(
     ),
 )
 def test_fixed_naz_psi_eta(cubic: HklCalculation, case: Case):
-    cubic.constraints = Constraints({"naz": Q(90, "deg"), "psi": 0, "eta": 0})
+    cubic.constraints = configure_constraints({"naz": 90, "psi": 0, "eta": 0})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
 
 def test_fixed_naz_psi_eta_fails_for_parallel_vectors(cubic: HklCalculation):
-    cubic.constraints = Constraints({"naz": Q(90, "deg"), "psi": 0, "eta": 0})
+    cubic.constraints = configure_constraints({"naz": 90, "psi": 0, "eta": 0})
     case = Case("001", (0, 0, 1), (30, 0, 60, 90, 0, 0))
 
     with pytest.raises(DiffcalcException):
@@ -116,15 +115,15 @@ def test_fixed_naz_psi_eta_fails_for_parallel_vectors(cubic: HklCalculation):
             ),
         ],
         [
-            {"a_eq_b": True, "qaz": Q(90, "deg"), "chi": Q(90, "deg")},
-            {"a_eq_b": True, "nu": 0, "chi": Q(90, "deg")},
+            {"a_eq_b": True, "qaz": 90, "chi": 90},
+            {"a_eq_b": True, "nu": 0, "chi": 90},
         ],
     ),
 )
 def test_det_ref_and_chi_constrained(
     cubic: HklCalculation, case: Case, constraints: Dict[str, Union[float, bool]]
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -136,15 +135,15 @@ def test_det_ref_and_chi_constrained(
             Case("001", (0, 0, 1), (0, 60, 0, 30, 90, 0)),
         ],
         [
-            {"a_eq_b": True, "qaz": Q(90, "deg"), "chi": Q(90, "deg")},
-            {"a_eq_b": True, "nu": 0, "chi": Q(90, "deg")},
+            {"a_eq_b": True, "qaz": 90, "chi": 90},
+            {"a_eq_b": True, "nu": 0, "chi": 90},
         ],
     ),
 )
 def test_det_ref_and_chi_constrained_fails_for_parallel_vectors(
     cubic: HklCalculation, case: Case, constraints: Dict[str, Union[float, bool]]
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     with pytest.raises(DiffcalcException):
         convert_position_to_hkl_and_hkl_to_position(cubic, case)
@@ -175,19 +174,19 @@ def test_det_ref_and_chi_constrained_fails_for_parallel_vectors(
         [2],
         [
             {"delta": 0, "psi": 0, "phi": 0},
-            {"nu": Q(60, "deg"), "psi": 0, "phi": 0},
+            {"nu": 60, "psi": 0, "phi": 0},
         ],
     ),
 )
 def test_ref_and_fixed_delta_phi_0(
-    cubic_ub: UBCalculation,
+    cubic: HklCalculation,
     case: Case,
     zrot: float,
     yrot: float,
     constraints: Dict[str, float],
 ):
-    configure_ub(cubic_ub, zrot, yrot)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, zrot, yrot)
+    cubic.constraints = configure_constraints(constraints)
 
     if case.name.startswith("100"):
         new_position = (
@@ -208,7 +207,7 @@ def test_ref_and_fixed_delta_phi_0(
 
     case_with_rotation = Case(case.name, case.hkl, new_position, case.wavelength)
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case_with_rotation)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case_with_rotation)
 
 
 @pytest.mark.parametrize(
@@ -219,13 +218,13 @@ def test_ref_and_fixed_delta_phi_0(
         {"delta": pi / 2, "betain": 0, "phi": 0},
     ],
 )
-def test_alpha_90(cubic: HklCalculation, constraints: Dict[str, float]):
-    cubic.constraints = Constraints(constraints)
+def test_alpha_90_in_radians(cubic: HklCalculation, constraints: Dict[str, float]):
+    cubic.constraints = configure_constraints(constraints, asdegrees=False)
     cubic.ubcalc.n_hkl = (1, -1, 0)
 
-    case = Case("sqrt(2)00", (sqrt(2), 0, 0), (0, 90, 0, 45, 0, 0))
+    case = Case("sqrt(2)00", (sqrt(2), 0, 0), (0, pi / 2, 0, pi / 4, 0, 0))
 
-    convert_position_to_hkl_and_hkl_to_position(cubic, case)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case, asdegrees=False)
 
 
 @pytest.mark.parametrize(
@@ -234,23 +233,23 @@ def test_alpha_90(cubic: HklCalculation, constraints: Dict[str, float]):
         [1, -1],
         [
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": pi / 2, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
+            {"psi": 90, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": 90},
         ],
     ),
 )
 def test_small_zrot(
-    cubic_ub: UBCalculation,
+    cubic: HklCalculation,
     zrot: float,
     constraints: Dict[str, float],
 ):
-    configure_ub(cubic_ub, zrot, 0)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, zrot, 0)
+    cubic.constraints = configure_constraints(constraints)
 
     pos = (0, 60, 0, 30, 0, 90 + zrot)
     case_with_rotation = Case("", (0, 1, 0), pos)
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case_with_rotation)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case_with_rotation)
 
 
 @pytest.mark.parametrize(
@@ -286,19 +285,19 @@ def test_small_zrot(
         [1, -1],
         [
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": pi / 2, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
+            {"psi": 90, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": 90},
         ],
     ),
 )
 def test_various_constraints_and_small_zrot_yrot(
-    cubic_ub: UBCalculation,
+    cubic: HklCalculation,
     case: Case,
     zrot: float,
     constraints: Dict[str, float],
 ):
-    configure_ub(cubic_ub, zrot, 2)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, zrot, 2)
+    cubic.constraints = configure_constraints(constraints)
 
     pos = case.position
     if case.name != "010":
@@ -308,7 +307,7 @@ def test_various_constraints_and_small_zrot_yrot(
 
     case_with_rotation = Case(case.name, case.hkl, new_position, case.wavelength)
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case_with_rotation)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case_with_rotation)
 
 
 @pytest.mark.parametrize(
@@ -330,24 +329,24 @@ def test_various_constraints_and_small_zrot_yrot(
         ],
         [0, 2, -2, 45, -45, 90, -90],
         [
-            {"delta": pi / 3, "a_eq_b": True, "mu": 0},
+            {"delta": 60, "a_eq_b": True, "mu": 0},
             {"a_eq_b": True, "mu": 0, "nu": 0},
-            {"psi": pi / 2, "mu": 0, "nu": 0},
-            {"a_eq_b": True, "mu": 0, "qaz": pi / 2},
+            {"psi": 90, "mu": 0, "nu": 0},
+            {"a_eq_b": True, "mu": 0, "qaz": 90},
         ],
     ),
 )
 def test_various_constraints_and_zrots(
-    cubic_ub: UBCalculation, case: Case, zrot: float, constraints: Dict[str, float]
+    cubic: HklCalculation, case: Case, zrot: float, constraints: Dict[str, float]
 ):
-    configure_ub(cubic_ub, zrot, 0)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, zrot, 0)
+    cubic.constraints = configure_constraints(constraints)
 
     pos = case.position
     new_position = (*pos[:5], pos[5] + zrot)
     case_with_rotation = Case(case.name, case.hkl, new_position, case.wavelength)
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case_with_rotation)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case_with_rotation)
 
 
 @pytest.mark.parametrize(
@@ -376,7 +375,7 @@ def test_various_constraints(
     case: Case,
     constraints: Dict[str, Union[float, bool]],
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
@@ -406,13 +405,13 @@ def test_various_constraints(
     ),
 )
 def test_various_constraints_and_yrots(
-    cubic_ub: UBCalculation,
+    cubic: HklCalculation,
     case: Case,
     yrot: float,
     constraints: Dict[str, Union[float, bool]],
 ):
-    configure_ub(cubic_ub, 1, yrot)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, 1, yrot)
+    cubic.constraints = configure_constraints(constraints)
 
     if case.name.startswith("100"):
         case_with_rotation = Case(
@@ -427,7 +426,7 @@ def test_various_constraints_and_yrots(
             (*case.position[:4], case.position[4] - yrot, case.position[5] + 1),
         )
 
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case_with_rotation)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case_with_rotation)
 
 
 @pytest.mark.parametrize(
@@ -440,15 +439,15 @@ def test_various_constraints_and_yrots(
     ],
 )
 def test_one_parallel_vector_still_fails_even_if_rotated(
-    cubic_ub: UBCalculation, yrot: float, constraints: Dict[str, Union[bool, float]]
+    cubic: HklCalculation, yrot: float, constraints: Dict[str, Union[bool, float]]
 ):
-    configure_ub(cubic_ub, 1, yrot)
-    hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
+    configure_ub_with_rotation(cubic.ubcalc, 1, yrot)
+    cubic.constraints = configure_constraints(constraints)
 
     case = Case("010", (0, 1, 0), (30, 0, 60, 0, 90, -89))
 
     with pytest.raises(DiffcalcException):
-        convert_position_to_hkl_and_hkl_to_position(hklcalc, case)
+        convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 @pytest.mark.parametrize(
@@ -468,16 +467,18 @@ def test_one_parallel_vector_still_fails_even_if_rotated(
     ],
 )
 def test_against_spec_sixc_b16_270608(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("name", LatticeParams(3.8401, 5.43072))
-    u_matrix = np.array(
-        (
-            (0.997161, -0.062217, 0.042420),
-            (0.062542, 0.998022, -0.006371),
-            (-0.041940, 0.009006, 0.999080),
-        )
+    configure_ub(
+        hklcalc.ubcalc,
+        (3.8401, 5.43072),
+        u_matrix=np.array(
+            (
+                (0.997161, -0.062217, 0.042420),
+                (0.062542, 0.998022, -0.006371),
+                (-0.041940, 0.009006, 0.999080),
+            )
+        ),
     )
-    hklcalc.ubcalc.set_u(u_matrix)
-    hklcalc.constraints.asdict = {"a_eq_b": True, "mu": 0, "nu": 0}
+    hklcalc.constraints = configure_constraints({"a_eq_b": True, "mu": 0, "nu": 0})
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 2)
 
@@ -490,17 +491,19 @@ def test_against_spec_sixc_b16_270608(hklcalc: HklCalculation, case: Case):
     ],
 )
 def test_i16_ga_as_example(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(5.65315))
-    hklcalc.ubcalc.set_u(
-        np.array(
+    configure_ub(
+        hklcalc.ubcalc,
+        (5.65315,),
+        u_matrix=np.array(
             [
                 [-0.71021455, 0.70390373, 0.01071626],
                 [-0.39940627, -0.41542895, 0.81724747],
                 [0.57971538, 0.5761409, 0.57618724],
             ]
-        )
+        ),
     )
-    hklcalc.constraints.asdict = {"qaz": pi / 2, "alpha": Q(11, "deg"), "mu": 0}
+
+    hklcalc.constraints = configure_constraints({"qaz": 90, "alpha": 11, "mu": 0})
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 3)
 
@@ -523,13 +526,14 @@ def test_i16_ga_as_example(hklcalc: HklCalculation, case: Case):
     ],
 )
 def test_i21(hklcalc: HklCalculation, case: Case):
-    hklcalc.ubcalc.set_lattice("xtal", LatticeParams(3.78, 20.10))
-    hklcalc.ubcalc.n_phi = (0, 0, 1)
-
-    hklcalc.ubcalc.set_u(
-        np.array(((1.0, 0.0, 0.0), (0.0, 0.18482, -0.98277), (0.0, 0.98277, 0.18482)))
+    configure_ub(
+        hklcalc.ubcalc,
+        (3.78, 20.10),
+        u_matrix=np.array(
+            ((1.0, 0.0, 0.0), (0.0, 0.18482, -0.98277), (0.0, 0.98277, 0.18482))
+        ),
     )
 
-    hklcalc.constraints.asdict = {"psi": Q(10, "deg"), "mu": 0, "nu": 0}
+    hklcalc.constraints = configure_constraints({"psi": 10, "mu": 0, "nu": 0})
 
     convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 3)

@@ -1,4 +1,4 @@
-from math import cos, pi, radians, sin
+from math import cos, radians, sin
 from typing import Dict, Tuple, Union
 
 import numpy as np
@@ -6,15 +6,13 @@ import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import DiffcalcException
+from diffcalc.util import DiffcalcException, I
 
-from tests.diffcalc import Q
 from tests.diffcalc.hkl.test_calc import (
     Case,
-    configure_ub,
     convert_position_to_hkl_and_hkl_to_position,
 )
+from tests.tools import configure_constraints, configure_ub
 
 
 @pytest.fixture
@@ -23,8 +21,7 @@ def cubic() -> HklCalculation:
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
 
-    ubcalc.set_lattice("Cubic", LatticeParams(1.0))
-    configure_ub(ubcalc)
+    configure_ub(ubcalc, lattice=(1,), u_matrix=I)
 
     return HklCalculation(ubcalc, Constraints())
 
@@ -32,10 +29,10 @@ def cubic() -> HklCalculation:
 @pytest.mark.parametrize(
     ("expected_position", "constraints"),
     [
-        ((90, 90, 0, 90, 0, 0), {"eta": pi / 2, "chi": 0, "phi": 0}),
-        ((45, 45, -90, 90, 45, 45), {"mu": pi / 4, "chi": pi / 4, "phi": pi / 4}),
-        ((45, 0, 90, 90, -45, 90), {"mu": pi / 4, "eta": pi / 2, "phi": pi / 2}),
-        ((90, 90, 0, 0, 90, 270), {"mu": pi / 2, "eta": 0, "chi": pi / 2}),
+        ((90, 90, 0, 90, 0, 0), {"eta": 90, "chi": 0, "phi": 0}),
+        ((45, 45, -90, 90, 45, 45), {"mu": 45, "chi": 45, "phi": 45}),
+        ((45, 0, 90, 90, -45, 90), {"mu": 45, "eta": 90, "phi": 90}),
+        ((90, 90, 0, 0, 90, 270), {"mu": 90, "eta": 0, "chi": 90}),
     ],
 )
 def test_get_position_three_samp(
@@ -43,7 +40,7 @@ def test_get_position_three_samp(
     expected_position: Tuple[float, float, float, float, float, float],
     constraints: Dict[str, Union[float, bool]],
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     all_positions = cubic.get_position(0, 1, 1, 1)
 
@@ -61,23 +58,23 @@ def test_get_position_three_samp(
 @pytest.mark.parametrize(
     ("case", "constraints"),
     [
-        (Case("", (0, 0, 1), (30, 0, 60, 0, 0, 0)), {"eta": 0, "phi": 0, "mu": pi / 6}),
+        (Case("", (0, 0, 1), (30, 0, 60, 0, 0, 0)), {"eta": 0, "phi": 0, "mu": 30}),
         (
             Case("", (0, 1, 1), (0, 90, 0, 90, 90, 0)),
-            {"eta": pi / 2, "phi": 0, "mu": 0},
+            {"eta": 90, "phi": 0, "mu": 0},
         ),
         (
             Case("", (-1, 1, 0), (90, 90, 0, 90, 90, 0)),
-            {"eta": pi / 2, "phi": 0, "mu": pi / 2},
+            {"eta": 90, "phi": 0, "mu": 90},
         ),
         (
             Case("", (sin(radians(4)), 0, cos(radians(4))), (0, 60, 0, 30, 90 - 4, 0)),
-            {"eta": pi / 6, "phi": 0, "mu": 0},
+            {"eta": 30, "phi": 0, "mu": 0},
         ),
     ],
 )
 def test_mu_eta_phi(cubic: HklCalculation, case: Case, constraints: Dict[str, float]):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
@@ -88,18 +85,18 @@ def test_mu_eta_phi(cubic: HklCalculation, case: Case, constraints: Dict[str, fl
         (Case("", (0, 1, 0), (0, 60, 0, 120, 90, 0)), {"eta": 120, "phi": 0, "mu": 0}),
         (
             Case("", (1, 0, 0), (0, 60, 0, -60, 90, 90)),
-            {"eta": -pi / 3, "phi": pi / 2, "mu": 0},
+            {"eta": -60, "phi": 90, "mu": 0},
         ),
         (
             Case("", (1, 0, 1), (0, 90, 0, 0, 90, 90)),
-            {"eta": 0, "phi": pi / 2, "mu": 0},
+            {"eta": 0, "phi": 90, "mu": 0},
         ),
     ],
 )
 def test_mu_eta_phi_fails_as_non_unique_sample_orientation(
     cubic: HklCalculation, case: Case, constraints: Dict[str, float]
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     with pytest.raises(DiffcalcException):
         convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
@@ -113,19 +110,19 @@ def test_mu_eta_phi_fails_as_non_unique_sample_orientation(
         (Case("011", (0, 1, 1), (90, 0, 90, 0, 0, 0)), {"chi": 0, "phi": 0, "eta": 0}),
         (
             Case("100", (1, 0, 0), (0, 60, 0, 0, 0, 30)),
-            {"chi": 0, "phi": pi / 6, "eta": 0},
+            {"chi": 0, "phi": 30, "eta": 0},
         ),
         (
             Case("100", (1, 0, 0), (0, 60, 0, 30, 0, 0)),
-            {"chi": 0, "phi": 0, "eta": pi / 6},
+            {"chi": 0, "phi": 0, "eta": 30},
         ),
         (
             Case("110", (1, 1, 0), (0, 90, 0, 0, 0, 90)),
-            {"chi": 0, "phi": pi / 2, "eta": 0},
+            {"chi": 0, "phi": 90, "eta": 0},
         ),
         (
             Case("110", (1, 1, 0), (0, 90, 0, 90, 0, 0)),
-            {"chi": 0, "phi": 0, "eta": pi / 2},
+            {"chi": 0, "phi": 0, "eta": 90},
         ),
         (
             Case("0.01 0.01 0.1", (0.01, 0.01, 0.1), (8.6194, 0.5730, 5.7607, 0, 0, 0)),
@@ -162,7 +159,7 @@ def test_mu_eta_phi_fails_as_non_unique_sample_orientation(
     ],
 )
 def test_chi_phi_eta(cubic: HklCalculation, case: Case, constraints: Dict[str, float]):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
 
@@ -171,23 +168,23 @@ def test_chi_phi_eta(cubic: HklCalculation, case: Case, constraints: Dict[str, f
     [
         (
             Case("", (0, 0, 1), (0, 60, 0, 30, 90, 0)),
-            {"chi": pi / 2, "phi": 0, "mu": 0},
+            {"chi": 90, "phi": 0, "mu": 0},
         ),
         (
             Case("", (0, 1, 0), (0, 60, 0, 120, 90, 0)),
-            {"chi": pi / 2, "phi": 0, "mu": 0},
+            {"chi": 90, "phi": 0, "mu": 0},
         ),
         (
             Case("", (0, 1, 1), (0, 90, 0, 90, 90, 0)),
-            {"chi": pi / 2, "phi": 0, "mu": 0},
+            {"chi": 90, "phi": 0, "mu": 0},
         ),
         (
             Case("", (1, 0, 0), (0, 60, 0, -60, 90, 90)),
-            {"chi": pi / 2, "phi": pi / 2, "mu": 0},
+            {"chi": 90, "phi": 90, "mu": 0},
         ),
         (
             Case("", (1, 0, 1), (0, 90, 0, 0, 90, 90)),
-            {"chi": pi / 2, "phi": pi / 2, "mu": 0},
+            {"chi": 90, "phi": 90, "mu": 0},
         ),
         (
             Case("", (sin(radians(4)), cos(radians(4)), 0), (0, 60, 0, 120 - 4, 0, 0)),
@@ -196,13 +193,13 @@ def test_chi_phi_eta(cubic: HklCalculation, case: Case, constraints: Dict[str, f
     ],
 )
 def test_mu_chi_phi(cubic: HklCalculation, case: Case, constraints: Dict[str, float]):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
 
 def test_mu_chi_phi_fails_as_non_unique_sample_orientation(cubic: HklCalculation):
-    cubic.constraints = Constraints({"chi": pi / 2, "phi": 0, "mu": pi / 2})
+    cubic.constraints = configure_constraints({"chi": 90, "phi": 0, "mu": 90})
 
     case = Case("", (-1, 1, 0), (90, 90, 0, 90, 90, 0))
     with pytest.raises(DiffcalcException):
@@ -214,19 +211,19 @@ def test_mu_chi_phi_fails_as_non_unique_sample_orientation(cubic: HklCalculation
     [
         (
             Case("", (0, 1, 0), (0, 60, 0, 120, 90, 0)),
-            {"chi": pi / 2, "eta": Q(120, "deg"), "mu": 0},
+            {"chi": 90, "eta": 120, "mu": 0},
         ),
         (
             Case("", (1, 0, 0), (0, 60, 0, -60, 90, 90)),
-            {"chi": pi / 2, "eta": -pi / 3, "mu": 0},
+            {"chi": 90, "eta": -60, "mu": 0},
         ),
         (
             Case("", (-1, 1, 0), (90, 90, 0, 90, 90, 0)),
-            {"chi": pi / 2, "eta": pi / 2, "mu": pi / 2},
+            {"chi": 90, "eta": 90, "mu": 90},
         ),
         (
             Case("", (1, 0, 1), (0, 90, 0, 0, 90, 90)),
-            {"chi": pi / 2, "eta": 0, "mu": 0},
+            {"chi": 90, "eta": 0, "mu": 0},
         ),
         (
             Case("", (sin(radians(4)), cos(radians(4)), 0), (0, 60, 0, 0, 0, 120 - 4)),
@@ -235,7 +232,7 @@ def test_mu_chi_phi_fails_as_non_unique_sample_orientation(cubic: HklCalculation
     ],
 )
 def test_mu_eta_chi(cubic: HklCalculation, case: Case, constraints: Dict[str, float]):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)
 
@@ -245,18 +242,18 @@ def test_mu_eta_chi(cubic: HklCalculation, case: Case, constraints: Dict[str, fl
     (
         (
             Case("", (0, 1, 1), (0, 90, 0, 90, 90, 0)),
-            {"chi": pi / 2, "eta": pi / 2, "mu": 0},
+            {"chi": 90, "eta": 90, "mu": 0},
         ),
         (
             Case("", (0, 0, 1), (0, 60, 0, 30, 90, 0)),
-            {"eta": pi / 6, "chi": pi / 2, "mu": 0},
+            {"eta": 30, "chi": 90, "mu": 0},
         ),
     ),
 )
 def test_mu_eta_chi_fails_as_non_unique_sample_orientation(
     cubic: HklCalculation, case: Case, constraints: Dict[str, float]
 ):
-    cubic.constraints = Constraints(constraints)
+    cubic.constraints = configure_constraints(constraints)
 
     with pytest.raises(DiffcalcException):
         convert_position_to_hkl_and_hkl_to_position(cubic, case, 4)

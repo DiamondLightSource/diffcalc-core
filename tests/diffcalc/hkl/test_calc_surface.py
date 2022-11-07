@@ -1,22 +1,19 @@
-from math import pi, radians
 from typing import Dict, Union
 
 import numpy as np
 import pytest
 from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
-from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import DiffcalcException, I
 from typing_extensions import Literal
 
-from tests.diffcalc import Q, ureg
 from tests.diffcalc.hkl.test_calc import (
     Case,
     convert_position_to_hkl_and_hkl_to_position,
 )
-from tests.tools import matrixeq_
+from tests.tools import configure_constraints, configure_ub, matrixeq_
 
 
 @pytest.fixture
@@ -45,19 +42,19 @@ def cubic() -> HklCalculation:
     [
         (
             Case("", (0, 0, 1), (-90, 60, 0, 0, 120, 90)),
-            {"betain": pi / 6, "betaout": pi / 6},
+            {"betain": 30, "betaout": 30},
         ),
         (
             Case("", (0, 1, 1), (-90, 90, 0, 0, 90, 90)),
-            {"betain": 0, "betaout": pi / 2},
+            {"betain": 0, "betaout": 90},
         ),
         (
             Case("", (0, 1, 0), (-90, 60, 0, 0, 30, 90)),
-            {"betain": -pi / 3, "betaout": pi / 3},
+            {"betain": -60, "betaout": 60},
         ),
         (
             Case("", (1, 1, 0), (-90, 90, 0, 0, 45, 45)),
-            {"alpha": pi / 6, "beta": pi / 6},
+            {"alpha": 30, "beta": 30},
         ),
     ],
 )
@@ -66,7 +63,7 @@ def test_surface_normal_vertical_cubic(
     case: Case,
     expected_virtual: Dict[str, Union[float, Literal["True"]]],
 ):
-    cubic.constraints.asdict = {"a_eq_b": True, "mu": -pi / 2, "eta": 0}
+    cubic.constraints = configure_constraints({"a_eq_b": True, "mu": -90, "eta": 0})
 
     convert_position_to_hkl_and_hkl_to_position(cubic, case, 5, expected_virtual)
 
@@ -74,33 +71,35 @@ def test_surface_normal_vertical_cubic(
 def test_surface_normal_vertical_cubic_fails_for_parallel_vectors(
     cubic: HklCalculation,
 ):
-    cubic.constraints.asdict = {"a_eq_b": True, "mu": -pi / 2, "eta": 0}
+    cubic.constraints = configure_constraints({"a_eq_b": True, "mu": -90, "eta": 0})
 
     with pytest.raises(DiffcalcException):
         cubic.get_position(1, 0, 0, 1)
 
 
-def test_ub_with_willmot_si_5_5_12_mu_eta_fixed():
-    ubcalc = UBCalculation("test")
-    ubcalc.set_lattice(
-        "Si_5_5_12",
-        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+def test_ub_with_willmot_si_5_5_12_mu_eta_fixed(hklcalc: HklCalculation):
+
+    configure_ub(
+        hklcalc.ubcalc,
+        (7.68, 53.48, 75.63, 90, 90, 90),
+        reflections=[
+            (
+                (2, 19, 32),
+                (-90, 21.975, 4.419, 0.0, 92.0, -416.2),
+                19.5005033,
+                "ref0",
+            ),
+            (
+                (0, 7, 22),
+                (-90, 11.292, 2.844, 0, 92, -214.1),
+                19.5005033,
+                "ref1",
+            ),
+        ],
     )
-    ubcalc.add_reflection(
-        (2, 19, 32),
-        Position(*(-90, 21.975, 4.419, 0.0, 92.0, -416.2) * ureg.deg),
-        19.5005033,
-        "ref0",
-    )
-    ubcalc.add_reflection(
-        (0, 7, 22),
-        Position(*(-90, 11.292, 2.844, 0, 92, -214.1) * ureg.deg),
-        19.5005033,
-        "ref1",
-    )
-    ubcalc.calc_ub()
+    hklcalc.ubcalc.calc_ub()
     matrixeq_(
-        ubcalc.U,
+        hklcalc.ubcalc.U,
         np.array(
             [
                 [-0.7178876, 0.6643924, -0.2078944],
@@ -169,47 +168,37 @@ def test_ub_with_willmot_si_5_5_12_mu_eta_fixed():
     ],
 )
 def test_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
-    hklcalc.ubcalc.set_lattice(
-        "xtal",
-        LatticeParams(7.68, 53.48, 75.63, pi / 2, pi / 2, pi / 2),
-    )
-    hklcalc.ubcalc.set_u(
-        np.array(
+
+    configure_ub(
+        hklcalc.ubcalc,
+        lattice=(7.68, 53.48, 75.63, 90, 90, 90),
+        u_matrix=np.array(
             [
                 [-0.7178876, 0.6643924, -0.2078944],
                 [-0.6559596, -0.5455572, 0.5216170],
                 [0.2331402, 0.5108327, 0.8274634],
             ]
-        )
+        ),
+    )
+    hklcalc.constraints = configure_constraints({"alpha": 2, "mu": -90, "eta": 0})
+
+    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, places, {"alpha": 2})
+
+
+def test_ub_with_willmot_si_5_5_12_mu_chi_fixed(hklcalc: HklCalculation):
+
+    configure_ub(
+        hklcalc.ubcalc,
+        lattice=(7.68, 53.48, 75.63, 90, 90, 90),
+        reflections=[
+            ((2, 19, 32), (0.0, 21.975, 4.419, 2.0, 90.0, -326.2), 19.5005033, "ref0"),
+            ((0, 7, 22), (0.0, 11.292, 2.844, 2.0, 90.0, -124.1), 19.5005033, "ref1"),
+        ],
     )
 
-    convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, places, {"alpha": radians(2)}
-    )
-
-
-def test_ub_with_willmot_si_5_5_12_mu_chi_fixed():
-    ubcalc = UBCalculation("test")
-    ubcalc.set_lattice(
-        "Si_5_5_12",
-        LatticeParams(7.68, 53.48, 75.63, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
-    )
-    ubcalc.add_reflection(
-        (2, 19, 32),
-        Position(*(0.0, 21.975, 4.419, 2.0, 90.0, -326.2) * ureg.deg),
-        19.5005033,
-        "ref0",
-    )
-    ubcalc.add_reflection(
-        (0, 7, 22),
-        Position(*(0.0, 11.292, 2.844, 2.0, 90.0, -124.1) * ureg.deg),
-        19.5005033,
-        "ref1",
-    )
-    ubcalc.calc_ub()
+    hklcalc.ubcalc.calc_ub()
     matrixeq_(
-        ubcalc.U,
+        hklcalc.ubcalc.U,
         np.array(
             [
                 [-0.7178876, 0.6643924, -0.2078944],
@@ -238,49 +227,46 @@ def test_ub_with_willmot_si_5_5_12_mu_chi_fixed():
     ],
 )
 def test_fixed_eta_chi(hklcalc: HklCalculation, case: Case):
-    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "eta": 0, "chi": 0}
-    hklcalc.ubcalc.set_lattice(
-        "xtal",
-        LatticeParams(7.68, 53.48, 75.63, pi / 2, pi / 2, pi / 2),
-    )
-    hklcalc.ubcalc.set_u(
-        np.array(
+    configure_ub(
+        hklcalc.ubcalc,
+        lattice=(7.68, 53.48, 75.63, 90, 90, 90),
+        u_matrix=np.array(
             [
                 [-0.7178876, 0.6643924, -0.2078944],
                 [-0.6559596, -0.5455572, 0.5216170],
                 [0.2331402, 0.5108327, 0.8274634],
             ]
-        )
-    )
-
-    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 5, {"alpha": radians(2)})
-
-
-def test_ub_with_willmot_pt531_mu_chi_fixed():
-    ubcalc = UBCalculation("test")
-    ubcalc.set_lattice(
-        "Pt531",
-        LatticeParams(6.204, 4.806, 23.215, Q(90, "deg"), Q(90, "deg"), Q(49.8, "deg")),
-    )
-    ubcalc.add_reflection(
-        (-1, 1, 6),
-        Position(
-            *(0.0, 9.397102500000003, 16.1812303, 2.0, 90.0, 52.1392905) * ureg.deg
         ),
-        19.5005033,
-        "ref0",
     )
-    ubcalc.add_reflection(
-        (-2, -1, 7),
-        Position(
-            *(0.0, 11.012695800000001, -11.8636128, 2.0, 90.0, -40.3803393) * ureg.deg
-        ),
-        19.5005033,
-        "ref1",
+
+    hklcalc.constraints = configure_constraints({"alpha": 2, "eta": 0, "chi": 0})
+
+    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, 5, {"alpha": 2})
+
+
+def test_ub_with_willmot_pt531_mu_chi_fixed(hklcalc: HklCalculation):
+    configure_ub(
+        hklcalc.ubcalc,
+        lattice=(6.204, 4.806, 23.215, 90, 90, 49.8),
+        reflections=[
+            (
+                (-1, 1, 6),
+                (0.0, 9.397102500000003, 16.1812303, 2.0, 90.0, 52.1392905),
+                19.5005033,
+                "ref0",
+            ),
+            (
+                (-2, -1, 7),
+                (0.0, 11.012695800000001, -11.8636128, 2.0, 90.0, -40.3803393),
+                19.5005033,
+                "ref1",
+            ),
+        ],
     )
-    ubcalc.calc_ub()
+
+    hklcalc.ubcalc.calc_ub()
     matrixeq_(
-        ubcalc.U,
+        hklcalc.ubcalc.U,
         np.array(
             [
                 [-0.0023763, -0.9999970, -0.0006416],
@@ -351,26 +337,20 @@ def test_ub_with_willmot_pt531_mu_chi_fixed():
     ],
 )
 def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": 0, "chi": pi / 2}
-    hklcalc.ubcalc.set_lattice(
-        "Pt531",
-        LatticeParams(
-            6.204, 4.806, 23.215, 90 * ureg.deg, 90 * ureg.deg, 49.8 * ureg.deg
-        ),
-    )
-    hklcalc.ubcalc.set_u(
-        np.array(
+    hklcalc.constraints = configure_constraints({"alpha": 2, "mu": 0, "chi": 90})
+    configure_ub(
+        hklcalc.ubcalc,
+        lattice=(6.204, 4.806, 23.215, 90, 90, 49.8),
+        u_matrix=np.array(
             [
                 [-0.0023763, -0.9999970, -0.0006416],
                 [0.9999923, -0.0023783, 0.0031244],
                 [-0.0031259, -0.0006342, 0.9999949],
             ]
-        )
+        ),
     )
 
-    convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, places, {"alpha": 2 * ureg.deg}
-    )
+    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, places, {"alpha": 2})
 
 
 @pytest.mark.parametrize(
@@ -406,24 +386,18 @@ def test_pt531_fixed_mu_chi(hklcalc: HklCalculation, case: Case, places: int):
     ],
 )
 def test_pt531_fixed_mu_eta(hklcalc: HklCalculation, case: Case, places: int):
-    hklcalc.constraints.asdict = {"alpha": Q(2, "deg"), "mu": -pi / 2, "eta": 0}
+    hklcalc.constraints = configure_constraints({"alpha": 2, "mu": -90, "eta": 0})
 
-    hklcalc.ubcalc.set_lattice(
-        "Pt531",
-        LatticeParams(
-            6.204, 4.806, 23.215, 90 * ureg.deg, 90 * ureg.deg, 49.8 * ureg.deg
-        ),
-    )
-    hklcalc.ubcalc.set_u(
-        np.array(
+    configure_ub(
+        hklcalc.ubcalc,
+        lattice=(6.204, 4.806, 23.215, 90, 90, 49.8),
+        u_matrix=np.array(
             [
                 [-0.0023763, -0.9999970, -0.0006416],
                 [0.9999923, -0.0023783, 0.0031244],
                 [-0.0031259, -0.0006342, 0.9999949],
             ]
-        )
+        ),
     )
 
-    convert_position_to_hkl_and_hkl_to_position(
-        hklcalc, case, places, {"alpha": 2 * ureg.deg}
-    )
+    convert_position_to_hkl_and_hkl_to_position(hklcalc, case, places, {"alpha": 2})

@@ -39,7 +39,7 @@ class HklCalculation:
     -------
     get_hkl(pos: Position, wavelength: float) -> Tuple[float, float, float]
         Calculate miller indices corresponding to a diffractometer positions.
-    get_virtual_angles(pos: Position, asdegrees: bool = True) -> Dict[str,float]
+    get_virtual_angles(pos: Position) -> Dict[str,float]
         Calculate pseudo-angles corresponding to a diffractometer position.
     """
 
@@ -82,17 +82,13 @@ class HklCalculation:
 
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
-    def get_virtual_angles(
-        self, pos: Position, asdegrees: bool = True
-    ) -> Dict[str, float]:
+    def get_virtual_angles(self, pos: Position) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
 
         Parameters
         ----------
         pos: Position
             Diffractometer position.
-        asdegrees: bool = True
-            If True, return angles in degrees.
 
         Returns
         -------
@@ -152,7 +148,7 @@ class HklCalculation:
         return result
 
     def get_position(
-        self, h: float, k: float, l: float, wavelength: float, asdegrees: bool = True
+        self, h: float, k: float, l: float, wavelength: float
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
@@ -169,8 +165,6 @@ class HklCalculation:
                 l miller index.
             wavelength: float
                 wavelength in Angstroms.
-            asdegrees: bool
-                If True, return angles in degrees.
 
         Returns
         -------
@@ -417,7 +411,7 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-            pseudo_angles = self.get_virtual_angles(position, False)
+            pseudo_angles = self.get_virtual_angles(position)
             try:
                 for constraint in [
                     self.constraints.reference,
@@ -540,7 +534,7 @@ class HklCalculation:
     ) -> None:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
-        virtual_angles_readback = self.get_virtual_angles(pos, False)
+        virtual_angles_readback = self.get_virtual_angles(pos)
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
                 r = virtual_angles_readback[key]

@@ -38,8 +38,6 @@ class Position:
         chi angle value
     phi: float, default = 0.0
         phi angle value
-    indegrees: bool, default = True
-        If True, arguments are angles in degrees.
     """
 
     fields: Tuple[str, str, str, str, str, str] = (

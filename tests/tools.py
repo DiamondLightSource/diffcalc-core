@@ -17,9 +17,72 @@
 ###
 
 from math import radians
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from diffcalc.hkl.constraints import Constraints
+from diffcalc.hkl.geometry import Position
+from diffcalc.ub.calc import UBCalculation
+from diffcalc.ub.crystal import LatticeParams
 from diffcalc.util import SMALL, radians_equivalent
+
+from tests.diffcalc import ureg
+
+
+def configure_ub(
+    ubcalc: UBCalculation,
+    lattice: Optional[Tuple[float, ...]] = None,
+    lattice_system: Optional[str] = None,
+    u_matrix: Optional[np.ndarray] = None,
+    reflections: List[
+        Tuple[
+            Tuple[float, float, float],
+            Tuple[float, float, float, float, float, float],
+            float,
+            str,
+        ]
+    ] = [],
+    asdegrees=True,
+) -> UBCalculation:
+    if lattice is not None:
+        if (len(lattice) <= 3) or (asdegrees is False):
+            ubcalc.set_lattice("", LatticeParams(*lattice), lattice_system)
+        else:
+            ubcalc.set_lattice(
+                "",
+                LatticeParams(*lattice[:3], *(lattice[3:]) * ureg.deg),
+                lattice_system,
+            )
+
+    for reflection in reflections:
+        ubcalc.add_reflection(
+            reflection[0],
+            Position(*reflection[1] * ureg.deg)
+            if asdegrees
+            else Position(*reflection[1]),
+            *reflection[2:],
+        )
+
+    if u_matrix is not None:
+        ubcalc.set_u(u_matrix)
+
+    return ubcalc
+
+
+def configure_constraints(
+    constraints: Dict[str, Union[float, bool]], asdegrees=True
+) -> Constraints:
+    constraints_correct_units = {
+        constraint: value * ureg.deg
+        if ((asdegrees) and (not isinstance(value, bool)))
+        else value
+        for constraint, value in constraints.items()
+    }
+    return Constraints(constraints_correct_units)
+
+
+def configure_hkl():
+    pass
 
 
 #
