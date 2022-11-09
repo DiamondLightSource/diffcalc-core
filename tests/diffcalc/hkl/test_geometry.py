@@ -1,13 +1,13 @@
-from math import pi, radians
+from math import degrees, pi, radians
 from typing import Tuple
 
 import numpy as np
 import pytest
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
-from diffcalc.util import I
+from diffcalc.util import I, ureg
 from numpy import array
 
-from tests.diffcalc import ureg
+from tests.tools import assert_almost_equal
 
 x = array([[1], [0], [0]])
 y = array([[0], [1], [0]])
@@ -15,33 +15,27 @@ z = array([[0], [0], [1]])
 
 
 def test_comparison_between_radian_and_degree_positions():
-    pos_in_degrees = Position(*(90, 90, 90, 45, 30, 180) * ureg.deg)
-    pos_in_radians = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi)
+    pos_in_degrees = Position(90, 90, 90, 45, 30, 180)
+    pos_in_radians = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi, "rad")
     assert pos_in_degrees == pos_in_radians
 
 
-def test_asdegrees():
-    pos_in_radians = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi)
-    pos_in_degrees = Position.asdegrees(pos_in_radians)
+def test_degrees():
+    pos = Position(pi / 2, pi / 2, pi / 2, pi / 4, pi / 6, pi, "rad")
+    pos_in_radians = pos.asradians
+    pos_in_degrees = pos.asdegrees
 
-    assert np.all(
-        [
-            radians(pos_in_degrees.asdict[key]) == value
-            for key, value in pos_in_radians.asdict.items()
-        ]
-    )
+    for field in pos.fields:
+        assert_almost_equal(radians(pos_in_degrees[field]), pos_in_radians[field])
 
 
-def test_asradians():
-    pos_in_degrees = Position(*(90, 90, 90, 45, 30, 180) * ureg.deg)
-    pos_in_radians = Position.asradians(pos_in_degrees)
+def test_radians():
+    pos = Position(90.0, 90.0, 90.0, 45.0, 30.0, 180.0, "deg")
+    pos_in_radians = pos.asradians
+    pos_in_degrees = pos.asdegrees
 
-    assert np.all(
-        [
-            pos_in_degrees.asdict[key] == value
-            for key, value in pos_in_radians.asdict.items()
-        ]
-    )
+    for field in pos.fields:
+        assert_almost_equal(degrees(pos_in_radians[field]), pos_in_degrees[field])
 
 
 def test_comparison_between_positions():
@@ -57,27 +51,27 @@ def test_comparison_between_positions():
 
 
 def test_position_str_shows_degree_values_if_degree_position_given():
-    pos = Position(90 * ureg.deg, 0, 0, 45 * ureg.deg, 5 * ureg.deg, 0)
+    pos = Position(90, 0, 0, 45, 5, 0)
 
     assert (
         str(pos)
-        == "Position(mu: 90.0000 degree, delta: 0.0000, nu: 0.0000, eta: 45.0000 "
-        + "degree, chi: 5.0000 degree, phi: 0.0000)"
+        == "Position(mu: 90.0000 degree, delta: 0.0000 degree, nu: 0.0000 degree, eta: 45.0000 "
+        + "degree, chi: 5.0000 degree, phi: 0.0000 degree)"
     )
 
 
 def test_position_str_shows_radian_values_by_default():
     mu, delta, nu, eta, chi, phi = pi / 4, pi / 4, pi / 6, pi / 2, pi / 2, pi / 2
-    pos = Position(mu, delta, nu, eta, chi, phi)
+    pos = Position(mu, delta, nu, eta, chi, phi, "rad")
 
     assert str(pos) == (
         "Position("
-        + f"mu: {mu:.4f}, "
-        + f"delta: {delta:.4f}, "
-        + f"nu: {nu:.4f}, "
-        + f"eta: {eta:.4f}, "
-        + f"chi: {chi:.4f}, "
-        + f"phi: {phi:.4f})"
+        + f"mu: {mu:.4f} radian, "
+        + f"delta: {delta:.4f} radian, "
+        + f"nu: {nu:.4f} radian, "
+        + f"eta: {eta:.4f} radian, "
+        + f"chi: {chi:.4f} radian, "
+        + f"phi: {phi:.4f} radian)"
     )
 
 

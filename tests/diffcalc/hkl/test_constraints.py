@@ -4,10 +4,9 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import pytest
 from diffcalc.hkl.constraints import TYPE, Constraint, Constraints
-from diffcalc.util import DiffcalcException
+from diffcalc.util import DiffcalcException, ureg
 from typing_extensions import Literal
 
-from tests.diffcalc import Q, ureg
 from tests.test_tools import eq_
 from tests.tools import assert_dict_almost_equal
 
@@ -406,7 +405,7 @@ def test_set_constraint_with_wrong_type_fails():
         )
 
     try:
-        cons.constrain("delta", Q(5, "meter"))
+        cons.constrain("delta", 5 * ureg.meter)
     except DiffcalcException as e:
         assert (
             e.args[0]

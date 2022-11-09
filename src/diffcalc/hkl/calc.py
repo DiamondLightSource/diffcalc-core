@@ -376,7 +376,8 @@ class HklCalculation:
             )
 
         tidy_solutions = [
-            self.__tidy_degenerate_solutions(Position(*pos)) for pos in solution_tuples
+            self.__tidy_degenerate_solutions(Position(*pos, "rad"))
+            for pos in solution_tuples
         ]
 
         # def _find_duplicate_angles(el):

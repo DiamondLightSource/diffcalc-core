@@ -11,10 +11,9 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
+from diffcalc.util import DiffcalcException, I, ureg, y_rotation, z_rotation
 from typing_extensions import Literal
 
-from tests.diffcalc import Q, ureg
 from tests.tools import (
     assert_array_almost_equal_in_list,
     assert_dict_almost_in_list,
@@ -116,7 +115,9 @@ def convert_position_to_hkl_and_hkl_to_position(
 
     # First, ensure everything is in the correct units.
     position: Position = (
-        Position(*case.position * ureg.deg) if asdegrees else Position(*case.position)
+        Position(*case.position, ureg.deg)
+        if asdegrees
+        else Position(*case.position, ureg.rad)
     )
 
     # Second, get the hkl from the position. Check it is correct.
@@ -161,18 +162,16 @@ def test_str():
     ubcalc.n_phi = (0, 0, 1)  # type: ignore
     ubcalc.surf_nphi = (0, 0, 1)  # type: ignore
     ubcalc.set_lattice("xtal", LatticeParams(1), "Cubic")
-    ubcalc.add_reflection(
-        (0, 0, 1), Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0), 12.4, "ref1"
-    )
+    ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
     ubcalc.add_orientation(
         (0, 1, 0),
         (0, 1, 0),
-        Position(Q(1, "deg"), 0, 0, 0, Q(2, "deg"), 0),
+        Position(1, 0, 0, 0, 2, 0),
         "orient1",
     )
     ubcalc.set_u(I)
 
-    constraints = Constraints({"nu": 0.0, "psi": Q(90, "deg"), "phi": Q(90, "deg")})
+    constraints = Constraints({"nu": 0.0, "psi": 90 * ureg.deg, "phi": 90 * ureg.deg})
 
     hklcalc = HklCalculation(ubcalc, constraints)
     assert (

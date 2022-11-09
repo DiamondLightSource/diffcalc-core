@@ -24,9 +24,7 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import SMALL, radians_equivalent
-
-from tests.diffcalc import ureg
+from diffcalc.util import SMALL, radians_equivalent, ureg
 
 
 def configure_ub(
@@ -57,9 +55,7 @@ def configure_ub(
     for reflection in reflections:
         ubcalc.add_reflection(
             reflection[0],
-            Position(*reflection[1] * ureg.deg)
-            if asdegrees
-            else Position(*reflection[1]),
+            Position(*reflection[1]),
             *reflection[2:],
         )
 

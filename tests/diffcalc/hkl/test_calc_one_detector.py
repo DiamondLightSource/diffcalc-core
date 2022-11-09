@@ -8,9 +8,8 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
-from diffcalc.util import DiffcalcException, I
+from diffcalc.util import DiffcalcException, I, ureg
 
-from tests.diffcalc import ureg
 from tests.diffcalc.hkl.test_calc import (
     Case,
     configure_ub_with_rotation,

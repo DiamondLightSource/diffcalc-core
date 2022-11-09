@@ -15,6 +15,7 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
+from diffcalc.util import ureg
 
 
 def position_in_range(pos: Position) -> bool:
@@ -37,17 +38,17 @@ def position_in_range(pos: Position) -> bool:
     """
     return all(
         (
-            0 < pos.mu < Q(90, "deg"),
-            0 < pos.nu < Q(90, "deg"),
-            0 < pos.delta < Q(90, "deg"),
-            Q(-90, "deg") < pos.phi < Q(90, "deg"),
+            0 < pos.mu < 90 * ureg.degree,
+            0 < pos.nu < 90 * ureg.degree,
+            0 < pos.delta < 90 * ureg.degree,
+            -90 * ureg.degree < pos.phi < 90 * ureg.degree,
         )
     )
 
 
 def demo_hkl_positions():
     """Demonstrate calculations of miller indices and diffractometer positions."""
-    cons.constrain("betain", Q(3, "deg"))
+    cons.constrain("betain", 3 * ureg.degree)
     for h, k, l in ((0, 0, 1), (1, 0, 1), (1, 0, 2)):
         all_pos = hklcalc.get_position(h, k, l, wavelength)
         print(f"\n{'hkl':<8s}: [{h:1.0f} {k:1.0f} {l:1.0f}]")
@@ -59,9 +60,7 @@ def demo_hkl_positions():
                 for angle, val in virtual_angles.items():
                     print(f"{angle:<8s}:{degrees(val):>8.2f}")
 
-    pos1 = Position(
-        Q(3, "deg"), Q(7.9, "deg"), Q(14.79, "deg"), 0.0, 0.0, Q(8.30, "deg")
-    )
+    pos1 = Position(3, 7.9, 14.79, 0.0, 0.0, 8.30)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
@@ -86,7 +85,7 @@ def demo_scan_betain(h: float, k: float, l: float) -> None:
     print(f"{'betain':<8s}{'mu':>12s}{'delta':>12s}{'gamma':>12s}{'phi':>12s}")
     print("-" * 56)
     for betain in np.arange(3.0, 4.1, 0.1):
-        cons.constrain("betain", Q(betain, "deg"))
+        cons.constrain("betain", betain * ureg.degree)
         for pos, virtual_angles in hklcalc.get_position(h, k, l, wavelength):
             if position_in_range(pos):
                 print(
@@ -114,7 +113,7 @@ def demo_energy_scan(h: float, k: float, l: float) -> None:
         "\n\nScanning energy in 16-18 keV range at betain = 3.0 and betain=betaout constraints "
         f"at [{h} {k} {l}] reflection.\n"
     )
-    for con_name, con_value in (("betain", Q(3.0, "deg")), ("bin_eq_bout", True)):
+    for con_name, con_value in (("betain", 3.0 * ureg.degree), ("bin_eq_bout", True)):
         cons.constrain(con_name, con_value)
         print(f"\n\n{cons}")
         print(
@@ -156,7 +155,7 @@ def demo_scan_qaz(h, k, l):
     )
     print("-" * 68)
     for qaz in np.arange(-1, 1.1, 0.1):
-        cons.constrain("qaz", Q(qaz, "deg"))
+        cons.constrain("qaz", qaz * ureg.degree)
         pos, virtual_angles = next(iter(hklcalc.get_position(h, k, l, wavelength)))
         print(
             f"{degrees(virtual_angles['qaz']):<8.2f}"
@@ -190,10 +189,6 @@ def demo_scan_hkl():
 
 
 if __name__ == "__main__":
-    from pint import UnitRegistry
-
-    ureg = UnitRegistry()
-    Q = ureg.Quantity
 
     ubcalc = UBCalculation("surface")
 
@@ -203,9 +198,8 @@ if __name__ == "__main__":
 
     # We define reciprocal lattice directions in laboratory frame
     # taking into account 2 deg crystal mismount around mu axis.
-    start_pos = Position(
-        Q(-2.0, "deg"), Q(0, "deg"), Q(0, "deg"), Q(0, "deg"), Q(0, "deg"), Q(0, "deg")
-    )
+    start_pos = Position(-2.0, 0, 0, 0, 0, 0)
+
     ubcalc.add_orientation((0, 0, 1), (0, 0, 1), start_pos, "norm")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), start_pos, "plane")
     ubcalc.calc_ub()

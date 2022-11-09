@@ -3,8 +3,7 @@ from math import asin, atan2, cos, degrees, pi, radians, sin
 from diffcalc.hkl.calc import sign
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.reference import Reflection
-
-from tests.diffcalc import Q
+from diffcalc.util import ureg
 
 
 def PosFromI16sEuler(phi, chi, eta, mu, delta, gamma):
@@ -301,9 +300,9 @@ def sessions(P=VliegPos):
         7.51,
         7.73,
         7.00,
-        Q(106.0, "deg"),
-        Q(113.5, "deg"),
-        Q(99.5, "deg"),
+        106.0 * ureg.deg,
+        113.5 * ureg.deg,
+        99.5 * ureg.deg,
     )
     session5.system = "Triclinic"
     session5.bmatrix = (
@@ -389,7 +388,7 @@ def sessions(P=VliegPos):
 
     session6 = SessionScenario()
     session6.name = "Acanthite"
-    session6.lattice = (4.229, 6.931, 7.862, pi / 2, Q(99.61, "deg"), pi / 2)
+    session6.lattice = (4.229, 6.931, 7.862, pi / 2, 99.61 * ureg.deg, pi / 2)
     session6.system = "Monoclinic"
     session6.bmatrix = (
         (1.50688, 0.00000, 0.13532),

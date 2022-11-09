@@ -8,12 +8,12 @@ References
 .. [1] H. You. "Angle calculations for a '4S+2D' six-circle diffractometer"
        J. Appl. Cryst. (1999). 32, 614-623.
 """
-from math import degrees
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import numpy as np
-from diffcalc.util import I, x_rotation, y_rotation, z_rotation
+from diffcalc.util import I, ureg, x_rotation, y_rotation, z_rotation
 from numpy.linalg import inv
+from pint import Quantity, Unit
 
 
 class Position:
@@ -26,18 +26,20 @@ class Position:
     ----------
     fields: Tuple[str, str, str, str, str, str]
         Tuple with angle names
-    mu: float, default = 0.0
+    mu: Union[float, Quantity], default = 0.0
         mu angle value
-    delta: float, default = 0.0
+    delta: Union[float, Quantity], default = 0.0
         delta angle value
-    nu: float, default = 0.0
+    nu: Union[float, Quantity], default = 0.0
         nu angle value
-    eta: float, default = 0.0
+    eta: Union[float, Quantity], default = 0.0
         eta angle value
-    chi: float, default = 0.0
+    chi: Union[float, Quantity], default = 0.0
         chi angle value
-    phi: float, default = 0.0
+    phi: Union[float, Quantity], default = 0.0
         phi angle value
+    unit: Union[str, Unit], default = deg
+        Angle units
     """
 
     fields: Tuple[str, str, str, str, str, str] = (
@@ -51,19 +53,28 @@ class Position:
 
     def __init__(
         self,
-        mu: float = 0.0,
-        delta: float = 0.0,
-        nu: float = 0.0,
-        eta: float = 0.0,
-        chi: float = 0.0,
-        phi: float = 0.0,
+        mu: Union[float, Quantity] = 0.0,
+        delta: Union[float, Quantity] = 0.0,
+        nu: Union[float, Quantity] = 0.0,
+        eta: Union[float, Quantity] = 0.0,
+        chi: Union[float, Quantity] = 0.0,
+        phi: Union[float, Quantity] = 0.0,
+        unit: Union[str, Unit] = ureg.degree,
     ):
-        self.mu: float = mu
-        self.delta: float = delta
-        self.nu: float = nu
-        self.eta: float = eta
-        self.chi: float = chi
-        self.phi: float = phi
+        self.mu: Quantity = None
+        self.delta: Quantity = None
+        self.nu: Quantity = None
+        self.eta: Quantity = None
+        self.chi: Quantity = None
+        self.phi: Quantity = None
+
+        for name, val in zip(Position.fields, (mu, delta, nu, eta, chi, phi)):
+            if isinstance(val, Quantity):
+                setattr(self, name, val.to(unit))
+            elif isinstance(unit, Unit):
+                setattr(self, name, float(val) * unit)
+            else:
+                setattr(self, name, float(val) * ureg(unit))
 
     def __str__(self):
         """Represent Position object information as a string.
@@ -95,59 +106,51 @@ class Position:
 
         return False
 
-    @classmethod
-    def asdegrees(cls, pos: "Position") -> "Position":
-        """Create new Position object with angles in degrees.
-
-        Parameters
-        ----------
-        pos: Position
-            Input Position object
-
-        Returns
-        -------
-        Position
-            New Position object with angles in degrees.
-        """
-        pos_in_deg = {k: degrees(v) for k, v in pos.asdict.items()}
-        return cls(**pos_in_deg)
-
-    @classmethod
-    def asradians(cls, pos: "Position") -> "Position":
-        """Create new Position object with angles in radians.
-
-        Parameters
-        ----------
-        pos: Position
-            Input Position object
-
-        Returns
-        -------
-        Position
-            New Position object with angles in radians.
-        """
-        pos_in_rad = {k: float(v) for k, v in pos.asdict.items()}
-        return cls(**pos_in_rad)
-
     @property
-    def asdict(self) -> Dict[str, float]:
-        """Return dictionary of diffractometer angles.
+    def asdegrees(self) -> Dict[str, float]:
+        """Return dictionary of diffractometer angles in degrees.
 
         Returns
         -------
         Dict[str, float]
-            Dictionary of axis names and angle values.
+            Dictionary of axis names object with angles in degrees.
+        """
+        pos_in_deg = {k: v.to("degree").magnitude for k, v in self.asdict.items()}
+        return pos_in_deg
+
+    @property
+    def asradians(self) -> Dict[str, float]:
+        """Return dictionary of diffractometer angles in radians.
+
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary of axis names with angles in radians.
+        """
+        pos_in_rad = {k: v.to("radian").magnitude for k, v in self.asdict.items()}
+        return pos_in_rad
+
+    @property
+    def asdict(self) -> Dict[str, Quantity]:
+        """Return dictionary of diffractometer angle quantities.
+
+        Returns
+        -------
+        Dict[str, Quantity]
+            Dictionary of axis names and angle quantities.
         """
         return {field: getattr(self, field) for field in self.fields}
 
     @property
-    def astuple(self) -> Tuple[float, float, float, float, float, float]:
-        """Return tuple of diffractometer angles.
+    def astuple(
+        self,
+    ) -> Tuple[Quantity, Quantity, Quantity, Quantity, Quantity, Quantity]:
+        """Return tuple of diffractometer angle quantities.
 
         Returns
         -------
-        Tuple[float, float, float, float, float, float]
-            Tuple of angle values.
+        Tuple[Quantity, Quantity, Quantity, Quantity, Quantity, Quantity]
+            Tuple of diffractometer angle quantities.
         """
         mu, delta, nu, eta, chi, phi = tuple(
             getattr(self, field) for field in self.fields

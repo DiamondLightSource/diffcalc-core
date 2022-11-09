@@ -10,10 +10,10 @@ import pytest
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.ub.crystal import LatticeParams
-from diffcalc.util import DiffcalcException
+from diffcalc.util import DiffcalcException, ureg
 from numpy import array
 
-from tests.diffcalc import Q, scenarios, ureg
+from tests.diffcalc import scenarios
 
 # Integration tests
 
@@ -51,7 +51,7 @@ class TestStrings:
         self.ubcalc.surf_nphi = (0, 0, 1)
         self.ubcalc.set_lattice(
             "xtal",
-            LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            LatticeParams(1, 1, 1, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg),
             "Cubic",
         )
         self.ubcalc.set_miscut(None, 0.0)
@@ -65,11 +65,11 @@ class TestStrings:
         self.ubcalc.surf_nphi = (0, 0, 1)
         self.ubcalc.set_lattice(
             "xtal",
-            LatticeParams(1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            LatticeParams(1, 1, 1, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg),
             "Cubic",
         )
         self.ubcalc.add_reflection(
-            (0, 0, 1), Position(0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0), 12.4, "ref1"
+            (0, 0, 1), Position(0, 60 * ureg.deg, 0, 30 * ureg.deg, 0, 0), 12.4, "ref1"
         )
         self.ubcalc.add_orientation(
             (0, 1, 0), (0, 1, 0), Position(pi / 4, 0, 0, 0, 1.03, 0), "orient1"
@@ -228,25 +228,25 @@ def ubcalc() -> UBCalculation:
 @pytest.mark.parametrize(
     ("short_params", "full_params", "system_name"),
     [
-        ([1.1], [1.1, 1.1, 1.1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")], "Cubic"),
+        ([1.1], [1.1, 1.1, 1.1, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg], "Cubic"),
         (
             [1.1, 2.2],
-            [1.1, 1.1, 2.2, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")],
+            [1.1, 1.1, 2.2, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg],
             "Tetragonal",
         ),
         (
             [1.1, 2.2, 3.3],
-            [1.1, 2.2, 3.3, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")],
+            [1.1, 2.2, 3.3, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg],
             "Orthorhombic",
         ),
         (
-            [1.1, 2.2, 3.3, Q(91, "deg")],
-            [1.1, 2.2, 3.3, Q(90, "deg"), Q(91, "deg"), Q(90, "deg")],
+            [1.1, 2.2, 3.3, 91 * ureg.deg],
+            [1.1, 2.2, 3.3, 90 * ureg.deg, 91 * ureg.deg, 90 * ureg.deg],
             "Monoclinic",
         ),
         (
-            [1.1, 2.2, 3.3, Q(91, "deg"), Q(92, "deg"), Q(93, "deg")],
-            [1.1, 2.2, 3.3, Q(91, "deg"), Q(92, "deg"), Q(93, "deg")],
+            [1.1, 2.2, 3.3, 91 * ureg.deg, 92 * ureg.deg, 93 * ureg.deg],
+            [1.1, 2.2, 3.3, 91 * ureg.deg, 92 * ureg.deg, 93 * ureg.deg],
             "Triclinic",
         ),
     ],
@@ -291,7 +291,7 @@ def test_calc_ub(ubcalc: UBCalculation):
         for ref in [scenario.ref1, scenario.ref2]:
             ubcalc.add_reflection(
                 (ref.h, ref.k, ref.l),
-                Position(*ref.pos.astuple * ureg.deg),
+                Position(**ref.pos.asdict),
                 ref.energy,
                 ref.tag,
             )
@@ -353,10 +353,13 @@ def test_calc_ub_for_one_reflection_only(session1_ubcalc: UBCalculation):
 @pytest.mark.parametrize(
     ("lattice", "position"),
     [
-        ((1, 1, 1, pi / 2, pi / 2, pi / 2), (0, pi / 3, 0, pi / 6, 0, 0)),
         (
-            (1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
-            (0, Q(60, "deg"), 0, Q(30, "deg"), 0, 0),
+            (1, 1, 1, pi / 2 * ureg.rad, pi / 2 * ureg.rad, pi / 2 * ureg.rad),
+            (0, pi / 3 * ureg.rad, 0, pi / 6 * ureg.rad, 0, 0),
+        ),
+        (
+            (1, 1, 1, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg),
+            (0, 60 * ureg.deg, 0, 30 * ureg.deg, 0, 0),
         ),
     ],
 )
@@ -400,7 +403,7 @@ def test_fit_ub():
         for ref in scenario.reflist:
             ubcalc.add_reflection(
                 (ref.h, ref.k, ref.l),
-                Position(*ref.pos.astuple * ureg.deg),
+                Position(**ref.pos.asdict),
                 ref.energy,
                 ref.tag,
             )
@@ -436,7 +439,7 @@ def test_fit_ub():
     ("lattice"),
     [
         (1, 1, 1, pi / 2, pi / 2, pi / 2),
-        (1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+        (1, 1, 1, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg),
     ],
 )
 def test_get_ttheta_from_hkl(ubcalc: UBCalculation, lattice):
@@ -481,13 +484,13 @@ def test_set_miscut(
             (0, 1, 0),
             10,
             (0, 0, 1),
-            Position(radians(40), 0, pi / 3, 0, 0, -pi / 2),
+            Position(radians(40), 0, pi / 3, 0, 0, -pi / 2, "rad"),
         ),
         (
             (1, 0, 0),
             30,
             (0, 1, 1),
-            Position(pi / 4, 0, pi / 2, 0, pi / 12, -pi / 2),
+            Position(pi / 4, 0, pi / 2, 0, pi / 12, -pi / 2, "rad"),
         ),
     ],
 )

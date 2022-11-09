@@ -3,9 +3,9 @@ from math import atan, pi, sqrt
 import numpy as np
 import pytest
 from diffcalc.ub.crystal import Crystal, LatticeParams
-from diffcalc.util import DiffcalcException
+from diffcalc.util import DiffcalcException, ureg
 
-from tests.diffcalc import Q, scenarios
+from tests.diffcalc import scenarios
 
 
 def test_correct_b_matrix_from_init():
@@ -23,30 +23,30 @@ def test_correct_b_matrix_from_init():
     [
         (
             "Triclinic",
-            (1, 2, 3, Q(10, "deg"), Q(20, "deg"), Q(30, "deg")),
-            (1, 2, 3, Q(10, "deg"), Q(20, "deg"), Q(30, "deg")),
+            (1, 2, 3, 10 * ureg.deg, 20 * ureg.deg, 30 * ureg.deg),
+            (1, 2, 3, 10 * ureg.deg, 20 * ureg.deg, 30 * ureg.deg),
         ),
         (
             "Monoclinic",
-            (1, 2, 3, Q(20, "deg")),
-            (1, 2, 3, Q(90, "deg"), Q(20, "deg"), Q(90, "deg")),
+            (1, 2, 3, 20 * ureg.deg),
+            (1, 2, 3, 90 * ureg.deg, 20 * ureg.deg, 90 * ureg.deg),
         ),
         (
             "Orthorhombic",
             (1, 2, 3),
-            (1, 2, 3, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            (1, 2, 3, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg),
         ),
-        ("Tetragonal", (1, 3), (1, 1, 3, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))),
+        ("Tetragonal", (1, 3), (1, 1, 3, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg)),
         (
             "Rhombohedral",
-            (1, Q(10, "deg")),
-            (1, 1, 1, Q(10, "deg"), Q(10, "deg"), Q(10, "deg")),
+            (1, 10 * ureg.deg),
+            (1, 1, 1, 10 * ureg.deg, 10 * ureg.deg, 10 * ureg.deg),
         ),
-        ("Cubic", (1,), (1, 1, 1, Q(90, "deg"), Q(90, "deg"), Q(90, "deg"))),
+        ("Cubic", (1,), (1, 1, 1, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg)),
         pytest.param(
             "Orthorombic",
             (1, 2, 3),
-            (1, 2, 3, Q(90, "deg"), Q(90, "deg"), Q(90, "deg")),
+            (1, 2, 3, 90 * ureg.deg, 90 * ureg.deg, 90 * ureg.deg),
             marks=pytest.mark.xfail(raises=DiffcalcException),
         ),
     ],
@@ -77,7 +77,9 @@ def test_get_hkl_plane_angle(hkl1, hkl2, angle):
 
 
 def test_string():
-    cut = Crystal("HCl", LatticeParams(1, 2, 3, Q(4, "deg"), Q(5, "deg"), Q(6, "deg")))
+    cut = Crystal(
+        "HCl", LatticeParams(1, 2, 3, 4 * ureg.deg, 5 * ureg.deg, 6 * ureg.deg)
+    )
 
     with open(f"tests/diffcalc/ub/strings/crystal/crystal_cut.txt") as f:
         expected_string = f.read()

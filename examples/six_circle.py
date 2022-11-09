@@ -15,6 +15,7 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.ub.crystal import LatticeParams
+from diffcalc.util import ureg
 
 
 def in_range_mu_nu_phi(pos: Position) -> bool:
@@ -36,9 +37,9 @@ def in_range_mu_nu_phi(pos: Position) -> bool:
     """
     return all(
         (
-            0 < pos.mu < Q(90, "deg"),
-            0 < pos.nu < Q(90, "deg"),
-            Q(-90, "deg") < pos.phi < Q(90, "deg"),
+            0 < pos.mu < 90 * ureg.degree,
+            0 < pos.nu < 90 * ureg.degree,
+            -90 * ureg.degree < pos.phi < 90 * ureg.degree,
         )
     )
 
@@ -62,9 +63,9 @@ def in_range_del_eta_phi(pos: Position) -> bool:
     """
     return all(
         (
-            Q(-90, "deg") < pos.delta < Q(90, "deg"),
-            Q(-90, "deg") < pos.eta < Q(90, "deg"),
-            Q(-90, "deg") < pos.phi < Q(90, "deg"),
+            -90 * ureg.degree < pos.delta < 90 * ureg.degree,
+            -90 * ureg.degree < pos.eta < 90 * ureg.degree,
+            -90 * ureg.degree < pos.phi < 90 * ureg.degree,
         )
     )
 
@@ -82,7 +83,7 @@ def get_hkl_positions():
                 for angle, val in virtual_angles.items():
                     print(f"{angle:<8s}:{val:>8.2f}")
 
-    pos1 = Position(Q(7.31, "deg"), 0.0, Q(10.62, "deg"), 0.0, 0.0, 0.0)
+    pos1 = Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0)
     hkl1 = hklcalc.get_hkl(pos1, wavelength)
     print("\nPosition -> hkl")
     for angle, val in pos1.asdict.items():
@@ -122,7 +123,7 @@ def demo_scan_alpha():
     )
     print("-------------------------------------------------------------")
     for alp in np.arange(0, 11, 1):
-        cons.constrain("alpha", Q(alp, "deg"))
+        cons.constrain("alpha", alp * ureg.degree)
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
@@ -143,7 +144,7 @@ def demo_scan_qaz():
     )
     print("-" * 78)
     for qaz in np.arange(90, -1, -10):
-        cons.constrain("qaz", Q(qaz, "deg"))
+        cons.constrain("qaz", qaz * ureg.degree)
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_mu_nu_phi(pos):
                 print(
@@ -165,7 +166,7 @@ def demo_scan_psi():
     )
     print("-" * 92)
     for psi in np.arange(90, -1, -10):
-        cons.constrain("psi", Q(psi, "deg"))
+        cons.constrain("psi", psi * ureg.degree)
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
@@ -187,7 +188,7 @@ def demo_scan_psi():
     )
     print("-" * 92)
     for psi in np.arange(90, -1, -10):
-        cons.constrain("psi", Q(psi, "deg"))
+        cons.constrain("psi", psi * ureg.degree)
         for pos, virtual_angles in hklcalc.get_position(0, 0, 1, wavelength):
             if in_range_del_eta_phi(pos):
                 print(
@@ -203,10 +204,6 @@ def demo_scan_psi():
 
 
 if __name__ == "__main__":
-    from pint import UnitRegistry
-
-    ureg = UnitRegistry()
-    Q = ureg.Quantity
 
     ubcalc = UBCalculation("sixcircle")
 
@@ -216,7 +213,7 @@ if __name__ == "__main__":
 
     ubcalc.add_reflection(
         (0, 0, 1),
-        Position(Q(7.31, "deg"), 0.0, Q(10.62, "deg"), 0, 0.0, 0),
+        Position(7.31, 0.0, 10.62, 0.0, 0.0, 0.0),
         12.39842,
         "refl1",
     )
@@ -245,5 +242,5 @@ if __name__ == "__main__":
 
     demo_scan_qaz()
 
-    cons.asdict = {"qaz": Q(90, "deg"), "chi": Q(90, "deg")}
+    cons.asdict = {"qaz": 90 * ureg.degree, "chi": 90 * ureg.degree}
     demo_scan_psi()
