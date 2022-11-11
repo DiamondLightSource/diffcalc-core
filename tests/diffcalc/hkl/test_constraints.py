@@ -116,21 +116,6 @@ def test_constraints_stored_as_radians():
     assert deg_cons._nu.value == pi / 4
 
 
-def test_conversion_between_degrees_and_radians():
-    deg_cons = Constraints({"alpha": 90, "mu": 30, "nu": 45})
-    rad_cons = Constraints({"alpha": pi / 2, "mu": pi / 6, "nu": pi / 4})
-
-    cons_asradians = Constraints.asradians(deg_cons)
-
-    assert np.all(
-        [
-            pytest.approx(cons_asradians.asdict[key]) == rad_cons.asdict[key]
-            for key in ["alpha", "mu", "nu"]
-        ]
-    )
-    # NOTE: the conversion back does not work. i.e. Constraints.asdegrees is wrong.
-
-
 def test_str_constraint(cm):
     print(str(cm))
     eq_(
@@ -392,16 +377,6 @@ def test_setting_already_active_constraint():
     cons.mu = 90
 
     assert cons.mu == 90
-
-
-def test_radian_implementation_equivalent_to_degrees():
-    con_rad = Constraints({"mu": pi, "delta": pi / 2, "eta": pi / 6}, indegrees=False)
-    con_deg = Constraints({"mu": 180, "delta": 90, "eta": 30})
-
-    new_con_deg = Constraints.asdegrees(con_rad)
-    assert np.all(
-        [True for k, v in new_con_deg.asdict.items() if (v - con_deg.asdict[k]) == 0]
-    )
 
 
 def test_serialisation(cm):

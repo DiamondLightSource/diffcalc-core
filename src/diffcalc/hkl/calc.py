@@ -3,8 +3,7 @@
 Module implementing calculations based on UB matrix data and diffractometer
 constraints.
 """
-from copy import copy
-from math import acos, asin, atan2, cos, degrees, isnan, pi, sin
+from math import acos, asin, atan2, cos, degrees, isnan, pi, radians, sin
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -16,11 +15,11 @@ from diffcalc.util import (
     DiffcalcException,
     I,
     angle_between_vectors,
+    angles_equivalent,
     bound,
     dot3,
     is_small,
     normalised,
-    radians_equivalent,
     sign,
 )
 from numpy.linalg import inv, norm
@@ -40,7 +39,7 @@ class HklCalculation:
     -------
     get_hkl(pos: Position, wavelength: float) -> Tuple[float, float, float]
         Calculate miller indices corresponding to a diffractometer positions.
-    get_virtual_angles(pos: Position, asdegrees: bool = True) -> Dict[str,float]
+    get_virtual_angles(pos: Position) -> Dict[str,float]
         Calculate pseudo-angles corresponding to a diffractometer position.
     """
 
@@ -75,8 +74,7 @@ class HklCalculation:
             Miller indices corresponding to the specified diffractometer
             position at the given wavelength.
         """
-        pos_in_rad = Position.asradians(pos)
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
 
         q_lab = (NU @ DELTA - I) @ np.array([[0], [2 * pi / wavelength], [0]])  # 12
 
@@ -85,7 +83,8 @@ class HklCalculation:
         return hkl[0, 0], hkl[1, 0], hkl[2, 0]
 
     def get_virtual_angles(
-        self, pos: Position, asdegrees: bool = True
+        self,
+        pos: Position,
     ) -> Dict[str, float]:
         """Calculate pseudo-angles corresponding to a diffractometer position.
 
@@ -93,8 +92,6 @@ class HklCalculation:
         ----------
         pos: Position
             Diffractometer position.
-        asdegrees: bool = True
-            If True, return angles in degrees.
 
         Returns
         -------
@@ -102,12 +99,11 @@ class HklCalculation:
             Returns alpha, beta, betain, betaout, naz, psi, qaz, tau, theta and
             ttheta angles.
         """
-        pos_in_rad = Position.asradians(pos)
         theta, qaz = self.__theta_and_qaz_from_detector_angles(
-            pos_in_rad.delta, pos_in_rad.nu
+            pos._delta, pos._nu
         )  # (19)
 
-        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos_in_rad)
+        [MU, DELTA, NU, ETA, CHI, PHI] = get_rotation_matrices(pos)
         Z = MU @ ETA @ CHI @ PHI
         D = NU @ DELTA
 
@@ -115,8 +111,8 @@ class HklCalculation:
         surf_nphi = Z @ self.ubcalc.surf_nphi
         kin = np.array([[0.0], [1.0], [0.0]])
         kout = D @ np.array([[0.0], [1.0], [0.0]])
-        betain = angle_between_vectors(kin, surf_nphi) - pi / 2.0
-        betaout = pi / 2.0 - angle_between_vectors(kout, surf_nphi)
+        betain = radians(angle_between_vectors(kin, surf_nphi)) - pi / 2.0
+        betaout = pi / 2.0 - radians(angle_between_vectors(kout, surf_nphi))
 
         n_lab = Z @ self.ubcalc.n_phi
         alpha = asin(bound(-n_lab[1, 0]))
@@ -152,12 +148,10 @@ class HklCalculation:
             "betain": betain,
             "betaout": betaout,
         }
-        if asdegrees:
-            result = {key: degrees(val) for key, val in result.items()}
-        return result
+        return {key: degrees(val) for key, val in result.items()}
 
     def get_position(
-        self, h: float, k: float, l: float, wavelength: float, asdegrees: bool = True
+        self, h: float, k: float, l: float, wavelength: float
     ) -> List[Tuple[Position, Dict[str, float]]]:
         """Calculate diffractometer position from miller indices and wavelength.
 
@@ -174,8 +168,6 @@ class HklCalculation:
                 l miller index.
             wavelength: float
                 wavelength in Angstroms.
-            asdegrees: bool
-                If True, return angles in degrees.
 
         Returns
         -------
@@ -191,15 +183,7 @@ class HklCalculation:
         for pos, virtual_angles in pos_virtual_angles_pairs:
             self.__verify_pos_map_to_hkl(h, k, l, wavelength, pos)
             self.__verify_virtual_angles(h, k, l, pos, virtual_angles)
-            if asdegrees:
-                res_pos = Position.asdegrees(pos)
-                res_virtual_angles = {
-                    key: degrees(val) for key, val in virtual_angles.items()
-                }
-            else:
-                res_pos = Position.asradians(pos)
-                res_virtual_angles = copy(virtual_angles)
-            results.append((res_pos, res_virtual_angles))
+            results.append((pos, virtual_angles))
 
         return results
 
@@ -270,8 +254,8 @@ class HklCalculation:
         n_phi: np.ndarray,
         theta: float,
     ) -> Tuple[np.ndarray, float, float]:
-        tau = angle_between_vectors(h_phi, self.ubcalc.n_phi)
-        surf_tau = angle_between_vectors(h_phi, self.ubcalc.surf_nphi)
+        tau = radians(angle_between_vectors(h_phi, self.ubcalc.n_phi))
+        surf_tau = radians(angle_between_vectors(h_phi, self.ubcalc.surf_nphi))
 
         ref_constraint_name, ref_constraint_value = next(iter(ref_constraint.items()))
         if is_small(sin(tau)):
@@ -395,7 +379,7 @@ class HklCalculation:
             )
 
         tidy_solutions = [
-            self.__tidy_degenerate_solutions(Position(*pos, False))
+            self.__tidy_degenerate_solutions(Position(*(degrees(v) for v in pos)))
             for pos in solution_tuples
         ]
 
@@ -431,7 +415,7 @@ class HklCalculation:
             # and may be invalid for the chosen solution TODO: anglesToHkl need no
             # longer check the pseudo_angles as they will be generated with the
             # same function and it will prove nothing
-            pseudo_angles = self.get_virtual_angles(position, False)
+            pseudo_angles = self.get_virtual_angles(position)
             try:
                 for constraint in [
                     self.constraints._reference,
@@ -439,18 +423,19 @@ class HklCalculation:
                 ]:
                     for constraint_name, constraint_value in constraint.items():
                         if constraint_name == "a_eq_b":
-                            assert radians_equivalent(
+                            assert angles_equivalent(
                                 pseudo_angles["alpha"], pseudo_angles["beta"]
                             )
                         elif constraint_name == "bin_eq_bout":
-                            assert radians_equivalent(
+                            assert angles_equivalent(
                                 pseudo_angles["betain"], pseudo_angles["betaout"]
                             )
                         elif constraint_name not in pseudo_angles:
                             continue
                         else:
-                            assert radians_equivalent(
-                                constraint_value, pseudo_angles[constraint_name]
+                            assert angles_equivalent(
+                                degrees(constraint_value),
+                                pseudo_angles[constraint_name],
                             )
                 position_pseudo_angles_pairs.append((position, pseudo_angles))
             except AssertionError:
@@ -472,7 +457,7 @@ class HklCalculation:
             nu_constrained_to_0
             and mu_constrained_to_0
             and phi_not_constrained
-            and is_small(pos.chi)
+            and angles_equivalent(pos.chi, 0.0)
         ):
             # constrained to vertical 4-circle like mode
             # phi || eta
@@ -481,8 +466,8 @@ class HklCalculation:
             if print_degenerate:
                 print(
                     "DEGENERATE: with chi=0, phi and eta are collinear:"
-                    "choosing eta = delta/2 by adding % 7.3f to eta and "
-                    "removing it from phi. (mu=nu=0 only)" % degrees(eta_diff)
+                    f"choosing eta = delta/2 by adding {eta_diff:7.3f} to eta and "
+                    "removing it from phi. (mu=nu=0 only)"
                 )
                 print("            original:", pos)
             newpos = Position(
@@ -492,14 +477,13 @@ class HklCalculation:
                 desired_eta,
                 pos.chi,
                 pos.phi - eta_diff,
-                False,
             )
 
         elif (
             delta_constrained_to_0
             and eta_constrained_to_0
             and phi_not_constrained
-            and is_small(pos.chi - pi / 2)
+            and angles_equivalent(pos.chi, 90.0)
         ):
             # constrained to horizontal 4-circle like mode
             # phi || mu
@@ -508,8 +492,8 @@ class HklCalculation:
             if print_degenerate:
                 print(
                     "DEGENERATE: with chi=90, phi and mu are collinear: choosing"
-                    " mu = nu/2 by adding % 7.3f to mu and to phi. "
-                    "(delta=eta=0 only)" % degrees(mu_diff)
+                    f" mu = nu/2 by adding {mu_diff:7.3f} to mu and to phi. "
+                    "(delta=eta=0 only)"
                 )
                 print("            original:", pos)
             newpos = Position(
@@ -519,7 +503,6 @@ class HklCalculation:
                 pos.eta,
                 pos.chi,
                 pos.phi + mu_diff,
-                False,
             )
         else:
             newpos = pos
@@ -554,11 +537,11 @@ class HklCalculation:
     ) -> None:
         # Check that the virtual angles calculated/fixed during the hklToAngles
         # those read back from pos using anglesToVirtualAngles
-        virtual_angles_readback = self.get_virtual_angles(pos, False)
+        virtual_angles_readback = self.get_virtual_angles(pos)
         for key, val in virtual_angles.items():
             if val is not None:  # Some values calculated in some mode_selector
                 r = virtual_angles_readback[key]
-                if (not isnan(val) or not isnan(r)) and not radians_equivalent(
+                if (not isnan(val) or not isnan(r)) and not angles_equivalent(
                     val, r, 1e-5
                 ):
                     s = (

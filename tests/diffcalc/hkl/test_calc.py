@@ -1,6 +1,6 @@
 import itertools
 from dataclasses import dataclass
-from math import isnan, pi, radians, sqrt
+from math import isnan, radians, sqrt
 from typing import Dict, List, Optional, Tuple, Union
 from unittest.mock import Mock
 
@@ -89,16 +89,15 @@ def convert_position_to_hkl_and_hkl_to_position(
     case: Case,
     places: int = 5,
     expected_virtual: Dict[str, float] = {},
-    asdegrees: bool = True,
 ) -> None:
 
-    position: Position = Position(*case.position, indegrees=asdegrees)
+    position: Position = Position(*case.position)
     hkl = hklcalc.get_hkl(position, case.wavelength)
 
     assert np.all(np.round(hkl, places) == np.round(case.hkl, places))
 
     pos_virtual_angles_pairs_in_degrees = hklcalc.get_position(
-        case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength, asdegrees=asdegrees
+        case.hkl[0], case.hkl[1], case.hkl[2], case.wavelength
     )
 
     pos = [result[0] for result in pos_virtual_angles_pairs_in_degrees]
@@ -160,12 +159,12 @@ def test_serialisation(cubic: HklCalculation):
     assert hklcalc.asdict == hkl_json
 
 
-def test_get_position_with_radians(cubic: HklCalculation):
-    cubic.constraints = Constraints({"delta": 60, "a_eq_b": True, "mu": 0})
+def test_get_position(cubic: HklCalculation):
+    cubic.constraints = Constraints({"delta": 60.0, "a_eq_b": True, "mu": 0})
 
-    case = Case("100", (1, 0, 0), (0, pi / 3, 0, pi / 6, 0, 0))
+    case = Case("100", (1, 0, 0), (0, 60.0, 0, 30.0, 0, 0))
 
-    convert_position_to_hkl_and_hkl_to_position(cubic, case, asdegrees=False)
+    convert_position_to_hkl_and_hkl_to_position(cubic, case)
 
 
 @pytest.mark.parametrize(

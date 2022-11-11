@@ -16,9 +16,7 @@
 # along with Diffcalc.  If not, see <http://www.gnu.org/licenses/>.
 ###
 
-from math import radians
-
-from diffcalc.util import SMALL, radians_equivalent
+from diffcalc.util import angles_equivalent
 from pytest import approx
 
 
@@ -46,7 +44,7 @@ def assert_array_almost_equal(first, second, places=7, msg=None, note=None):
         #    format_note(note),
         # )
         # assert_almost_equal(f, s, places, msg or default_msg)
-        assert degrees_equivalent(f, s, pow(10, -places))
+        assert angles_equivalent(f, s, pow(10, -places))
 
 
 def assert_array_almost_equal_in_list(expected, vals, places=7, msg=None):
@@ -161,7 +159,3 @@ def assert_iterable_almost_equal(first, second, places=7, msg=None, note=None):
 
 
 mneq_ = matrixeq_ = assert_matrix_almost_equal
-
-
-def degrees_equivalent(first, second, tolerance=SMALL):
-    return radians_equivalent(radians(first), radians(second), radians(tolerance))

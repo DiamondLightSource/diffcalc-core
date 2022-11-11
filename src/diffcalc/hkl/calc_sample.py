@@ -1,7 +1,20 @@
 """Module implementing intermediate calculations in constrained sample geometry."""
 import logging
 from itertools import product
-from math import acos, asin, atan, atan2, cos, degrees, isnan, pi, sin, sqrt, tan
+from math import (
+    acos,
+    asin,
+    atan,
+    atan2,
+    cos,
+    degrees,
+    isnan,
+    pi,
+    radians,
+    sin,
+    sqrt,
+    tan,
+)
 from typing import Dict, Iterator, Optional, Tuple
 
 import numpy as np
@@ -24,7 +37,7 @@ def _calc_N(Q: np.ndarray, n: np.ndarray) -> np.ndarray:
     """Return N as described by Equation 31."""
     Q = normalised(Q)
     n = normalised(n)
-    if is_small(angle_between_vectors(Q, n)):
+    if is_small(radians(angle_between_vectors(Q, n))):
         # Replace the reference vector with an alternative vector from Eq.(78)
         def __key_func(v):
             return v[1]  # Workaround for mypy issue #9590
