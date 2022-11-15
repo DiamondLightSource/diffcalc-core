@@ -8,6 +8,7 @@ from math import (
     atan2,
     cos,
     degrees,
+    hypot,
     isnan,
     pi,
     radians,
@@ -47,7 +48,7 @@ def _calc_N(Q: np.ndarray, n: np.ndarray) -> np.ndarray:
             key=__key_func,
         )
         idx_1, idx_2 = (idx for idx in range(3) if idx != idx_min)
-        qval = sqrt(Q[idx_1, 0] * Q[idx_1, 0] + Q[idx_2, 0] * Q[idx_2, 0])
+        qval = hypot(Q[idx_1, 0], Q[idx_2, 0])
         n[idx_min, 0] = qval
         n[idx_1, 0] = -Q[idx_min, 0] * Q[idx_1, 0] / qval
         n[idx_2, 0] = -Q[idx_min, 0] * Q[idx_2, 0] / qval
@@ -266,7 +267,7 @@ def __calc_sample_con_mu_eta(
                 "vector or phi constraints have been set.\nPlease choose a different "
                 "set of constraints."
             )
-        bot = bound(-V[1, 0] / sqrt(N_phi[0, 0] ** 2 + N_phi[1, 0] ** 2))
+        bot = bound(-V[1, 0] / hypot(N_phi[0, 0], N_phi[1, 0]))
         eps = atan2(N_phi[1, 0], N_phi[0, 0])
         phi_vals = [asin(bot) + eps, pi - asin(bot) + eps]  # (59)
     except AssertionError:
@@ -424,7 +425,7 @@ def __calc_sample_con_mu_phi(
     E = rot_PHI(phi) @ N_phi
 
     try:
-        bot = bound(-V[2, 0] / sqrt(E[0, 0] ** 2 + E[2, 0] ** 2))
+        bot = bound(-V[2, 0] / hypot(E[0, 0], E[2, 0]))
     except AssertionError:
         return
     eps = atan2(E[2, 0], E[0, 0])
@@ -459,7 +460,7 @@ def __calc_sample_con_mu_chi(
         ks = atan2(A, B)
     try:
         acos_phi = acos(
-            bound((N_phi[2, 0] * cos(chi) - V20) / (sin(chi) * sqrt(A**2 + B**2)))
+            bound((N_phi[2, 0] * cos(chi) - V20) / (sin(chi) * hypot(A, B)))
         )
     except AssertionError:
         return
@@ -510,9 +511,7 @@ def __calc_sample_con_eta_phi(
     sgn = sign(cos(eta))
     eps = atan2(X * sgn, Y * sgn)
     try:
-        acos_rhs = acos(
-            bound((sin(qaz) * cos(theta) / cos(eta) - V) / sqrt(X**2 + Y**2))
-        )
+        acos_rhs = acos(bound((sin(qaz) * cos(theta) / cos(eta) - V) / hypot(X, Y)))
     except AssertionError:
         return
     if is_small(acos_rhs):
@@ -556,7 +555,7 @@ def __calc_sample_con_eta_chi(
         acos_V00 = acos(
             bound(
                 (cos(theta) * sin(qaz) - N_phi[2, 0] * cos(eta) * sin(chi))
-                / sqrt(A**2 + B**2)
+                / hypot(A, B)
             )
         )
     except AssertionError:

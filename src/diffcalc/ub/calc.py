@@ -10,7 +10,6 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from pickle import UnpicklingError
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -204,7 +203,7 @@ class UBCalculation:
         with open(filename, "rb") as fp:
             try:
                 obj = pickle.load(fp)
-            except UnpicklingError as e:
+            except pickle.UnpicklingError as e:
                 raise DiffcalcException(e)
             if isinstance(obj, UBCalculation):
                 return obj
@@ -904,7 +903,6 @@ class UBCalculation:
         # ...and nornmalise and check that the reflections used are appropriate
 
         def __normalise(m):
-            SMALL = 1e-4  # Taken from Vlieg's code
             d = norm(m)
             if d < SMALL:
                 raise DiffcalcException(

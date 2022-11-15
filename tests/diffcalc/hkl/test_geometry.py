@@ -4,11 +4,10 @@ import numpy as np
 import pytest
 from diffcalc.hkl.geometry import Position, get_rotation_matrices
 from diffcalc.util import I
-from numpy import array
 
-x = array([[1], [0], [0]])
-y = array([[0], [1], [0]])
-z = array([[0], [0], [1]])
+x = np.array([[1], [0], [0]])
+y = np.array([[0], [1], [0]])
+z = np.array([[0], [0], [1]])
 
 
 def test_comparison_between_positions():

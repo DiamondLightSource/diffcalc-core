@@ -10,7 +10,6 @@ import pytest
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.util import DiffcalcException
-from numpy import array
 
 from tests.diffcalc import scenarios
 
@@ -391,9 +390,9 @@ def test_get_ttheta_from_hkl(ubcalc: UBCalculation):
             [np.pi / 6, np.pi / 12, np.pi / 4],
             [False, True, True],
             [
-                array([[-0.5], [0], [0.8660254]]),
-                array([[-0.7071068], [0], [0.7071068]]),
-                array([[0.0], [0.0], [1.0]]),
+                np.array([[-0.5], [0], [0.8660254]]),
+                np.array([[-0.7071068], [0], [0.7071068]]),
+                np.array([[0.0], [0.0], [1.0]]),
             ],
         ),
     ],
