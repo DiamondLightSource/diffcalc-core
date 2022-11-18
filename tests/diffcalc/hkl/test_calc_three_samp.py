@@ -6,6 +6,7 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException
+from typing_extensions import Literal
 
 from tests.diffcalc.hkl.test_calc import (
     Case,
@@ -38,7 +39,7 @@ def cubic() -> HklCalculation:
 def test_get_position_three_samp(
     cubic: HklCalculation,
     expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 

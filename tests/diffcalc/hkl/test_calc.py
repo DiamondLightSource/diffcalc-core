@@ -11,6 +11,7 @@ from diffcalc.hkl.constraints import Constraints
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I, y_rotation, z_rotation
+from typing_extensions import Literal
 
 from tests.tools import (
     assert_array_almost_equal_in_list,
@@ -172,7 +173,7 @@ def test_get_position(cubic: HklCalculation):
     [{}, {"mu": 1, "eta": 1, "bisect": True}, {"bisect": True, "eta": 34, "naz": 3}],
 )
 def test_get_position_raises_exception_if_badly_constrained(
-    cubic: HklCalculation, constraints: Dict[str, Union[float, bool]]
+    cubic: HklCalculation, constraints: Dict[str, Union[float, Literal["True"]]]
 ):
     cubic.constraints = Constraints(constraints)
 
@@ -185,7 +186,7 @@ def test_get_position_raises_exception_if_badly_constrained(
     ({"naz": 3, "alpha": 1, "phi": 45}, {"eta": 20, "phi": 34, "delta": 10000}),
 )
 def test_get_position_raises_exception_if_no_solutions_found(
-    constraints: Dict[str, Union[float, bool]]
+    constraints: Dict[str, Union[float, Literal["True"]]]
 ):
     ubcalc = UBCalculation()
     ubcalc.set_lattice("cube", 1)
@@ -212,7 +213,9 @@ def test_get_position_raises_exception_if_no_solutions_found(
     ),
 )
 def test_fails_for_parallel_vectors(
-    cubic_ub: UBCalculation, zrot: float, constraints: Dict[str, Union[float, bool]]
+    cubic_ub: UBCalculation,
+    zrot: float,
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     """Confirm that a hkl of (0,0,1) fails for a_eq_b=True.
     By default, the reference vector is (0,0,1). A parallel vector to this should
@@ -290,7 +293,7 @@ def test_redundant_solutions_when_calculating_remaining_detector_angles(
 def test_fails_when_a_eq_b_and_parallel_vectors(
     cubic: HklCalculation,
     case: Case,
-    constraints: Dict[str, Union[float, bool]],
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 

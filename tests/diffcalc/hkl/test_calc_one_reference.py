@@ -8,6 +8,7 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException, I
+from typing_extensions import Literal
 
 from tests.diffcalc.hkl.test_calc import (
     Case,
@@ -51,7 +52,7 @@ def cubic() -> HklCalculation:
 def test_get_position_one_ref_two_samp(
     cubic: HklCalculation,
     expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 
@@ -286,7 +287,9 @@ def test_i16_vertical(hklcalc: HklCalculation, case: Case):
     ),
 )
 def test_i16_failed_hexagonal_experiment(
-    hklcalc: HklCalculation, case: Case, constraints: Dict[str, Union[float, bool]]
+    hklcalc: HklCalculation,
+    case: Case,
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     hklcalc.ubcalc.set_lattice("I16_test", "Hexagonal", 4.785, 12.991)
     u_matrix = np.array(

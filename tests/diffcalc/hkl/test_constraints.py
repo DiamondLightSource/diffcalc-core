@@ -3,8 +3,9 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pytest
-from diffcalc.hkl.constraints import Constraints, _con_type, _Constraint
+from diffcalc.hkl.constraints import CATEGORY, TYPE, Constraint, Constraints
 from diffcalc.util import DiffcalcException
+from typing_extensions import Literal
 
 from tests.test_tools import eq_
 from tests.tools import assert_dict_almost_equal
@@ -23,16 +24,16 @@ def cm() -> Constraints:
     ],
 )
 def test_init_generates_correct_dictionaries(
-    cons: Dict[str, Union[float, bool]],
-    det: Dict[str, Union[float, bool]],
-    ref: Dict[str, Union[float, bool]],
-    samp: Dict[str, Union[float, bool]],
+    cons: Dict[str, Union[float, Literal["True"]]],
+    det: Dict[str, Union[float, Literal["True"]]],
+    ref: Dict[str, Union[float, Literal["True"]]],
+    samp: Dict[str, Union[float, Literal["True"]]],
 ):
     constraints = Constraints(cons)
     assert constraints.asdict == cons
-    assert constraints._detector == det
-    assert constraints._reference == ref
-    assert constraints._sample == samp
+    assert constraints.detector == det
+    assert constraints.reference == ref
+    assert constraints.sample == samp
 
 
 @pytest.mark.parametrize(
@@ -60,11 +61,11 @@ def test_init_generates_correct_dictionaries(
 def test_setters_getters_and_deleters_for_each_constraint(
     cm: Constraints, con_name: str
 ):
-    constraint_def: _Constraint = getattr(cm, "_" + con_name)
+    constraint_def: Constraint = getattr(cm, "_" + con_name)
 
-    value: Union[bool, int] = 1
+    value: Union[Literal["True"], int] = 1
 
-    if constraint_def._type == _con_type.VOID:
+    if constraint_def.type == TYPE.VOID:
         value = True
 
     setattr(cm, con_name, value)
@@ -79,7 +80,7 @@ def test_setters_getters_and_deleters_for_each_constraint(
     [{"nu": 0, "mu": 0, "a_eq_b": None}, {"nu": 3, "mu": 4, "a_eq_b": True}],
 )
 def test_as_dict_setter_and_getter(
-    cm: Constraints, con_dict: Dict[str, Union[float, bool]]
+    cm: Constraints, con_dict: Dict[str, Union[float, Literal["True"]]]
 ):
     non_null_con_dict = {k: v for k, v in con_dict.items() if v is not None}
     cm.asdict = con_dict
@@ -190,7 +191,7 @@ def test_setting_invalid_constraint_name(cm: Constraints):
         cm.astuple = (("non_existent", 10.0),)
 
 
-def test_all(cm: Constraints):
+def test_constrained_all(cm: Constraints):
     all_constraints: Dict[str, Optional[float]] = {
         "delta": None,
         "nu": None,
@@ -211,12 +212,51 @@ def test_all(cm: Constraints):
         "omega": None,
     }
 
-    assert cm.all == all_constraints
+    assert cm.constrained() == set()
+    assert cm.all() == all_constraints
 
-    cm.alpha = 10
-    all_constraints["alpha"] = 10
+    cm.delta = 10.0
+    cm.alpha = 20.0
+    cm.mu = 30.0
+    all_constraints.update({"delta": 10.0, "alpha": 20.0, "mu": 30.0})
 
-    assert cm.all == all_constraints
+    assert cm.constrained() == {cm._delta, cm._alpha, cm._mu}
+    assert cm.constrained(category=CATEGORY.DETECTOR) == {cm._delta}
+    assert cm.constrained(category=CATEGORY.REFERENCE) == {cm._alpha}
+    assert cm.constrained(category=CATEGORY.SAMPLE) == {cm._mu}
+    assert_dict_almost_equal(cm.all(), all_constraints)
+    assert_dict_almost_equal(
+        cm.all(category=CATEGORY.DETECTOR),
+        {
+            "delta": 10.0,
+            "nu": None,
+            "qaz": None,
+            "naz": None,
+        },
+    )
+    assert_dict_almost_equal(
+        cm.all(category=CATEGORY.REFERENCE),
+        {
+            "a_eq_b": None,
+            "alpha": 20.0,
+            "beta": None,
+            "psi": None,
+            "bin_eq_bout": None,
+            "betain": None,
+            "betaout": None,
+        },
+    )
+    assert_dict_almost_equal(
+        cm.all(category=CATEGORY.SAMPLE),
+        {
+            "mu": 30.0,
+            "eta": None,
+            "chi": None,
+            "phi": None,
+            "bisect": None,
+            "omega": None,
+        },
+    )
 
 
 def test_clear_constraints(cm):
@@ -239,13 +279,13 @@ def test_clear_constraints(cm):
     ],
 )
 def test_adding_detector_constraint_to_existing_set_of_constraints(
-    starting_constraints: Dict[str, Union[float, bool]],
+    starting_constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cons = Constraints(starting_constraints)
 
     extra_constraints = {"delta": 1, "naz": 2}
 
-    if (len(cons.asdict) == 3) & (len(cons._detector) == 0):
+    if (len(cons.asdict) == 3) & (len(cons.detector) == 0):
         with pytest.raises(DiffcalcException):
             cons.asdict = {**cons.asdict, **extra_constraints}
         return
@@ -269,13 +309,13 @@ def test_adding_detector_constraint_to_existing_set_of_constraints(
     ],
 )
 def test_adding_reference_constraint_to_existing_set_of_constraints(
-    starting_constraints: Dict[str, Union[float, bool]],
+    starting_constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cons = Constraints(starting_constraints)
 
     extra_constraints = {"alpha": 1, "beta": 2}
 
-    if (len(cons.asdict) == 3) & (len(cons._reference) == 0):
+    if (len(cons.asdict) == 3) & (len(cons.reference) == 0):
         with pytest.raises(DiffcalcException):
             cons.asdict = {**cons.asdict, **extra_constraints}
         return
@@ -301,11 +341,11 @@ def test_adding_reference_constraint_to_existing_set_of_constraints(
     ],
 )
 def test_adding_sample_constraint_to_existing_set_of_constraints(
-    starting_constraints: Dict[str, Union[float, bool]],
+    starting_constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cons = Constraints(starting_constraints)
 
-    if (len(cons.asdict) == 3) & (len(cons._sample) > 1):
+    if (len(cons.asdict) == 3) & (len(cons.sample) > 1):
         with pytest.raises(DiffcalcException):
             cons.phi = 1
 
@@ -334,7 +374,9 @@ def test_adding_sample_constraint_to_existing_set_of_constraints(
     ],
 )
 def test_report_constraints_lines(
-    cm: Constraints, con_dict: Dict[str, Union[float, bool]], expected_lines: List[str]
+    cm: Constraints,
+    con_dict: Dict[str, Union[float, Literal["True"]]],
+    expected_lines: List[str],
 ):
     cm.asdict = con_dict
     lines = cm._report_constraints_lines()
@@ -373,7 +415,7 @@ def _constrain(self, *args):
         {"eta": 0, "chi": 0, "phi": 0},
     ],
 )
-def test_implemented_modes(con_dict: Dict[str, Union[float, bool]]):
+def test_implemented_modes(con_dict: Dict[str, Union[float, Literal["True"]]]):
     cons = Constraints(con_dict)
 
     assert cons.is_current_mode_implemented() is True
@@ -386,7 +428,7 @@ def test_implemented_modes(con_dict: Dict[str, Union[float, bool]]):
         {"eta": 0, "chi": 0, "bisect": True},
     ],
 )
-def test_non_implemented_modes(con_dict: Dict[str, Union[float, bool]]):
+def test_non_implemented_modes(con_dict: Dict[str, Union[float, Literal["True"]]]):
     cons = Constraints(con_dict)
 
     if len(con_dict) < 3:
@@ -412,14 +454,16 @@ def test_set_constraint_with_wrong_type_fails():
     except DiffcalcException as e:
         assert (
             e.args[0]
-            == f"Constraint a_eq_b requires boolean value. Found {int} instead."
+            == f"Constraint a_eq_b requires boolean True value. Found 1 instead."
         )
 
 
 def test_as_tuple_getter():
     cons = Constraints({"mu": 0, "a_eq_b": True})
 
-    assert cons.astuple == ("a_eq_b", ("mu", 0))
+    assert "a_eq_b" in cons.astuple
+    assert ("mu", 0) in cons.astuple
+    assert type(cons.astuple) is tuple
 
 
 def test_setting_already_active_constraint():

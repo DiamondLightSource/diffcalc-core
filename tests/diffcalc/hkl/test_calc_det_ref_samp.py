@@ -8,6 +8,7 @@ from diffcalc.hkl.calc import HklCalculation
 from diffcalc.hkl.constraints import Constraints
 from diffcalc.ub.calc import UBCalculation
 from diffcalc.util import DiffcalcException
+from typing_extensions import Literal
 
 from tests.diffcalc.hkl.test_calc import (
     Case,
@@ -62,7 +63,7 @@ def cubic_ub() -> UBCalculation:
 def test_get_position_one_det_one_ref_one_samp(
     cubic: HklCalculation,
     expected_position: Tuple[float, float, float, float, float, float],
-    constraints: Dict[str, Union[float, bool]],
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 
@@ -118,7 +119,9 @@ def test_fixed_naz_psi_eta_fails_for_parallel_vectors(cubic: HklCalculation):
     ),
 )
 def test_det_ref_and_chi_constrained(
-    cubic: HklCalculation, case: Case, constraints: Dict[str, Union[float, bool]]
+    cubic: HklCalculation,
+    case: Case,
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 
@@ -138,7 +141,9 @@ def test_det_ref_and_chi_constrained(
     ),
 )
 def test_det_ref_and_chi_constrained_fails_for_parallel_vectors(
-    cubic: HklCalculation, case: Case, constraints: Dict[str, Union[float, bool]]
+    cubic: HklCalculation,
+    case: Case,
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 
@@ -370,7 +375,7 @@ def test_various_constraints_and_zrots(
 def test_various_constraints(
     cubic: HklCalculation,
     case: Case,
-    constraints: Dict[str, Union[float, bool]],
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     cubic.constraints = Constraints(constraints)
 
@@ -405,7 +410,7 @@ def test_various_constraints_and_yrots(
     cubic_ub: UBCalculation,
     case: Case,
     yrot: float,
-    constraints: Dict[str, Union[float, bool]],
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     configure_ub(cubic_ub, 1, yrot)
     hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
@@ -436,7 +441,9 @@ def test_various_constraints_and_yrots(
     ],
 )
 def test_one_parallel_vector_still_fails_even_if_rotated(
-    cubic_ub: UBCalculation, yrot: float, constraints: Dict[str, Union[bool, float]]
+    cubic_ub: UBCalculation,
+    yrot: float,
+    constraints: Dict[str, Union[float, Literal["True"]]],
 ):
     configure_ub(cubic_ub, 1, yrot)
     hklcalc = HklCalculation(cubic_ub, Constraints(constraints))
