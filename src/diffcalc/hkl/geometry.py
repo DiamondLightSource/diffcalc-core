@@ -9,7 +9,7 @@ References
        J. Appl. Cryst. (1999). 32, 614-623.
 """
 from math import degrees, radians
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple
 
 import numpy as np
 from diffcalc.util import I, x_rotation, y_rotation, z_rotation
@@ -96,82 +96,82 @@ class Position:
         return False
 
     @property
-    def mu(self) -> Union[float, None]:
+    def mu(self) -> float:
         """Value of of mu angle."""
         return degrees(self._mu)
 
     @mu.setter
-    def mu(self, val):
+    def mu(self, val: float) -> None:
         self._mu = radians(val)
 
     @mu.deleter
-    def mu(self):
-        self._mu = None
+    def mu(self) -> None:
+        self._mu = float("nan")
 
     @property
-    def delta(self) -> Union[float, None]:
+    def delta(self) -> float:
         """Value of of delta angle."""
         return degrees(self._delta)
 
     @delta.setter
-    def delta(self, val):
+    def delta(self, val: float) -> None:
         self._delta = radians(val)
 
     @delta.deleter
-    def delta(self):
-        self._delta = None
+    def delta(self) -> None:
+        self._delta = float("nan")
 
     @property
-    def nu(self) -> Union[float, None]:
+    def nu(self) -> float:
         """Value of of nu angle."""
         return degrees(self._nu)
 
     @nu.setter
-    def nu(self, val):
+    def nu(self, val: float) -> None:
         self._nu = radians(val)
 
     @nu.deleter
-    def nu(self):
-        self._nu = None
+    def nu(self) -> None:
+        self._nu = float("nan")
 
     @property
-    def eta(self) -> Union[float, None]:
+    def eta(self) -> float:
         """Value of of eta angle."""
         return degrees(self._eta)
 
     @eta.setter
-    def eta(self, val):
+    def eta(self, val: float) -> None:
         self._eta = radians(val)
 
     @eta.deleter
-    def eta(self):
-        self._eta = None
+    def eta(self) -> None:
+        self._eta = float("nan")
 
     @property
-    def chi(self) -> Union[float, None]:
+    def chi(self) -> float:
         """Value of of chi angle."""
         return degrees(self._chi)
 
     @chi.setter
-    def chi(self, val):
+    def chi(self, val: float) -> None:
         self._chi = radians(val)
 
     @chi.deleter
-    def chi(self):
-        self._chi = None
+    def chi(self) -> None:
+        self._chi = float("nan")
 
     @property
-    def phi(self) -> Union[float, None]:
+    def phi(self) -> float:
         """Value of of phi angle."""
         return degrees(self._phi)
 
     @phi.setter
-    def phi(self, val):
+    def phi(self, val: float) -> None:
         self._phi = radians(val)
 
     @phi.deleter
-    def phi(self):
-        self._phi = None
+    def phi(self) -> None:
+        self._phi = float("nan")
 
     @property
     def asdict(self) -> Dict[str, float]:

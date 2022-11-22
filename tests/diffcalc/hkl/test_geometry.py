@@ -63,8 +63,11 @@ def test_delete_position_properties():
     del position.chi
     del position.phi
 
-    with pytest.raises(TypeError):
-        position.mu
+    assert np.isnan(position.mu)
+    assert np.isnan(position.delta)
+    assert np.isnan(position.nu)
+    assert np.isnan(position.eta)
+    assert np.isnan(position.chi)
+    assert np.isnan(position.phi)
 
-    with pytest.raises(TypeError):
-        position.asdict
+    assert all(np.isnan(v) for v in position.asdict.values())
