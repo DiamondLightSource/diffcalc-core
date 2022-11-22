@@ -51,3 +51,20 @@ def test_get_rotation_matrices_returns_correct_matrices(
     assert np.allclose(np.abs(matrices[3]), I)
     assert np.allclose(np.abs(matrices[4]), I)
     assert np.allclose(np.abs(matrices[5]), I)
+
+
+def test_delete_position_properties():
+    position = Position(1, 2, 3, 4, 5, 6)
+
+    del position.mu
+    del position.delta
+    del position.nu
+    del position.eta
+    del position.chi
+    del position.phi
+
+    with pytest.raises(TypeError):
+        position.mu
+
+    with pytest.raises(TypeError):
+        position.asdict
