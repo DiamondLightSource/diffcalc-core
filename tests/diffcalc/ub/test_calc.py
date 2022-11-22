@@ -68,6 +68,11 @@ class TestStrings:
 
         assert str(self.ubcalc) == self.retrieve_expected_string("full_info")
 
+    def test_str_when_no_name(self):
+        self.create("")
+        self.ubcalc.name = None
+        assert str(self.ubcalc) == "<<< No UB calculation started >>>"
+
 
 class TestPersistenceMethods:
     ubcalc = UBCalculation("test_persistence")
@@ -140,6 +145,11 @@ def test_get_tag_refl_num_gets_correct_idx_and_raises_error_for_nonexistent_refl
         ubcalc_ref_orient.get_tag_refl_num("nonexistent")
 
 
+def test_get_tag_refl_num_raises_if_no_tag_given(ubcalc_ref_orient: UBCalculation):
+    with pytest.raises(IndexError):
+        ubcalc_ref_orient.get_tag_refl_num(None)
+
+
 def test_delete_reflection(ubcalc_ref_orient: UBCalculation):
     ubcalc_ref_orient.del_reflection(1)
 
@@ -175,6 +185,11 @@ def test_get_tag_orient_num_gets_correct_idx_and_raises_error_for_nonexistent_or
 
     with pytest.raises(ValueError):
         ubcalc_ref_orient.get_tag_orient_num("nonexistent")
+
+
+def test_get_tag_orient_num_raises_if_no_tag_given(ubcalc_ref_orient: UBCalculation):
+    with pytest.raises(IndexError):
+        ubcalc_ref_orient.get_tag_orient_num(None)
 
 
 def test_delete_orientation(ubcalc_ref_orient: UBCalculation):
@@ -213,6 +228,14 @@ def test_get_tag_gets_correct_value(ubcalc_ref_orient: UBCalculation):
 @pytest.fixture
 def ubcalc() -> UBCalculation:
     return UBCalculation("test")
+
+
+def test_set_lattice_with_wrong_types_raises_exceptions(ubcalc: UBCalculation):
+    with pytest.raises(TypeError):
+        ubcalc.set_lattice(12, "Tetragonal", 1, 2, 3, 4, 5, 6)
+
+    with pytest.raises(TypeError):
+        ubcalc.set_lattice("", 12, 1, 2, 3, 4, 5, 6)
 
 
 @pytest.mark.parametrize(
@@ -276,6 +299,35 @@ def test_calc_ub(ubcalc: UBCalculation):
             np.round(ubcalc.UB, 4)
             == np.round(np.array(scenario.umatrix) @ np.array(scenario.bmatrix), 4)
         ), "wrong UB matrix after calculating U"
+
+
+def test_calc_ub_fails_for_parallel_references(ubcalc: UBCalculation):
+    ubcalc.add_reflection((0, 0, 1), Position(30, 90, 20, 30, 0, 20), 12, "ref1")
+    ubcalc.add_reflection((0, 0, 1), Position(30, 90, 20, 30, 0, 20), 12, "ref2")
+
+    ubcalc.set_lattice("", 1.0)
+
+    with pytest.raises(DiffcalcException):
+        ubcalc.calc_ub("ref1", "ref2")
+
+
+def test_calc_ub_fails_for_non_existent_references(ubcalc: UBCalculation):
+    ubcalc.set_lattice("", 1.0)
+    try:
+        ubcalc.calc_ub("ref1", "ref2")
+    except DiffcalcException as e:
+        assert (
+            e.args[0] == "Cannot find first reflection or orientation with index ref1."
+        )
+
+    ubcalc.add_reflection((0, 0, 1), Position(30, 90, 20, 30, 0, 20), 12, "ref1")
+
+    try:
+        ubcalc.calc_ub("ref1", "ref2")
+    except DiffcalcException as e:
+        assert (
+            e.args[0] == "Cannot find second reflection or orientation with index ref2."
+        )
 
 
 @pytest.fixture

@@ -1,5 +1,5 @@
 from math import pi
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pytest
@@ -108,6 +108,11 @@ def test_all_init(con_dict, con_tuple, con_set, con_list):
         # eq_(cm.astuple, con_tuple)
 
 
+def test_wrong_parameter_to_init_raises_exception():
+    with pytest.raises(DiffcalcException):
+        Constraints(12)
+
+
 def test_constraints_stored_as_radians():
     deg_cons = Constraints({"alpha": 90, "mu": 30, "nu": 45})
 
@@ -139,6 +144,15 @@ def test_str_constraint(cm):
     )
 
 
+def test_str_constraint_for_non_implemented_combination():
+    cons = Constraints({"bisect": True, "omega": 30, "bin_eq_bout": True})
+
+    assert (
+        str(cons).split("\n")[-1]
+        == "    Sorry, this constraint combination is not implemented."
+    )
+
+
 def test_build_display_table(cm):
     cm.qaz = 1.234
     cm.alpha = 1.0
@@ -166,6 +180,43 @@ def test_setting_one_constraint_as_none(cm: Constraints):
     cm.mu = None
 
     assert cm.asdict == {"delta": 1.0}
+
+
+def test_setting_invalid_constraint_name(cm: Constraints):
+    with pytest.raises(DiffcalcException):
+        cm.asdict = {"non_existent": 10}
+
+    with pytest.raises(DiffcalcException):
+        cm.astuple = ("non_existent", 10.0)
+
+
+def test_all(cm: Constraints):
+    all_constraints: Dict[str, Optional[float]] = {
+        "delta": None,
+        "nu": None,
+        "qaz": None,
+        "naz": None,
+        "a_eq_b": None,
+        "alpha": None,
+        "beta": None,
+        "psi": None,
+        "bin_eq_bout": None,
+        "betain": None,
+        "betaout": None,
+        "mu": None,
+        "eta": None,
+        "chi": None,
+        "phi": None,
+        "bisect": None,
+        "omega": None,
+    }
+
+    assert cm.all == all_constraints
+
+    cm.alpha = 10
+    all_constraints["alpha"] = 10
+
+    assert cm.all == all_constraints
 
 
 def test_clear_constraints(cm):
