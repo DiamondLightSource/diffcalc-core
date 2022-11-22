@@ -3,7 +3,7 @@
 A module implementing fitting routines for refining crystal lattice parameters
 and U matrix using reflection data.
 """
-from math import atan2, cos, pi, sin, sqrt
+from math import atan2, cos, pi, radians, sin, sqrt
 from typing import List, Sequence, Tuple
 
 import numpy as np
@@ -61,7 +61,7 @@ def _func_orient(
         q_vals = inv(PHI) @ inv(CHI) @ inv(ETA) @ inv(MU) @ q_del
 
         q_hkl = tmp_ub @ hkl_vals
-        res += angle_between_vectors(q_hkl, q_vals)
+        res += radians(angle_between_vectors(q_hkl, q_vals))
     return res
 
 

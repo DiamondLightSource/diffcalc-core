@@ -1,6 +1,6 @@
 """Module implementing intermediate calculations used in HKLCalculation class."""
 import logging
-from math import acos, asin, atan2, cos, degrees, sin, sqrt
+from math import acos, asin, atan2, cos, degrees, hypot, sin
 from typing import Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -232,7 +232,7 @@ def __get_last_sample_angle(
             "Please choose a different set of constraints."
         )
     ks = atan2(A, B)
-    acos_alp = acos(bound(C / sqrt(A**2 + B**2)))
+    acos_alp = acos(bound(C / hypot(A, B)))
     if is_small(acos_alp):
         alp_list = [
             ks,

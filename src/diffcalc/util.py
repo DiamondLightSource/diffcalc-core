@@ -1,5 +1,5 @@
 """Collection of auxiliary mathematical methods."""
-from math import acos, cos, isclose, sin
+from math import acos, cos, degrees, isclose, radians, sin
 from typing import Any, Sequence, Tuple
 
 import numpy as np
@@ -147,13 +147,13 @@ def angle_between_vectors(x: np.ndarray, y: np.ndarray) -> float:
     Returns
     -------
     float
-        Angle between the vectors.
+        Angle between the vectors in degrees.
     """
     try:
         costheta = dot3(x * (1 / norm(x)), y * (1 / norm(y)))
     except ZeroDivisionError:
         return float("nan")
-    return acos(bound(costheta))
+    return degrees(acos(bound(costheta)))
 
 
 ## Math
@@ -191,15 +191,15 @@ def bound(x: float) -> float:
     return x
 
 
-def radians_equivalent(first: float, second: float, tolerance: float = SMALL) -> bool:
-    """Check for angle equivalence.
+def angles_equivalent(first: float, second: float, tolerance: float = SMALL) -> bool:
+    """Check for angle equivalence in degrees.
 
     Parameters
     ----------
     first: float
-        First angle value.
+        First angle value in degrees.
     second:float
-        Second angle value.
+        Second angle value in degrees.
     tolerance: float, default = SMALL
         Absolute tolerance for the angle difference.
 
@@ -209,8 +209,8 @@ def radians_equivalent(first: float, second: float, tolerance: float = SMALL) ->
         True is angles are equivalent.
 
     """
-    diff = sin((first - second) / 2.0)
-    return is_small(diff, tolerance)
+    diff = sin(radians(first - second) / 2.0)
+    return is_small(diff, radians(tolerance))
 
 
 def isnum(o: Any) -> bool:

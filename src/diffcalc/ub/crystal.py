@@ -375,7 +375,7 @@ class Crystal:
         Returns
         -------
         float
-            The angle between the crystal lattice planes.
+            The angle between the crystal lattice planes in degrees.
         """
         hkl1_transpose = np.array([hkl1]).T
         hkl2_transpose = np.array([hkl2]).T

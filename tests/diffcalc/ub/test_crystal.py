@@ -1,4 +1,4 @@
-from math import atan, sqrt
+from math import atan, degrees, sqrt
 
 import numpy as np
 import pytest
@@ -45,10 +45,10 @@ def test_get_lattice_and_get_lattice_params(xtal_system, unit_cell, full_unit_ce
 @pytest.mark.parametrize(
     ("hkl1", "hkl2", "angle"),
     [
-        ([0, 0, 1], [0, 0, 2], 0),
-        ([0, 1, 0], [0, 0, 2], np.pi / 2),
-        ([1, 0, 1], [0, 0, 2], np.pi / 4),
-        ([1, 1, 1], [0, 0, 2], atan(sqrt(2.0))),
+        ([0, 0, 1], [0, 0, 2], 0.0),
+        ([0, 1, 0], [0, 0, 2], 90.0),
+        ([1, 0, 1], [0, 0, 2], 45.0),
+        ([1, 1, 1], [0, 0, 2], degrees(atan(sqrt(2.0)))),
     ],
 )
 def test_get_hkl_plane_angle(hkl1, hkl2, angle):
