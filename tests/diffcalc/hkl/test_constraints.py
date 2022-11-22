@@ -187,7 +187,7 @@ def test_setting_invalid_constraint_name(cm: Constraints):
         cm.asdict = {"non_existent": 10}
 
     with pytest.raises(DiffcalcException):
-        cm.astuple = ("non_existent", 10.0)
+        cm.astuple = (("non_existent", 10.0),)
 
 
 def test_all(cm: Constraints):

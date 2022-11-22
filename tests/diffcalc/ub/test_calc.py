@@ -232,7 +232,7 @@ def ubcalc() -> UBCalculation:
 
 def test_set_lattice_with_wrong_types_raises_exceptions(ubcalc: UBCalculation):
     with pytest.raises(TypeError):
-        ubcalc.set_lattice(12, "Tetragonal", 1, 2, 3, 4, 5, 6)
+        ubcalc.set_lattice(12, "Tetragonal", 1, 2, 3, 4, 5, 6)  # type: ignore
 
     with pytest.raises(TypeError):
         ubcalc.set_lattice("", 12, 1, 2, 3, 4, 5, 6)
