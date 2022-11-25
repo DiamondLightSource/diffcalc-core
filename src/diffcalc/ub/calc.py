@@ -10,7 +10,7 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -21,6 +21,7 @@ from diffcalc.util import (
     SMALL,
     DiffcalcException,
     allnum,
+    angle_between_vectors,
     bound,
     cross3,
     dot3,
@@ -1316,6 +1317,159 @@ class UBCalculation:
         else:
             new_U = rot_matrix
         self.set_u(new_U)
+
+    def calc_vector_wrt_hkl_and_offset(
+        self, hkl: Tuple[float, float, float], pol: float, az: float
+    ) -> Tuple[float, float, float]:
+        """Calculate vector(s) related to input vector by a polar and azimuthal angle.
+
+        Parameters
+        ----------
+        hkl: Tuple[float, float, float]
+            Reciprocal space vector
+        pol: float
+            Polar angle
+        az: float
+            Azimuthal angle
+
+        Returns
+        -------
+        List[Tuple[float, float, float]]
+            vector with pol and az angle relation to the input vector.
+
+        """
+        h, k, l = hkl
+        hkl_nphi = np.array(self.UB @ np.array([[h], [k], [l]]), dtype=float)
+        y_axis = cross3(hkl_nphi, np.array([[0], [1], [0]]))
+
+        if norm(y_axis) < SMALL:
+            y_axis = cross3(hkl_nphi, np.array([[0], [0], [1]]))
+
+        rot_polar = np.array(xyz_rotation(y_axis.T.tolist()[0], pol), dtype=float)
+        rot_azimuthal = np.array(xyz_rotation(hkl_nphi.T.tolist()[0], az), dtype=float)
+
+        hklrot_nphi: np.ndarray[
+            Tuple[Literal[1], Literal[3]], np.dtype[np.float64]
+        ] = np.matmul(np.matmul(rot_azimuthal, rot_polar), hkl_nphi)
+
+        hklrot_transpose: np.ndarray[
+            Tuple[Literal[1], Literal[3]], np.dtype[np.float64]
+        ] = np.transpose(np.linalg.inv(self.UB) @ hklrot_nphi)
+
+        return cast(Tuple[float, float, float], tuple(hklrot_transpose[0]))
+
+    def calc_offset_wrt_vector_and_hkl(
+        self,
+        hkl_offset: Tuple[float, float, float],
+        hkl_ref: Tuple[float, float, float],
+    ) -> Tuple[float, float, float]:
+        """Calculate offsets between two vectors in reciprocal space.
+
+        In this context, the offset means the polar angle, azimuthal angle, and linear
+        scaling between the vectors.
+
+        Parameters
+        ----------
+        hkl_offset: Tuple[float, float, float]
+            Reciprocal space offset vector
+        hkl_ref: Tuple[float, float, float]
+            Reciprocal space reference vector
+
+        Returns
+        -------
+        Tuple[float, float, float]
+            polar angle, azimuthal angle and scaling factor between vectors.
+
+        """
+        distance_ref = self.crystal.get_hkl_plane_distance(hkl_ref)
+        distance_offset = self.crystal.get_hkl_plane_distance(hkl_offset)
+
+        hkl_ref_nphi = self.UB @ np.array([[*hkl_ref]]).T
+        hkl_offset_nphi = self.UB @ np.array([[*hkl_offset]]).T
+
+        scaling = distance_ref / distance_offset
+
+        area_reference_offset = cross3(hkl_ref_nphi, hkl_offset_nphi)
+        hkl_ref_along_axis = cross3(hkl_ref_nphi, np.array([[0], [1], [0]]))
+
+        if np.linalg.norm(area_reference_offset) < SMALL:
+            return 0, float("nan"), scaling
+        if np.linalg.norm(hkl_ref_along_axis) < SMALL:
+            hkl_ref_along_axis = cross3(hkl_ref_nphi, np.array([[0], [0], [1]]))
+
+        hkl_ref_along_perp_axis = cross3(hkl_ref_along_axis, hkl_ref_nphi)
+
+        hkl_offset_along_axis = np.cos(
+            angle_between_vectors(hkl_offset_nphi, hkl_ref_along_axis)
+        )
+        hkl_offset_along_perp_axis = np.cos(
+            angle_between_vectors(hkl_offset_nphi, hkl_ref_along_perp_axis)
+        )
+
+        polar_angle = angle_between_vectors(hkl_ref_nphi, hkl_offset_nphi)
+
+        azimuthal_angle = (
+            np.arctan2(hkl_offset_along_perp_axis, hkl_offset_along_axis)
+            if (
+                (abs(hkl_offset_along_perp_axis) > SMALL)
+                and (abs(hkl_offset_along_axis) > SMALL)
+            )
+            else 0
+        )
+        return polar_angle, azimuthal_angle, scaling
+
+    def solve_for_hkl_given_fixed_index_and_q(
+        self,
+        index_name: Literal["h", "k", "l"],
+        index_value: float,
+        q_value: float,
+        a: float,
+        b: float,
+        c: float,
+        d: float,
+    ) -> List[Tuple[float, float, float]]:
+        """Find valid hkl vectors for a fixed scattering angle and detector.
+
+        This effectively solves for the intersection between an eliptoid and vector
+        at specific angles.
+
+        Coefficients are used to constrain solutions as:
+            a*h + b*k + c*l = d
+
+        Useful for the case when the diffractometer detector is fixed.
+
+        Parameters
+        ----------
+        index_name: Literal["h", "k", "l"]
+            One of the miller indices
+        index_value: float
+            Value of that miller index
+        q_value: float
+            Equivalent to np.linalg.norm(q_vector) ** 2, where q_vector is the
+            scattering vector. This represents the distance in reciprocal space between
+            incident and reflected beams on the sample.
+        a: float
+            coefficient necessary to constrain solutions
+        b: float
+            coefficient necessary to constrain solutions
+        c: float
+            coefficient necessary to constrain solutions
+        d: float
+            coefficient necessary to constrain solutions
+
+
+        Returns
+        -------
+        List[Tuple[float, float, float]]
+            List of valid hkl indices
+
+        Raises
+        ------
+        DiffcalcException
+            If no solution found with provided constraints.
+        """
+
+        pass
 
     def get_ttheta_from_hkl(self, hkl: Tuple[float, float, float], en: float) -> float:
         """Calculate two-theta scattering angle for a reflection.

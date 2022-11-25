@@ -502,3 +502,16 @@ def test_get_miscut(ubcalc, axis, angle):
 
     assert degrees(test_angle) == pytest.approx(angle)
     assert np.all(np.round(test_axis.T, 4) == np.round(axis, 4))
+
+
+def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation):
+    session1_ubcalc.calc_ub()
+
+    original_offset = (np.pi / 4, np.pi / 4)
+
+    vector = session1_ubcalc.calc_vector_wrt_hkl_and_offset((0, 1, 0), *original_offset)
+    calculated_offset = session1_ubcalc.calc_offset_wrt_vector_and_hkl(
+        vector, (0, 1, 0)
+    )
+
+    pass
