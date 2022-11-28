@@ -1,6 +1,6 @@
 """Collection of auxiliary mathematical methods."""
 from math import acos, cos, degrees, isclose, radians, sin
-from typing import Any, Literal, Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 import numpy as np
 from numpy.linalg import norm
@@ -331,13 +331,13 @@ def zero_round(num):
 
 
 def solve_h_fixed_q(
-    h,
-    qval,
+    h: float,
+    qval: float,
     B: np.ndarray,
-    a,
-    b,
-    c,
-    d,
+    a: float,
+    b: float,
+    c: float,
+    d: float,
 ):
     B00, B10, B20 = B[0, 0], B[1, 0], B[2, 0]
     B01, B11, B21 = B[0, 1], B[1, 1], B[2, 1]
@@ -346,10 +346,14 @@ def solve_h_fixed_q(
     divisor = (
         B[:, 2].dot(B[:, 2]) * b**2
         - 2 * B[:, 1].dot(B[:, 2]) * b * c
-        + B[:, 1].dot(B[:, 2]) * c**2
+        + B[:, 1].dot(B[:, 1]) * c**2
     )
+
+    if divisor == 0.0:
+        raise DiffcalcException("At least one of b or c must be non-zero")
+
     discriminant = (
-        -(  ############### REPEATED 1.
+        -(  # REPEATED 1.
             B02**2 * B11**2
             - 2 * B01 * B02 * B11 * B12
             + B01**2 * B12**2
@@ -360,7 +364,7 @@ def solve_h_fixed_q(
         * d**2
         + 2
         * (
-            (  ############### REPEATED 1.
+            (  # REPEATED 1.
                 B02**2 * B11**2
                 - 2 * B01 * B02 * B11 * B12
                 + B01**2 * B12**2
@@ -369,7 +373,7 @@ def solve_h_fixed_q(
                 + (B01**2 + B11**2) * B22**2
             )
             * a
-            - (  ############### REPEATED 2.
+            - (  # REPEATED 2.
                 B02**2 * B10 * B11
                 + B00 * B01 * B12**2
                 + (B02**2 + B12**2) * B20 * B21
@@ -378,7 +382,7 @@ def solve_h_fixed_q(
                 - ((B01 * B02 + B11 * B12) * B20 + (B00 * B02 + B10 * B12) * B21) * B22
             )
             * b
-            + (  ############### REPEATED 3.
+            + (  # REPEATED 3.
                 B01 * B02 * B10 * B11
                 - B00 * B02 * B11**2
                 + (B01 * B02 + B11 * B12) * B20 * B21
@@ -401,7 +405,7 @@ def solve_h_fixed_q(
             )
             * a**2
             - 2
-            * (  ############### REPEATED 2.
+            * (  # REPEATED 2.
                 B02**2 * B10 * B11
                 + B00 * B01 * B12**2
                 + (B02**2 + B12**2) * B20 * B21
@@ -431,7 +435,7 @@ def solve_h_fixed_q(
             * c**2
             + 2
             * (
-                (  ############### REPEATED 3.
+                (  # REPEATED 3.
                     B01 * B02 * B10 * B11
                     - B00 * B02 * B11**2
                     + (B01 * B02 + B11 * B12) * B20 * B21
@@ -490,17 +494,15 @@ def solve_h_fixed_q(
 
         return [(h, k1, l1), (h, k2, l2)]
 
-    raise DiffcalcException("At least b or c coefficients must be non-zero")
-
 
 def solve_k_fixed_q(
-    k,
-    qval,
+    k: float,
+    qval: float,
     B: np.ndarray,
-    a,
-    b,
-    c,
-    d,
+    a: float,
+    b: float,
+    c: float,
+    d: float,
 ):
     B00, B10, B20 = B[0, 0], B[1, 0], B[2, 0]
     B01, B11, B21 = B[0, 1], B[1, 1], B[2, 1]
@@ -511,6 +513,10 @@ def solve_k_fixed_q(
         - 2 * B[:, 0].dot(B[:, 2]) * a * c
         + B[:, 0].dot(B[:, 0]) * c**2
     )
+
+    if divisor == 0.0:
+        raise DiffcalcException("At least one of a or c must be non-zero")
+
     discriminant = (
         -(
             B02**2 * B10**2
@@ -652,18 +658,23 @@ def solve_k_fixed_q(
 
         return [(h1, k, l1), (h2, k, l2)]
 
-    raise DiffcalcException("At least a or c coefficients must be non-zero")
 
-
-def solve_l_fixed_q(l, qval, B, a, b, c, d):
+def solve_l_fixed_q(
+    l: float, qval: float, B: np.ndarray, a: float, b: float, c: float, d: float
+):
     B00, B10, B20 = B[0, 0], B[1, 0], B[2, 0]
     B01, B11, B21 = B[0, 1], B[1, 1], B[2, 1]
     B02, B12, B22 = B[0, 2], B[1, 2], B[2, 2]
+
     divisor = (
         (B01**2 + B11**2 + B21**2) * a**2
         - 2 * (B00 * B01 + B10 * B11 + B20 * B21) * a * b
         + (B00**2 + B10**2 + B20**2) * b**2
     )
+
+    if divisor == 0.0:
+        raise DiffcalcException("At least one of b or c must be non-zero")
+
     discriminant = (
         -(
             B01**2 * B10**2
@@ -774,6 +785,9 @@ def solve_l_fixed_q(l, qval, B, a, b, c, d):
         + divisor * qval
     )
 
+    if discriminant < 0:
+        raise DiffcalcException("No real solutions with given constraints.")
+
     if a != 0:
         coefficient = (
             (B00 * B01 + B10 * B11 + B20 * B21) * a
@@ -795,7 +809,7 @@ def solve_l_fixed_q(l, qval, B, a, b, c, d):
 
         return [(h1, k1, l), (h2, k2, l)]
 
-    elif c != 0:
+    elif b != 0:
         coefficient = (
             (B01**2 + B11**2 + B21**2) * a
             - (B00 * B01 + B10 * B11 + B20 * B21) * b
@@ -809,10 +823,9 @@ def solve_l_fixed_q(l, qval, B, a, b, c, d):
             * c
         ) * l
 
-        h1 = (coefficient - np.sqrt(discriminant) * c) / divisor
-        h2 = (coefficient + np.sqrt(discriminant) * c) / divisor
+        h1 = (coefficient - np.sqrt(discriminant) * b) / divisor
+        h2 = (coefficient + np.sqrt(discriminant) * b) / divisor
         k1 = (d - a * h1 - c * l) / b
         k2 = (d - a * h2 - c * l) / b
 
         return [(h1, k1, l), (h2, k2, l)]
-    raise DiffcalcException("At least a or c coefficients must be non-zero")

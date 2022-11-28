@@ -10,7 +10,18 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -26,6 +37,9 @@ from diffcalc.util import (
     cross3,
     dot3,
     is_small,
+    solve_h_fixed_q,
+    solve_k_fixed_q,
+    solve_l_fixed_q,
     xyz_rotation,
     zero_round,
 )
@@ -1339,22 +1353,19 @@ class UBCalculation:
 
         """
         h, k, l = hkl
-        hkl_nphi = np.array(self.UB @ np.array([[h], [k], [l]]), dtype=float)
-        y_axis = cross3(hkl_nphi, np.array([[0], [1], [0]]))
+        hkl_nphi = np.matmul(self.UB, np.array([[h], [k], [l]]))
+        hkl_nphi_along_axis = cross3(hkl_nphi, np.array([[0], [1], [0]]))
 
-        if norm(y_axis) < SMALL:
-            y_axis = cross3(hkl_nphi, np.array([[0], [0], [1]]))
+        if norm(hkl_nphi_along_axis) < SMALL:
+            hkl_nphi_along_axis = cross3(hkl_nphi, np.array([[0], [0], [1]]))
 
-        rot_polar = np.array(xyz_rotation(y_axis.T.tolist()[0], pol), dtype=float)
+        rot_polar = np.array(
+            xyz_rotation(hkl_nphi_along_axis.T.tolist()[0], pol), dtype=float
+        )
         rot_azimuthal = np.array(xyz_rotation(hkl_nphi.T.tolist()[0], az), dtype=float)
 
-        hklrot_nphi: np.ndarray[
-            Tuple[Literal[1], Literal[3]], np.dtype[np.float64]
-        ] = np.matmul(np.matmul(rot_azimuthal, rot_polar), hkl_nphi)
-
-        hklrot_transpose: np.ndarray[
-            Tuple[Literal[1], Literal[3]], np.dtype[np.float64]
-        ] = np.transpose(np.linalg.inv(self.UB) @ hklrot_nphi)
+        hklrot_nphi = np.matmul(np.matmul(rot_azimuthal, rot_polar), hkl_nphi)
+        hklrot_transpose = np.transpose(np.linalg.inv(self.UB) @ hklrot_nphi)
 
         return cast(Tuple[float, float, float], tuple(hklrot_transpose[0]))
 
@@ -1400,16 +1411,16 @@ class UBCalculation:
         hkl_ref_along_perp_axis = cross3(hkl_ref_along_axis, hkl_ref_nphi)
 
         hkl_offset_along_axis = np.cos(
-            angle_between_vectors(hkl_offset_nphi, hkl_ref_along_axis)
+            np.radians(angle_between_vectors(hkl_offset_nphi, hkl_ref_along_axis))
         )
         hkl_offset_along_perp_axis = np.cos(
-            angle_between_vectors(hkl_offset_nphi, hkl_ref_along_perp_axis)
+            np.radians(angle_between_vectors(hkl_offset_nphi, hkl_ref_along_perp_axis))
         )
 
-        polar_angle = angle_between_vectors(hkl_ref_nphi, hkl_offset_nphi)
+        polar_angle = np.radians(angle_between_vectors(hkl_ref_nphi, hkl_offset_nphi))
 
         azimuthal_angle = (
-            np.arctan2(hkl_offset_along_perp_axis, hkl_offset_along_axis)
+            np.arctan2(hkl_offset_along_axis, hkl_offset_along_perp_axis)
             if (
                 (abs(hkl_offset_along_perp_axis) > SMALL)
                 and (abs(hkl_offset_along_axis) > SMALL)
@@ -1468,8 +1479,18 @@ class UBCalculation:
         DiffcalcException
             If no solution found with provided constraints.
         """
+        solvers: Dict[
+            str,
+            Callable[
+                [float, float, np.ndarray, float, float, float, float],
+                List[Tuple[float, float, float]],
+            ],
+        ] = {"h": solve_h_fixed_q, "k": solve_k_fixed_q, "l": solve_l_fixed_q}
 
-        pass
+        if solvers.get(index_name) is not None:
+            return solvers[index_name](index_value, q_value, self.UB, a, b, c, d)
+
+        raise DiffcalcException("Provided index name must be one of {h, k, l}")
 
     def get_ttheta_from_hkl(self, hkl: Tuple[float, float, float], en: float) -> float:
         """Calculate two-theta scattering angle for a reflection.

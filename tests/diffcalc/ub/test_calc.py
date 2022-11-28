@@ -507,11 +507,116 @@ def test_get_miscut(ubcalc, axis, angle):
 def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation):
     session1_ubcalc.calc_ub()
 
+    reference_vector = (0.0, 1.0, 0.0)
     original_offset = (np.pi / 4, np.pi / 4)
+    scaling = np.random.random() * 100
 
-    vector = session1_ubcalc.calc_vector_wrt_hkl_and_offset((0, 1, 0), *original_offset)
+    vector = session1_ubcalc.calc_vector_wrt_hkl_and_offset(
+        reference_vector, *original_offset
+    )
     calculated_offset = session1_ubcalc.calc_offset_wrt_vector_and_hkl(
-        vector, (0, 1, 0)
+        tuple([item * scaling for item in vector]), reference_vector
     )
 
-    pass
+    assert calculated_offset == pytest.approx((*original_offset, scaling))
+
+
+@pytest.mark.parametrize(
+    ["index_name", "coeffs", "expected_answer"],
+    [
+        (
+            "k",
+            (1.0, 0.0, 0.0, 0.25),
+            [(0.25, 0.0, -0.9682458365518541), (0.25, 0.0, 0.9682458365518541)],
+        ),
+        (
+            "k",
+            (0.0, 0.0, 1.0, 0.25),
+            [(-0.9682458365518541, 0.0, 0.25), (0.9682458365518541, 0.0, 0.25)],
+        ),
+        (
+            "h",
+            (0.0, 1.0, 0.0, 0.25),
+            [(0.0, 0.25, -0.9682458365518541), (0.0, 0.25, 0.9682458365518541)],
+        ),
+        (
+            "h",
+            (0.0, 0.0, 1.0, 0.25),
+            [(0.0, -0.9682458365518541, 0.25), (0.0, 0.9682458365518541, 0.25)],
+        ),
+        (
+            "l",
+            (1.0, 0.0, 0.0, 0.25),
+            [(0.25, -0.9682458365518541, 0.0), (0.25, 0.9682458365518541, 0.0)],
+        ),
+        (
+            "l",
+            (0.0, 1.0, 0.0, 0.25),
+            [(-0.9682458365518541, 0.25, 0.0), (0.9682458365518541, 0.25, 0.0)],
+        ),
+    ],
+)
+def test_solvers_for_h_k_and_l_fixed_q(
+    session1_ubcalc: UBCalculation,
+    index_name: str,
+    coeffs: Tuple[float, float, float, float],
+    expected_answer: List[Tuple[float, float, float]],
+):
+    hkl = (0.0, 1.0, 0.0)
+    session1_ubcalc.calc_ub()
+    qval = np.linalg.norm(np.matmul(session1_ubcalc.UB, np.array([[*hkl]]).T)) ** 2
+    solutions = session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+        index_name, 0.0, qval, *coeffs
+    )
+
+    assert np.all(
+        [
+            solutions[i] == pytest.approx(expected_answer[i])
+            for i in range(len(solutions))
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    ["index_name", "coeffs"],
+    [
+        ("h", [0.0, 1.0, 0.0, 0.25]),
+        ("k", [1.0, 0.0, 0.0, 0.25]),
+        ("l", [1.0, 0.0, 0.0, 0.25]),
+    ],
+)
+def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_negative_discriminants(
+    session1_ubcalc: UBCalculation, index_name: str, coeffs: List[float]
+):
+    session1_ubcalc.calc_ub()
+
+    try:
+        session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+            index_name, 0.0, 0.0, *coeffs
+        )
+    except DiffcalcException as error:
+        assert error.args[0] == "No real solutions with given constraints."
+        return
+
+    assert False
+
+
+@pytest.mark.parametrize(
+    ["index_name", "coeffs"],
+    [
+        ("h", [1.0, 0.0, 0.0, 0.25]),
+        ("k", [0.0, 1.0, 0.0, 0.25]),
+        ("l", [0.0, 0.0, 1.0, 0.25]),
+    ],
+)
+def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_wrong_coefficients(
+    session1_ubcalc: UBCalculation, index_name: str, coeffs: List[float]
+):
+    session1_ubcalc.calc_ub()
+
+    try:
+        session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+            index_name, 2.0, 30.0, *coeffs
+        )
+    except DiffcalcException as error:
+        assert error.args[0].startswith("At least one of ")
