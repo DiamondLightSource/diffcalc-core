@@ -3,13 +3,14 @@
 import pickle
 from math import degrees, radians, sqrt
 from pathlib import Path
-from typing import List, Literal, Tuple, cast
+from typing import List, Tuple, cast
 
 import numpy as np
 import pytest
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.util import DiffcalcException
+from typing_extensions import Literal
 
 from tests.diffcalc import scenarios
 
@@ -567,7 +568,9 @@ def test_solvers_for_h_k_and_l_fixed_q(
 ):
     hkl = (0.0, 1.0, 0.0)
     session1_ubcalc.calc_ub()
-    qval = np.linalg.norm(np.matmul(session1_ubcalc.UB, np.array([[*hkl]]).T)) ** 2
+    qval = float(
+        np.linalg.norm(np.matmul(session1_ubcalc.UB, np.array([[*hkl]]).T)) ** 2
+    )
     solutions = session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
         index_name, 0.0, qval, *coeffs
     )
