@@ -3,7 +3,7 @@
 import pickle
 from math import degrees, radians, sqrt
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Literal, Tuple, cast
 
 import numpy as np
 import pytest
@@ -506,16 +506,19 @@ def test_get_miscut(ubcalc, axis, angle):
 
 def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation):
     session1_ubcalc.calc_ub()
-
     reference_vector = (0.0, 1.0, 0.0)
-    original_offset = (np.pi / 4, np.pi / 4)
+    original_offset = (45.0, 45.0)
     scaling = np.random.random() * 100
 
     vector = session1_ubcalc.calc_vector_wrt_hkl_and_offset(
         reference_vector, *original_offset
     )
+    scaled_vector = cast(
+        Tuple[float, float, float], tuple(item * scaling for item in vector)
+    )
+
     calculated_offset = session1_ubcalc.calc_offset_wrt_vector_and_hkl(
-        tuple([item * scaling for item in vector]), reference_vector
+        scaled_vector, reference_vector
     )
 
     assert calculated_offset == pytest.approx((*original_offset, scaling))
@@ -558,7 +561,7 @@ def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation
 )
 def test_solvers_for_h_k_and_l_fixed_q(
     session1_ubcalc: UBCalculation,
-    index_name: str,
+    index_name: Literal["h", "k", "l"],
     coeffs: Tuple[float, float, float, float],
     expected_answer: List[Tuple[float, float, float]],
 ):
@@ -586,7 +589,9 @@ def test_solvers_for_h_k_and_l_fixed_q(
     ],
 )
 def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_negative_discriminants(
-    session1_ubcalc: UBCalculation, index_name: str, coeffs: List[float]
+    session1_ubcalc: UBCalculation,
+    index_name: Literal["h", "k", "l"],
+    coeffs: List[float],
 ):
     session1_ubcalc.calc_ub()
 
@@ -610,7 +615,9 @@ def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_negative_discriminants(
     ],
 )
 def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_wrong_coefficients(
-    session1_ubcalc: UBCalculation, index_name: str, coeffs: List[float]
+    session1_ubcalc: UBCalculation,
+    index_name: Literal["h", "k", "l"],
+    coeffs: List[float],
 ):
     session1_ubcalc.calc_ub()
 
@@ -620,3 +627,14 @@ def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_wrong_coefficients(
         )
     except DiffcalcException as error:
         assert error.args[0].startswith("At least one of ")
+
+
+def test_solve_for_hkl_given_fixed_index_and_q_fails_for_non_literal(
+    session1_ubcalc: UBCalculation,
+):
+    try:
+        session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+            "a", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  # type: ignore
+        )
+    except DiffcalcException as error:
+        assert error.args[0] == "Provided index name must be one of {h, k, l}"

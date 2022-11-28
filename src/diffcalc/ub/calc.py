@@ -1359,10 +1359,8 @@ class UBCalculation:
         if norm(hkl_nphi_along_axis) < SMALL:
             hkl_nphi_along_axis = cross3(hkl_nphi, np.array([[0], [0], [1]]))
 
-        rot_polar = np.array(
-            xyz_rotation(hkl_nphi_along_axis.T.tolist()[0], pol), dtype=float
-        )
-        rot_azimuthal = np.array(xyz_rotation(hkl_nphi.T.tolist()[0], az), dtype=float)
+        rot_polar = xyz_rotation(hkl_nphi_along_axis.T.tolist()[0], np.radians(pol))
+        rot_azimuthal = xyz_rotation(hkl_nphi.T.tolist()[0], np.radians(az))
 
         hklrot_nphi = np.matmul(np.matmul(rot_azimuthal, rot_polar), hkl_nphi)
         hklrot_transpose = np.transpose(np.linalg.inv(self.UB) @ hklrot_nphi)
@@ -1417,9 +1415,9 @@ class UBCalculation:
             np.radians(angle_between_vectors(hkl_offset_nphi, hkl_ref_along_perp_axis))
         )
 
-        polar_angle = np.radians(angle_between_vectors(hkl_ref_nphi, hkl_offset_nphi))
+        polar_angle = angle_between_vectors(hkl_ref_nphi, hkl_offset_nphi)
 
-        azimuthal_angle = (
+        azimuthal_angle = np.degrees(
             np.arctan2(hkl_offset_along_axis, hkl_offset_along_perp_axis)
             if (
                 (abs(hkl_offset_along_perp_axis) > SMALL)

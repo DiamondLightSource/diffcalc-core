@@ -1,6 +1,6 @@
 """Collection of auxiliary mathematical methods."""
 from math import acos, cos, degrees, isclose, radians, sin
-from typing import Any, Sequence, Tuple
+from typing import Any, List, Sequence, Tuple
 
 import numpy as np
 from numpy.linalg import norm
@@ -338,7 +338,40 @@ def solve_h_fixed_q(
     b: float,
     c: float,
     d: float,
-):
+) -> List[Tuple[float, float, float]]:
+    """Find valid hkl for a given h and q value.
+
+    Coefficients are used to constrain solutions as:
+            a*h + b*k + c*l = d
+
+    Parameters
+    ----------
+    h : float
+        value of h to use
+    qval : float
+        norm of the scattering vector squared
+    B : np.ndarray
+        3x3 matrix, usually the UB matrix
+    a : float
+        a coefficient to constrain the resulting hkl
+    b : float
+        a coefficient to constrain the resulting hkl
+    c : float
+        a coefficient to constrain the resulting hkl
+    d : float
+        a coefficient to constrain the resulting hkl
+
+    Returns
+    -------
+    List[Tuple[float, float, float]]
+        list of possible hkl solutions
+
+    Raises
+    ------
+    DiffcalcException
+        If the divisor is 0, or the discriminant is negative. The first of these occurs
+        if both b and c are equal to 0.
+    """
     B00, B10, B20 = B[0, 0], B[1, 0], B[2, 0]
     B01, B11, B21 = B[0, 1], B[1, 1], B[2, 1]
     B02, B12, B22 = B[0, 2], B[1, 2], B[2, 2]
@@ -466,7 +499,6 @@ def solve_h_fixed_q(
         raise DiffcalcException("No real solutions with given constraints.")
 
     if b != 0:
-
         coefficient = (B[:, 1].dot(B[:, 2]) * b - B[:, 1].dot(B[:, 1]) * c) * d - (
             (B[:, 1].dot(B[:, 2])) * a * b
             - (B[:, 0].dot(B[:, 2])) * b**2
@@ -480,7 +512,7 @@ def solve_h_fixed_q(
 
         return [(h, k1, l1), (h, k2, l2)]
 
-    elif c != 0:
+    else:
         coefficient = (B[:, 2].dot(B[:, 2]) * b - B[:, 1].dot(B[:, 2]) * c) * d - (
             (B[:, 2].dot(B[:, 2])) * a * b
             + (B[:, 0].dot(B[:, 1])) * c**2
@@ -503,7 +535,40 @@ def solve_k_fixed_q(
     b: float,
     c: float,
     d: float,
-):
+) -> List[Tuple[float, float, float]]:
+    """Find valid hkl for a given k and q value.
+
+    Coefficients are used to constrain solutions as:
+            a*h + b*k + c*l = d
+
+    Parameters
+    ----------
+    k : float
+        value of k to use
+    qval : float
+        norm of the scattering vector squared
+    B : np.ndarray
+        3x3 matrix, usually the UB matrix
+    a : float
+        a coefficient to constrain the resulting hkl
+    b : float
+        a coefficient to constrain the resulting hkl
+    c : float
+        a coefficient to constrain the resulting hkl
+    d : float
+        a coefficient to constrain the resulting hkl
+
+    Returns
+    -------
+    List[Tuple[float, float, float]]
+        list of possible hkl solutions
+
+    Raises
+    ------
+    DiffcalcException
+        If the divisor is 0, or the discriminant is negative. The first of these occurs
+        if both a and c are equal to 0.
+    """
     B00, B10, B20 = B[0, 0], B[1, 0], B[2, 0]
     B01, B11, B21 = B[0, 1], B[1, 1], B[2, 1]
     B02, B12, B22 = B[0, 2], B[1, 2], B[2, 2]
@@ -644,7 +709,7 @@ def solve_k_fixed_q(
 
         return [(h1, k, l1), (h2, k, l2)]
 
-    elif c != 0:
+    else:
         coefficient = ((B[:, 2].dot(B[:, 2])) * a - (B[:, 0].dot(B[:, 2])) * c) * d - (
             (B[:, 2].dot(B[:, 2])) * a * b
             + (B[:, 0].dot(B[:, 1])) * c**2
@@ -661,7 +726,40 @@ def solve_k_fixed_q(
 
 def solve_l_fixed_q(
     l: float, qval: float, B: np.ndarray, a: float, b: float, c: float, d: float
-):
+) -> List[Tuple[float, float, float]]:
+    """Find valid hkl for a given l and q value.
+
+    Coefficients are used to constrain solutions as:
+            a*h + b*k + c*l = d
+
+    Parameters
+    ----------
+    l : float
+        value of l to use
+    qval : float
+        norm of the scattering vector squared
+    B : np.ndarray
+        3x3 matrix, usually the UB matrix
+    a : float
+        a coefficient to constrain the resulting hkl
+    b : float
+        a coefficient to constrain the resulting hkl
+    c : float
+        a coefficient to constrain the resulting hkl
+    d : float
+        a coefficient to constrain the resulting hkl
+
+    Returns
+    -------
+    List[Tuple[float, float, float]]
+        list of possible hkl solutions
+
+    Raises
+    ------
+    DiffcalcException
+        If the divisor is 0, or the discriminant is negative. The first of these occurs
+        if both a and b are equal to 0.
+    """
     B00, B10, B20 = B[0, 0], B[1, 0], B[2, 0]
     B01, B11, B21 = B[0, 1], B[1, 1], B[2, 1]
     B02, B12, B22 = B[0, 2], B[1, 2], B[2, 2]
@@ -809,7 +907,7 @@ def solve_l_fixed_q(
 
         return [(h1, k1, l), (h2, k2, l)]
 
-    elif b != 0:
+    else:
         coefficient = (
             (B01**2 + B11**2 + B21**2) * a
             - (B00 * B01 + B10 * B11 + B20 * B21) * b
