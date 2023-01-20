@@ -64,7 +64,7 @@ class TestStrings:
         self.ubcalc.add_orientation(
             (0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1"
         )
-        self.ubcalc.set_miscut(None, radians(2.0))
+        self.ubcalc.set_miscut(None, 2.0)
 
         assert str(self.ubcalc) == self.retrieve_expected_string("full_info")
 
@@ -81,7 +81,7 @@ class TestPersistenceMethods:
     ubcalc.set_lattice("xtal", "Cubic", 1)
     ubcalc.add_reflection((0, 0, 1), Position(0, 60, 0, 30, 0, 0), 12.4, "ref1")
     ubcalc.add_orientation((0, 1, 0), (0, 1, 0), Position(1, 0, 0, 0, 2, 0), "orient1")
-    ubcalc.set_miscut(None, radians(2.0))
+    ubcalc.set_miscut(None, 2.0)
 
     def test_pickling(self):
         self.ubcalc.pickle("test_file")
@@ -439,7 +439,7 @@ def test_get_ttheta_from_hkl(ubcalc: UBCalculation):
     [
         (
             [(0, 1, 0), (0, 1, 0), (0, -1, 0)],
-            [np.pi / 6, np.pi / 12, np.pi / 4],
+            [30, 15, 45],
             [False, True, True],
             [
                 np.array([[-0.5], [0], [0.8660254]]),
@@ -479,7 +479,7 @@ def test_get_miscut_from_hkl(
     pos: Position,
 ):
     ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
-    ubcalc.set_miscut(axis, radians(angle))
+    ubcalc.set_miscut(axis, angle)
     ubcalc.set_miscut(None, 0)
 
     miscut, miscut_axis = ubcalc.get_miscut_from_hkl(hkl, pos)
@@ -496,7 +496,7 @@ def test_get_miscut_from_hkl(
 )
 def test_get_miscut(ubcalc, axis, angle):
     ubcalc.set_lattice("xtal", 1, 1, 1, 90, 90, 90)
-    ubcalc.set_miscut(axis, radians(angle))
+    ubcalc.set_miscut(axis, angle)
 
     test_angle, test_axis = ubcalc.get_miscut()
 
