@@ -511,14 +511,14 @@ def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation
     original_offset = (45.0, 45.0)
     scaling = np.random.random() * 100
 
-    vector = session1_ubcalc.calc_vector_wrt_hkl_and_offset(
+    vector = session1_ubcalc.get_hkl_from_polar_transform(
         reference_vector, *original_offset
     )
     scaled_vector = cast(
         Tuple[float, float, float], tuple(item * scaling for item in vector)
     )
 
-    calculated_offset = session1_ubcalc.calc_offset_wrt_vector_and_hkl(
+    calculated_offset = session1_ubcalc.get_polar_transform_from_hkl(
         scaled_vector, reference_vector
     )
 
@@ -526,61 +526,72 @@ def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation
 
 
 @pytest.mark.parametrize(
-    ["index_name", "coeffs", "expected_answer"],
+    ["index_name", "index_value", "coeffs"],
     [
         (
             "k",
+            0.0,
             (1.0, 0.0, 0.0, 0.25),
-            [(0.25, 0.0, -0.9682458365518541), (0.25, 0.0, 0.9682458365518541)],
         ),
         (
             "k",
+            0.1,
+            (0.0, 1.0, 1.0, 0.25),
+        ),
+        (
+            "k",
+            0.0,
             (0.0, 0.0, 1.0, 0.25),
-            [(-0.9682458365518541, 0.0, 0.25), (0.9682458365518541, 0.0, 0.25)],
         ),
         (
             "h",
+            0.15,
+            (1.0, 1.0, 0.0, 0.25),
+        ),
+        (
+            "h",
+            0.0,
             (0.0, 1.0, 0.0, 0.25),
-            [(0.0, 0.25, -0.9682458365518541), (0.0, 0.25, 0.9682458365518541)],
         ),
         (
             "h",
+            0.0,
             (0.0, 0.0, 1.0, 0.25),
-            [(0.0, -0.9682458365518541, 0.25), (0.0, 0.9682458365518541, 0.25)],
         ),
         (
             "l",
+            0.0,
             (1.0, 0.0, 0.0, 0.25),
-            [(0.25, -0.9682458365518541, 0.0), (0.25, 0.9682458365518541, 0.0)],
         ),
         (
             "l",
+            0.0,
             (0.0, 1.0, 0.0, 0.25),
-            [(-0.9682458365518541, 0.25, 0.0), (0.9682458365518541, 0.25, 0.0)],
+        ),
+        (
+            "l",
+            0.2,
+            (0.0, 1.0, 1.0, 0.25),
         ),
     ],
 )
 def test_solvers_for_h_k_and_l_fixed_q(
     session1_ubcalc: UBCalculation,
     index_name: Literal["h", "k", "l"],
+    index_value: float,
     coeffs: Tuple[float, float, float, float],
-    expected_answer: List[Tuple[float, float, float]],
 ):
     hkl = (0.0, 1.0, 0.0)
     session1_ubcalc.calc_ub()
-    qval = float(
-        np.linalg.norm(np.matmul(session1_ubcalc.UB, np.array([[*hkl]]).T)) ** 2
-    )
+    qval = float(np.linalg.norm(session1_ubcalc.UB @ np.array([[*hkl]]).T) ** 2)
     solutions = session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
-        index_name, 0.0, qval, *coeffs
+        index_name, index_value, qval, *coeffs
     )
 
-    assert np.all(
-        [
-            solutions[i] == pytest.approx(expected_answer[i])
-            for i in range(len(solutions))
-        ]
-    )
+    for sol in solutions:
+        sol_dict = dict(zip(("h", "k", "l"), sol))
+        assert sol_dict[index_name] == pytest.approx(index_value)
+        assert np.dot(sol, coeffs[:-1]) == pytest.approx(coeffs[-1])
 
 
 @pytest.mark.parametrize(

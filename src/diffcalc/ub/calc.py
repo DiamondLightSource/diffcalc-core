@@ -42,7 +42,7 @@ class ReferenceVector:
 
     Reference vector object is used to define orientations
     in reciprocal and laboratory coordinate systems e.g. to
-    represent an azimuthat direction or a surface normal.
+    represent an azimuthal direction or a surface normal.
 
     Attributes
     ----------
@@ -155,7 +155,7 @@ class UBCalculation:
 
     Attributes
     ----------
-    name: str, defalut = UUID
+    name: str, default = UUID
         Name for UB calculation. Default is to generate UUID value.
     crystal: Crystal
         Object containing crystal lattice parameters.
@@ -409,7 +409,7 @@ class UBCalculation:
         ('Cubic', a) -- sets Cubic system
         ('Tetragonal', a, c) -- sets Tetragonal system
         ('Hexagonal', a, c) -- sets Hexagonal system
-        ('Orthorhombic', a, b, c) -- sets Orthorombic system
+        ('Orthorhombic', a, b, c) -- sets Orthorhombic system
         ('Rhombohedral', a, alpha) -- sets Rhombohedral system
         ('Monoclinic', a, b, c, beta) -- sets Monoclinic system
         ('Triclinic', a, b, c, alpha, beta, gamma) -- sets Triclinic system
@@ -419,7 +419,7 @@ class UBCalculation:
 
         (a,) -- assumes Cubic system
         (a, c) -- assumes Tetragonal system
-        (a, b, c) -- assumes Orthorombic system
+        (a, b, c) -- assumes Orthorhombic system
         (a, b, c, angle) -- assumes Monoclinic system with beta not equal to 90 or
                             Hexagonal system if a = b and gamma = 120
         (a, b, c, alpha, beta, gamma) -- sets Triclinic system
@@ -1322,28 +1322,28 @@ class UBCalculation:
             new_U = rot_matrix
         self.set_u(new_U)
 
-    def calc_vector_wrt_hkl_and_offset(
+    def get_hkl_from_polar_transform(
         self, hkl: Tuple[float, float, float], pol: float, az: float
     ) -> Tuple[float, float, float]:
-        """Calculate vector(s) related to input vector by a polar and azimuthal angle.
+        """Calculate reciprocal vector coordinates after transformation.
 
         Parameters
         ----------
         hkl: Tuple[float, float, float]
             Reciprocal space vector
         pol: float
-            Polar angle
+            Polar angle in degrees
         az: float
-            Azimuthal angle
+            Azimuthal angle in degrees
 
         Returns
         -------
-        List[Tuple[float, float, float]]
-            vector with pol and az angle relation to the input vector.
+        Tuple[float, float, float]
+            Vector with pol and az angle relation to the input vector.
 
         """
         h, k, l = hkl
-        hkl_nphi = np.matmul(self.UB, np.array([[h], [k], [l]]))
+        hkl_nphi = self.UB @ np.array([[h], [k], [l]])
         hkl_nphi_along_axis = cross3(hkl_nphi, np.array([[0], [1], [0]]))
 
         if norm(hkl_nphi_along_axis) < SMALL:
@@ -1352,20 +1352,18 @@ class UBCalculation:
         rot_polar = xyz_rotation(hkl_nphi_along_axis.T.tolist()[0], np.radians(pol))
         rot_azimuthal = xyz_rotation(hkl_nphi.T.tolist()[0], np.radians(az))
 
-        hklrot_nphi = np.matmul(np.matmul(rot_azimuthal, rot_polar), hkl_nphi)
-        hklrot_transpose = np.transpose(np.linalg.inv(self.UB) @ hklrot_nphi)
+        hklrot_nhkl = np.linalg.inv(self.UB) @ rot_azimuthal @ rot_polar @ hkl_nphi
+        return cast(Tuple[float, float, float], tuple(hklrot_nhkl.T[0]))
 
-        return cast(Tuple[float, float, float], tuple(hklrot_transpose[0]))
-
-    def calc_offset_wrt_vector_and_hkl(
+    def get_polar_transform_from_hkl(
         self,
         hkl_offset: Tuple[float, float, float],
         hkl_ref: Tuple[float, float, float],
     ) -> Tuple[float, float, float]:
-        """Calculate offsets between two vectors in reciprocal space.
+        """Calculate rotation and scaling parameters between two reciprocal vectors.
 
-        In this context, the offset means the polar angle, azimuthal angle, and linear
-        scaling between the vectors.
+        In this context, the offset refers to a vector obtained by the transformation
+        of the reference vector.
 
         Parameters
         ----------
@@ -1377,7 +1375,7 @@ class UBCalculation:
         Returns
         -------
         Tuple[float, float, float]
-            polar angle, azimuthal angle and scaling factor between vectors.
+            Polar angle, azimuthal angle and scaling factor between vectors.
 
         """
         distance_ref = self.crystal.get_hkl_plane_distance(hkl_ref)
@@ -1427,12 +1425,12 @@ class UBCalculation:
         c: float,
         d: float,
     ) -> List[Tuple[float, float, float]]:
-        """Find valid hkl vectors for a fixed scattering angle and detector.
+        """Find valid hkl vectors for a fixed scattering vector magnitude.
 
-        This effectively solves for the intersection between an eliptoid and vector
-        at specific angles.
+        This effectively solves for the intersection between the Ewald sphere
+        and a plane in reciprocal space representing constrained hkl values.
 
-        Coefficients are used to constrain solutions as:
+        Coefficients are used to constrain [h, k, l] solutions as:
             a*h + b*k + c*l = d
 
         Useful for the case when the diffractometer detector is fixed.
