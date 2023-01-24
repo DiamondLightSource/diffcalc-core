@@ -592,6 +592,8 @@ def test_solvers_for_h_k_and_l_fixed_q(
         sol_dict = dict(zip(("h", "k", "l"), sol))
         assert sol_dict[index_name] == pytest.approx(index_value)
         assert np.dot(sol, coeffs[:-1]) == pytest.approx(coeffs[-1])
+        qval_sol = float(np.linalg.norm(session1_ubcalc.UB @ np.array([[*sol]]).T) ** 2)
+        assert qval == pytest.approx(qval_sol)
 
 
 @pytest.mark.parametrize(
