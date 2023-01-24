@@ -1116,7 +1116,7 @@ class UBCalculation:
             self.set_lattice(*lat)
         mc_angle, mc_axis = self.get_miscut_from_hkl(hkl, position)
         if mc_angle and refine_umatrix:
-            self.set_miscut(mc_axis, radians(mc_angle), True)
+            self.set_miscut(mc_axis, mc_angle, True)
 
     def fit_ub(
         self,
@@ -1277,7 +1277,7 @@ class UBCalculation:
         Returns
         -------
         Tuple[float, Tuple[float, float, float]]
-            The miscut angle and the corresponding miscut rotation axis.
+            The miscut angle in degrees and the corresponding miscut rotation axis.
         """
         q_vec = get_q_phi(pos)
         hkl_nphi = self.UB @ np.array([hkl]).T
@@ -1307,15 +1307,15 @@ class UBCalculation:
         xyz: Tuple[float, float, float]
             Rotation axis corresponding to the crystal miscut.
         angle: float
-            The miscut angle.
+            The miscut angle, in degrees.
         add_miscut: Optional[bool], default = False
             If False, set crystal miscut to the provided parameters.
             If True, apply provided miscut parameters to the existing settings.
         """
         if xyz is None:
-            rot_matrix = xyz_rotation((0, 1, 0), angle)
+            rot_matrix = xyz_rotation((0, 1, 0), radians(angle))
         else:
-            rot_matrix = xyz_rotation(xyz, angle)
+            rot_matrix = xyz_rotation(xyz, radians(angle))
         if self.U is not None and add_miscut:
             new_U = rot_matrix @ self.U
         else:
