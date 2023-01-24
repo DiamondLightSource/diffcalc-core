@@ -1272,7 +1272,7 @@ class UBCalculation:
         Returns
         -------
         Tuple[float, Tuple[float, float, float]]
-            The miscut angle and the corresponding miscut rotation axis.
+            The miscut angle in degrees and the corresponding miscut rotation axis.
         """
         q_vec = get_q_phi(pos)
         hkl_nphi = self.UB @ np.array([hkl]).T
