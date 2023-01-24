@@ -3,13 +3,14 @@
 import pickle
 from math import degrees, radians, sqrt
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, cast
 
 import numpy as np
 import pytest
 from diffcalc.hkl.geometry import Position
 from diffcalc.ub.calc import ReferenceVector, UBCalculation
 from diffcalc.util import DiffcalcException
+from typing_extensions import Literal
 
 from tests.diffcalc import scenarios
 
@@ -502,3 +503,154 @@ def test_get_miscut(ubcalc, axis, angle):
 
     assert degrees(test_angle) == pytest.approx(angle)
     assert np.all(np.round(test_axis.T, 4) == np.round(axis, 4))
+
+
+def test_calculations_between_vectors_and_offsets(session1_ubcalc: UBCalculation):
+    session1_ubcalc.calc_ub()
+    reference_vector = (0.0, 1.0, 0.0)
+    original_offset = (45.0, 45.0)
+    scaling = np.random.random() * 100
+
+    vector = session1_ubcalc.get_hkl_from_polar_transform(
+        reference_vector, *original_offset
+    )
+    scaled_vector = cast(
+        Tuple[float, float, float], tuple(item * scaling for item in vector)
+    )
+
+    calculated_offset = session1_ubcalc.get_polar_transform_from_hkl(
+        scaled_vector, reference_vector
+    )
+
+    assert calculated_offset == pytest.approx((*original_offset, scaling))
+
+
+@pytest.mark.parametrize(
+    ["index_name", "index_value", "coeffs"],
+    [
+        (
+            "k",
+            0.0,
+            (1.0, 0.0, 0.0, 0.25),
+        ),
+        (
+            "k",
+            0.1,
+            (0.0, 1.0, 1.0, 0.25),
+        ),
+        (
+            "k",
+            0.0,
+            (0.0, 0.0, 1.0, 0.25),
+        ),
+        (
+            "h",
+            0.15,
+            (1.0, 1.0, 0.0, 0.25),
+        ),
+        (
+            "h",
+            0.0,
+            (0.0, 1.0, 0.0, 0.25),
+        ),
+        (
+            "h",
+            0.0,
+            (0.0, 0.0, 1.0, 0.25),
+        ),
+        (
+            "l",
+            0.0,
+            (1.0, 0.0, 0.0, 0.25),
+        ),
+        (
+            "l",
+            0.0,
+            (0.0, 1.0, 0.0, 0.25),
+        ),
+        (
+            "l",
+            0.2,
+            (0.0, 1.0, 1.0, 0.25),
+        ),
+    ],
+)
+def test_solvers_for_h_k_and_l_fixed_q(
+    session1_ubcalc: UBCalculation,
+    index_name: Literal["h", "k", "l"],
+    index_value: float,
+    coeffs: Tuple[float, float, float, float],
+):
+    hkl = (0.0, 1.0, 0.0)
+    session1_ubcalc.calc_ub()
+    qval = float(np.linalg.norm(session1_ubcalc.UB @ np.array([[*hkl]]).T) ** 2)
+    solutions = session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+        index_name, index_value, qval, *coeffs
+    )
+
+    for sol in solutions:
+        sol_dict = dict(zip(("h", "k", "l"), sol))
+        assert sol_dict[index_name] == pytest.approx(index_value)
+        assert np.dot(sol, coeffs[:-1]) == pytest.approx(coeffs[-1])
+        qval_sol = float(np.linalg.norm(session1_ubcalc.UB @ np.array([[*sol]]).T) ** 2)
+        assert qval == pytest.approx(qval_sol)
+
+
+@pytest.mark.parametrize(
+    ["index_name", "coeffs"],
+    [
+        ("h", [0.0, 1.0, 0.0, 0.25]),
+        ("k", [1.0, 0.0, 0.0, 0.25]),
+        ("l", [1.0, 0.0, 0.0, 0.25]),
+    ],
+)
+def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_negative_discriminants(
+    session1_ubcalc: UBCalculation,
+    index_name: Literal["h", "k", "l"],
+    coeffs: List[float],
+):
+    session1_ubcalc.calc_ub()
+
+    try:
+        session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+            index_name, 0.0, 0.0, *coeffs
+        )
+    except DiffcalcException as error:
+        assert error.args[0] == "No real solutions with given constraints."
+        return
+
+    assert False
+
+
+@pytest.mark.parametrize(
+    ["index_name", "coeffs"],
+    [
+        ("h", [1.0, 0.0, 0.0, 0.25]),
+        ("k", [0.0, 1.0, 0.0, 0.25]),
+        ("l", [0.0, 0.0, 1.0, 0.25]),
+    ],
+)
+def test_solvers_for_h_k_and_l_fixed_q_throw_error_for_wrong_coefficients(
+    session1_ubcalc: UBCalculation,
+    index_name: Literal["h", "k", "l"],
+    coeffs: List[float],
+):
+    session1_ubcalc.calc_ub()
+
+    try:
+        session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+            index_name, 2.0, 30.0, *coeffs
+        )
+    except DiffcalcException as error:
+        assert error.args[0].startswith("At least one of ")
+
+
+def test_solve_for_hkl_given_fixed_index_and_q_fails_for_non_literal(
+    session1_ubcalc: UBCalculation,
+):
+    try:
+        session1_ubcalc.solve_for_hkl_given_fixed_index_and_q(
+            "a", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  # type: ignore
+        )
+    except DiffcalcException as error:
+        assert error.args[0] == "Provided index name must be one of {h, k, l}"

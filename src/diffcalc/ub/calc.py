@@ -10,7 +10,7 @@ import uuid
 from copy import deepcopy
 from itertools import product
 from math import acos, asin, cos, degrees, pi, radians, sin
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 from diffcalc.hkl.geometry import Position, get_q_phi, get_rotation_matrices
@@ -21,14 +21,19 @@ from diffcalc.util import (
     SMALL,
     DiffcalcException,
     allnum,
+    angle_between_vectors,
     bound,
     cross3,
     dot3,
     is_small,
+    solve_h_fixed_q,
+    solve_k_fixed_q,
+    solve_l_fixed_q,
     xyz_rotation,
     zero_round,
 )
 from numpy.linalg import inv, norm
+from typing_extensions import Literal
 
 
 @dataclasses.dataclass
@@ -37,7 +42,7 @@ class ReferenceVector:
 
     Reference vector object is used to define orientations
     in reciprocal and laboratory coordinate systems e.g. to
-    represent an azimuthat direction or a surface normal.
+    represent an azimuthal direction or a surface normal.
 
     Attributes
     ----------
@@ -150,7 +155,7 @@ class UBCalculation:
 
     Attributes
     ----------
-    name: str, defalut = UUID
+    name: str, default = UUID
         Name for UB calculation. Default is to generate UUID value.
     crystal: Crystal
         Object containing crystal lattice parameters.
@@ -404,7 +409,7 @@ class UBCalculation:
         ('Cubic', a) -- sets Cubic system
         ('Tetragonal', a, c) -- sets Tetragonal system
         ('Hexagonal', a, c) -- sets Hexagonal system
-        ('Orthorhombic', a, b, c) -- sets Orthorombic system
+        ('Orthorhombic', a, b, c) -- sets Orthorhombic system
         ('Rhombohedral', a, alpha) -- sets Rhombohedral system
         ('Monoclinic', a, b, c, beta) -- sets Monoclinic system
         ('Triclinic', a, b, c, alpha, beta, gamma) -- sets Triclinic system
@@ -414,7 +419,7 @@ class UBCalculation:
 
         (a,) -- assumes Cubic system
         (a, c) -- assumes Tetragonal system
-        (a, b, c) -- assumes Orthorombic system
+        (a, b, c) -- assumes Orthorhombic system
         (a, b, c, angle) -- assumes Monoclinic system with beta not equal to 90 or
                             Hexagonal system if a = b and gamma = 120
         (a, b, c, alpha, beta, gamma) -- sets Triclinic system
@@ -1316,6 +1321,162 @@ class UBCalculation:
         else:
             new_U = rot_matrix
         self.set_u(new_U)
+
+    def get_hkl_from_polar_transform(
+        self, hkl: Tuple[float, float, float], pol: float, az: float
+    ) -> Tuple[float, float, float]:
+        """Calculate reciprocal vector coordinates after transformation.
+
+        Parameters
+        ----------
+        hkl: Tuple[float, float, float]
+            Reciprocal space vector
+        pol: float
+            Polar angle in degrees
+        az: float
+            Azimuthal angle in degrees
+
+        Returns
+        -------
+        Tuple[float, float, float]
+            Vector with pol and az angle relation to the input vector.
+
+        """
+        h, k, l = hkl
+        hkl_nphi = self.UB @ np.array([[h], [k], [l]])
+        hkl_nphi_along_axis = cross3(hkl_nphi, np.array([[0], [1], [0]]))
+
+        if norm(hkl_nphi_along_axis) < SMALL:
+            hkl_nphi_along_axis = cross3(hkl_nphi, np.array([[0], [0], [1]]))
+
+        rot_polar = xyz_rotation(hkl_nphi_along_axis.T.tolist()[0], np.radians(pol))
+        rot_azimuthal = xyz_rotation(hkl_nphi.T.tolist()[0], np.radians(az))
+
+        hklrot_nhkl = np.linalg.inv(self.UB) @ rot_azimuthal @ rot_polar @ hkl_nphi
+        return cast(Tuple[float, float, float], tuple(hklrot_nhkl.T[0]))
+
+    def get_polar_transform_from_hkl(
+        self,
+        hkl_offset: Tuple[float, float, float],
+        hkl_ref: Tuple[float, float, float],
+    ) -> Tuple[float, float, float]:
+        """Calculate rotation and scaling parameters between two reciprocal vectors.
+
+        In this context, the offset refers to a vector obtained by the transformation
+        of the reference vector.
+
+        Parameters
+        ----------
+        hkl_offset: Tuple[float, float, float]
+            Reciprocal space offset vector
+        hkl_ref: Tuple[float, float, float]
+            Reciprocal space reference vector
+
+        Returns
+        -------
+        Tuple[float, float, float]
+            Polar angle, azimuthal angle and scaling factor between vectors.
+
+        """
+        distance_ref = self.crystal.get_hkl_plane_distance(hkl_ref)
+        distance_offset = self.crystal.get_hkl_plane_distance(hkl_offset)
+
+        hkl_ref_nphi = self.UB @ np.array([[*hkl_ref]]).T
+        hkl_offset_nphi = self.UB @ np.array([[*hkl_offset]]).T
+
+        scaling = distance_ref / distance_offset
+
+        area_reference_offset = cross3(hkl_ref_nphi, hkl_offset_nphi)
+        hkl_ref_along_axis = cross3(hkl_ref_nphi, np.array([[0], [1], [0]]))
+
+        if np.linalg.norm(area_reference_offset) < SMALL:
+            return 0, float("nan"), scaling
+        if np.linalg.norm(hkl_ref_along_axis) < SMALL:
+            hkl_ref_along_axis = cross3(hkl_ref_nphi, np.array([[0], [0], [1]]))
+
+        hkl_ref_along_perp_axis = cross3(hkl_ref_along_axis, hkl_ref_nphi)
+
+        hkl_offset_along_axis = np.cos(
+            np.radians(angle_between_vectors(hkl_offset_nphi, hkl_ref_along_axis))
+        )
+        hkl_offset_along_perp_axis = np.cos(
+            np.radians(angle_between_vectors(hkl_offset_nphi, hkl_ref_along_perp_axis))
+        )
+
+        polar_angle = angle_between_vectors(hkl_ref_nphi, hkl_offset_nphi)
+
+        azimuthal_angle = np.degrees(
+            np.arctan2(hkl_offset_along_axis, hkl_offset_along_perp_axis)
+            if (
+                (abs(hkl_offset_along_perp_axis) > SMALL)
+                and (abs(hkl_offset_along_axis) > SMALL)
+            )
+            else 0
+        )
+        return polar_angle, azimuthal_angle, scaling
+
+    def solve_for_hkl_given_fixed_index_and_q(
+        self,
+        index_name: Literal["h", "k", "l"],
+        index_value: float,
+        q_value: float,
+        a: float,
+        b: float,
+        c: float,
+        d: float,
+    ) -> List[Tuple[float, float, float]]:
+        """Find valid hkl vectors for a fixed scattering vector magnitude.
+
+        This effectively solves for the intersection between the Ewald sphere
+        and a plane in reciprocal space representing constrained hkl values.
+
+        Coefficients are used to constrain [h, k, l] solutions as:
+            a*h + b*k + c*l = d
+
+        Useful for the case when the diffractometer detector is fixed.
+
+        Parameters
+        ----------
+        index_name: Literal["h", "k", "l"]
+            One of the miller indices
+        index_value: float
+            Value of that miller index
+        q_value: float
+            Equivalent to np.linalg.norm(q_vector) ** 2, where q_vector is the
+            scattering vector. This represents the distance in reciprocal space between
+            incident and reflected beams on the sample.
+        a: float
+            coefficient necessary to constrain solutions
+        b: float
+            coefficient necessary to constrain solutions
+        c: float
+            coefficient necessary to constrain solutions
+        d: float
+            coefficient necessary to constrain solutions
+
+
+        Returns
+        -------
+        List[Tuple[float, float, float]]
+            List of valid hkl indices
+
+        Raises
+        ------
+        DiffcalcException
+            If no solution found with provided constraints.
+        """
+        solvers: Dict[
+            str,
+            Callable[
+                [float, float, np.ndarray, float, float, float, float],
+                List[Tuple[float, float, float]],
+            ],
+        ] = {"h": solve_h_fixed_q, "k": solve_k_fixed_q, "l": solve_l_fixed_q}
+
+        if solvers.get(index_name) is not None:
+            return solvers[index_name](index_value, q_value, self.UB, a, b, c, d)
+
+        raise DiffcalcException("Provided index name must be one of {h, k, l}")
 
     def get_ttheta_from_hkl(self, hkl: Tuple[float, float, float], en: float) -> float:
         """Calculate two-theta scattering angle for a reflection.
