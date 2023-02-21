@@ -321,7 +321,7 @@ class UBCalculation:
         lines = []
         fmt = "% 9.5f % 9.5f % 9.5f"
         rotation_angle, rotation_axis = self.get_miscut()
-        angle = 0 if is_small(rotation_angle) else degrees(rotation_angle)
+        angle = 0 if is_small(rotation_angle) else rotation_angle
         axis = tuple(0 if is_small(x) else x for x in rotation_axis.T.tolist()[0])
         if abs(norm(rotation_axis)) < SMALL:
             lines.append("   miscut angle:".ljust(self._WIDTH) + "  0")
@@ -1244,7 +1244,7 @@ class UBCalculation:
         Returns
         -------
         Tuple[float, np.ndarray]
-            Miscut angle and miscut axis as (3,1) NumPy array.
+            Miscut angle in degrees and miscut axis as (3,1) NumPy array.
         """
         surf_rot = self.U @ self.surf_nphi
         rotation_axis = cross3(self.surf_nphi, surf_rot)
@@ -1257,7 +1257,7 @@ class UBCalculation:
                 float(dot3(self.surf_nphi, surf_rot) / norm(surf_rot))
             )
             rotation_angle = acos(cos_rotation_angle)
-        return rotation_angle, rotation_axis
+        return degrees(rotation_angle), rotation_axis
 
     def get_miscut_from_hkl(
         self, hkl: Tuple[float, float, float], pos: Position
