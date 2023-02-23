@@ -1,7 +1,7 @@
 """Test the UBCalculation and ReferenceVector objects."""
 
 import pickle
-from math import degrees, radians, sqrt
+from math import radians, sqrt
 from pathlib import Path
 from typing import List, Tuple, cast
 
@@ -501,7 +501,7 @@ def test_get_miscut(ubcalc, axis, angle):
 
     test_angle, test_axis = ubcalc.get_miscut()
 
-    assert degrees(test_angle) == pytest.approx(angle)
+    assert test_angle == pytest.approx(angle)
     assert np.all(np.round(test_axis.T, 4) == np.round(axis, 4))
 
 
