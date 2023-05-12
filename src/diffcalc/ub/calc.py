@@ -32,7 +32,7 @@ from diffcalc.util import (
     xyz_rotation,
     zero_round,
 )
-from numpy.linalg import inv, norm
+from numpy.linalg import det, inv, norm
 from typing_extensions import Literal
 
 
@@ -287,49 +287,54 @@ class UBCalculation:
 
     def __str_lines_u(self) -> List[str]:
         lines: List[str] = []
-        fmt = "% 9.5f % 9.5f % 9.5f"
-        lines.append(
-            "   U matrix:".ljust(self._WIDTH)
-            + fmt
-            % (
-                zero_round(self.U[0, 0]),
-                zero_round(self.U[0, 1]),
-                zero_round(self.U[0, 2]),
+        if self.U is not None:
+            fmt = "% 9.5f % 9.5f % 9.5f"
+            lines.append(
+                "   U matrix:".ljust(self._WIDTH)
+                + fmt
+                % (
+                    zero_round(self.U[0, 0]),
+                    zero_round(self.U[0, 1]),
+                    zero_round(self.U[0, 2]),
+                )
             )
-        )
-        lines.append(
-            " " * self._WIDTH
-            + fmt
-            % (
-                zero_round(self.U[1, 0]),
-                zero_round(self.U[1, 1]),
-                zero_round(self.U[1, 2]),
+            lines.append(
+                " " * self._WIDTH
+                + fmt
+                % (
+                    zero_round(self.U[1, 0]),
+                    zero_round(self.U[1, 1]),
+                    zero_round(self.U[1, 2]),
+                )
             )
-        )
-        lines.append(
-            " " * self._WIDTH
-            + fmt
-            % (
-                zero_round(self.U[2, 0]),
-                zero_round(self.U[2, 1]),
-                zero_round(self.U[2, 2]),
+            lines.append(
+                " " * self._WIDTH
+                + fmt
+                % (
+                    zero_round(self.U[2, 0]),
+                    zero_round(self.U[2, 1]),
+                    zero_round(self.U[2, 2]),
+                )
             )
-        )
+        else:
+            lines.append("   U matrix: <<< none calculated >>>")
         return lines
 
     def __str_lines_ub_angle_and_axis(self) -> List[str]:
         lines = []
-        fmt = "% 9.5f % 9.5f % 9.5f"
-        rotation_angle, rotation_axis = self.get_miscut()
-        angle = 0 if is_small(rotation_angle) else rotation_angle
-        axis = tuple(0 if is_small(x) else x for x in rotation_axis.T.tolist()[0])
-        if abs(norm(rotation_axis)) < SMALL:
-            lines.append("   miscut angle:".ljust(self._WIDTH) + "  0")
+        if self.U is not None:
+            fmt = "% 9.5f % 9.5f % 9.5f"
+            rotation_angle, rotation_axis = self.get_miscut()
+            angle = 0 if is_small(rotation_angle) else rotation_angle
+            axis = tuple(0 if is_small(x) else x for x in rotation_axis.T.tolist()[0])
+            if abs(norm(rotation_axis)) < SMALL:
+                lines.append("   miscut angle:".ljust(self._WIDTH) + "  0")
+            else:
+                lines.append("   miscut:")
+                lines.append("      angle:".ljust(self._WIDTH) + f"{angle:9.5f}")
+                lines.append("       axis:".ljust(self._WIDTH) + fmt % axis)
         else:
-            lines.append("   miscut:")
-            lines.append("      angle:".ljust(self._WIDTH) + f"{angle:9.5f}")
-            lines.append("       axis:".ljust(self._WIDTH) + fmt % axis)
-
+            lines.append("   miscut: <<< none calculated >>>")
         return lines
 
     def __str_lines_ub(self) -> List[str]:
@@ -838,7 +843,7 @@ class UBCalculation:
         else:
             print("Recalculating UB matrix.")
 
-        self.U = m
+        self.U = m / np.cbrt(det(m))
         if self.crystal is not None:
             self.UB = self.U @ self.crystal.B
 
@@ -875,6 +880,10 @@ class UBCalculation:
             raise TypeError("set_ub expects (3, 3) NumPy matrix.")
 
         self.UB = m
+        if self.crystal is not None:
+            U_matrix = m @ inv(self.crystal.B)
+            self.U = U_matrix / np.cbrt(det(U_matrix))
+            self.UB = self.U @ self.crystal.B
 
     def _calc_ub_from_two_references(self, ref1, ref2):
         h1 = np.array([[ref1.h, ref1.k, ref1.l]]).T  # row->column

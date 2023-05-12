@@ -1,0 +1,35 @@
+UBCALC
+
+   name:     test_none_crystal
+
+REFERNCE
+
+   n_hkl:      0.00000   0.00000   1.00000
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+SURFACE NORMAL
+
+   n_hkl:      0.00000   0.00000   1.00000
+   n_phi:      0.00000   0.00000   1.00000 <- set
+
+CRYSTAL
+
+   <<< none specified >>>
+
+UB MATRIX
+
+   U matrix: <<< none calculated >>>
+
+   miscut: <<< none calculated >>>
+
+   UB matrix:  1.00000   0.00000   0.00000
+               0.00000   1.00000   0.00000
+               0.00000   0.00000   1.00000
+
+REFLECTIONS
+
+   <<< none specified >>>
+
+CRYSTAL ORIENTATIONS
+
+   <<< none specified >>>

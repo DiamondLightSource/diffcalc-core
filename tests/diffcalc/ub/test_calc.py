@@ -1,7 +1,7 @@
 """Test the UBCalculation and ReferenceVector objects."""
 
 import pickle
-from math import radians, sqrt
+from math import pi, radians, sqrt
 from pathlib import Path
 from typing import List, Tuple, cast
 
@@ -52,6 +52,27 @@ class TestStrings:
         self.ubcalc.set_miscut(None, 0.0)
 
         assert str(self.ubcalc) == self.retrieve_expected_string("unitary_UB")
+
+    def test_str_none_crystal(self):
+        self.create("test_none_crystal")
+
+        self.ubcalc.n_phi = (0, 0, 1)
+        self.ubcalc.surf_nphi = (0, 0, 1)
+        self.ubcalc.set_ub([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+
+        assert str(self.ubcalc) == self.retrieve_expected_string("none_crystal")
+
+    def test_str_set_UB_unity(self):
+        self.create("test_str_set_UB_unity")
+
+        self.ubcalc.n_phi = (0, 0, 1)
+        self.ubcalc.surf_nphi = (0, 0, 1)
+        self.ubcalc.set_lattice("xtal", "Cubic", 1)
+        self.ubcalc.set_ub(
+            [[2.0 * pi, 0.0, 0.0], [0.0, 2.0 * pi, 0.0], [0.0, 0.0, 2.0 * pi]]
+        )
+
+        assert str(self.ubcalc) == self.retrieve_expected_string("set_unitary_UB")
 
     def test_str_refl_orient_UB(self):
         self.create("test_str")
