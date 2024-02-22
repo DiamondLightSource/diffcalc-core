@@ -12,11 +12,8 @@ diffcalc-core
 .. image:: https://codecov.io/gh/DiamondLightSource/diffcalc-core/branch/main/graph/badge.svg?token=I9LINSTT0N
         :target: https://codecov.io/gh/DiamondLightSource/diffcalc-core
 
-.. image:: https://img.shields.io/lgtm/alerts/g/DiamondLightSource/diffcalc-core.svg?logo=lgtm&logoWidth=18
-        :target: https://lgtm.com/projects/g/DiamondLightSource/diffcalc-core/alerts/
-
-.. image:: https://img.shields.io/lgtm/grade/python/g/DiamondLightSource/diffcalc-core.svg?logo=lgtm&logoWidth=18
-        :target: https://lgtm.com/projects/g/DiamondLightSource/diffcalc-core/context:python
+.. image:: https://github.com/DiamondLightSource/diffcalc-core/actions/workflows/codeql.yml/badge.svg
+        :target: https://github.com/DiamondLightSource/diffcalc-core/actions/workflows/codeql.yml
 
 .. image:: https://readthedocs.org/projects/diffcalc-core/badge/?version=latest
         :target: https://diffcalc-core.readthedocs.io/en/latest/?version=latest
